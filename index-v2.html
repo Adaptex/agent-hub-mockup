@@ -1,0 +1,1371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Cultivar — v2</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Spectral:ital,wght@0,400;1,400&display=swap"
+    rel="stylesheet"
+  />
+  <style>
+    :root {
+      --bg: #181412;
+      --bg-deep: #120e0c;
+      --bg-soft: #1d1814;
+      --rule: #2a221d;
+      --rule-strong: #3d3128;
+      --text: #e8dfd0;
+      --text-soft: #a89888;
+      --text-faint: #786a5c;
+      --accent: #c9a86a;
+
+      --color-designer: #b9a7d9;
+      --color-creative: #c9a86a;
+      --color-frontend: #a8b9a7;
+      --color-qa:       #d99a7a;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    body {
+      padding: 48px 64px 80px;
+      background-image:
+        radial-gradient(ellipse 80% 50% at 50% 0%,    rgba(201, 168, 106, 0.06), transparent 70%),
+        radial-gradient(ellipse 60% 40% at 80% 90%,   rgba(185, 167, 217, 0.03), transparent 60%),
+        radial-gradient(ellipse 60% 40% at 10% 90%,   rgba(168, 185, 167, 0.025), transparent 60%);
+    }
+
+    /* ===== Masthead ===== */
+    .masthead {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      padding-bottom: 28px;
+      border-bottom: 1px solid var(--rule);
+      margin-bottom: 48px;
+      gap: 32px;
+    }
+    .masthead-left { display: flex; flex-direction: column; gap: 12px; }
+    .eyebrow {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px; font-weight: 500;
+      letter-spacing: 0.28em; text-transform: uppercase;
+      color: var(--text-faint);
+      display: flex; align-items: center; gap: 10px;
+    }
+    .eyebrow::before {
+      content: ''; width: 2px; height: 12px;
+      background: var(--accent); opacity: 0.5;
+    }
+    .title {
+      font-family: 'Spectral', serif;
+      font-style: italic; font-weight: 400;
+      font-size: 42px; line-height: 1;
+      letter-spacing: -0.02em;
+    }
+    .subtitle {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10.5px; letter-spacing: 0.2em;
+      text-transform: uppercase; color: var(--text-soft);
+    }
+    .subtitle .dot {
+      display: inline-block; width: 3px; height: 3px;
+      border-radius: 50%; background: var(--text-faint);
+      margin: 0 10px; vertical-align: middle;
+    }
+
+    .masthead-right {
+      display: flex; align-items: center; gap: 14px;
+      flex-shrink: 0;
+    }
+    .view-toggle {
+      display: inline-flex;
+      border: 1px solid var(--rule);
+      border-radius: 999px;
+      padding: 2px;
+      background: var(--bg-deep);
+    }
+    .view-toggle button {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px; font-weight: 500;
+      letter-spacing: 0.22em; text-transform: uppercase;
+      color: var(--text-faint);
+      background: transparent;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: all 0.25s ease;
+    }
+    .view-toggle button.current {
+      color: var(--text);
+      background: var(--bg-soft);
+      box-shadow: inset 0 0 0 1px var(--rule-strong);
+    }
+    .plant-btn {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px; font-weight: 500;
+      letter-spacing: 0.24em; text-transform: uppercase;
+      color: var(--accent);
+      border: 1px solid rgba(201, 168, 106, 0.3);
+      padding: 9px 18px; border-radius: 999px;
+      background: transparent; cursor: pointer;
+      transition: all 0.25s ease;
+    }
+    .plant-btn:hover {
+      background: rgba(201, 168, 106, 0.08);
+      border-color: var(--accent);
+    }
+
+    /* ===== Views ===== */
+    .view { display: none; }
+    .view.active { display: block; }
+
+    /* ===== Garden grid ===== */
+    .garden {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+
+    /* ===== Plot ===== */
+    .plot {
+      position: relative;
+      background: linear-gradient(180deg, #1f1a16 0%, #1a1612 60%, #15110e 100%);
+      border-radius: 18px;
+      border: 1px solid var(--rule);
+      padding: 26px 22px 22px;
+      cursor: pointer;
+      transition: transform 0.35s ease, border-color 0.3s ease, box-shadow 0.4s ease;
+      overflow: hidden;
+      isolation: isolate;
+    }
+    .plot:hover {
+      transform: translateY(-3px);
+      border-color: var(--rule-strong);
+      box-shadow: 0 24px 60px -30px rgba(0, 0, 0, 0.7);
+    }
+
+    /* Directional key light (FD move #1) */
+    .plot .keylight {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(
+        ellipse 70% 50% at 30% 15%,
+        currentColor 0%,
+        transparent 65%
+      );
+      opacity: 0.08;
+      mix-blend-mode: screen;
+      pointer-events: none;
+      transition: opacity 0.4s ease;
+      z-index: 1;
+    }
+    .plot:hover .keylight { opacity: 0.14; }
+
+    /* Soil horizon (CD: "a horizon, not a card") */
+    .plot .horizon {
+      position: absolute;
+      left: 0; right: 0;
+      bottom: 90px;
+      height: 24px;
+      background: linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.35) 100%);
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    /* Working state — embodied glow (not just border chrome) */
+    .plot.working .keylight {
+      opacity: 0.18;
+      animation: working-light 3s ease-in-out infinite;
+    }
+    @keyframes working-light {
+      0%, 100% { opacity: 0.14; }
+      50%      { opacity: 0.28; }
+    }
+
+    /* per-agent accent color */
+    .plot[data-agent='designer']  { color: var(--color-designer); }
+    .plot[data-agent='creative']  { color: var(--color-creative); }
+    .plot[data-agent='frontend']  { color: var(--color-frontend); }
+    .plot[data-agent='qa']        { color: var(--color-qa); }
+
+    /* ===== Specimen SVG ===== */
+    .specimen {
+      width: 100%;
+      aspect-ratio: 1;
+      margin-bottom: 18px;
+      display: block;
+      overflow: visible;
+      position: relative;
+      z-index: 2;
+    }
+
+    /* Two-layer sway with per-plot seed (CD's "phase-offset sway") */
+    .form-stem {
+      transform-origin: 50% 92%;
+      animation: sway-stem 11s ease-in-out infinite;
+      animation-delay: var(--sway-delay, 0s);
+      transition: translate 0.6s ease;
+    }
+    .form-blooms {
+      transform-origin: 50% 50%;
+      animation: sway-blooms 7s ease-in-out infinite;
+      animation-delay: calc(var(--sway-delay, 0s) * -1);
+      transition: translate 0.6s ease;
+    }
+    @keyframes sway-stem {
+      0%, 100% { transform: rotate(-1.4deg); }
+      50%      { transform: rotate(1.4deg); }
+    }
+    @keyframes sway-blooms {
+      0%, 100% { transform: rotate(0.8deg); }
+      50%      { transform: rotate(-0.8deg); }
+    }
+    .form-stem.fast { animation-duration: 7s; }
+    .form-blooms.fast { animation-duration: 4.5s; }
+
+    /* Bloom volumetrics (FD move #4) */
+    .bloom { transform-origin: center; }
+    .bloom .halo {
+      filter: blur(1.6px);
+      opacity: 0.35;
+    }
+    .bloom .core   { opacity: 0.95; }
+    .bloom .glint  { opacity: 0.5; }
+
+    .bloom.breathing {
+      animation: breathe 4s ease-in-out infinite;
+      animation-delay: var(--breathe-delay, 0s);
+    }
+    @keyframes breathe {
+      0%, 100% { transform: scale(1); }
+      50%      { transform: scale(1.08); }
+    }
+
+    /* Soil contact shadow (FD move #2) */
+    .soil-shadow {
+      filter: blur(2.5px);
+    }
+
+    /* Thorn — sharp small triangle pointing inward+down */
+    .thorn { fill: currentColor; opacity: 0.7; }
+
+    /* Fruit — small filled drop, with subtle highlight */
+    .fruit-body { opacity: 0.75; }
+    .fruit-glint { opacity: 0.55; }
+
+    /* Leaf — almond path */
+    .leaf { opacity: 0.55; fill: currentColor; }
+
+    /* Tendril — dashed in-flight */
+    .tendril {
+      stroke-dasharray: 2 2;
+      opacity: 0.6;
+      animation: tendril-drift 6s linear infinite;
+    }
+    @keyframes tendril-drift {
+      0% { stroke-dashoffset: 0; }
+      100% { stroke-dashoffset: -8; }
+    }
+
+    /* ===== Plot meta ===== */
+    .plot-meta-block { position: relative; z-index: 2; }
+    .plot-name {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px; font-weight: 500;
+      letter-spacing: 0.18em; text-transform: uppercase;
+      color: var(--text); margin-bottom: 5px;
+    }
+    .plot-meta {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px; letter-spacing: 0.06em;
+      color: var(--text-faint); line-height: 1.5;
+    }
+    .plot-status {
+      margin-top: 12px; padding-top: 10px;
+      border-top: 1px solid var(--rule);
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px; font-weight: 500;
+      letter-spacing: 0.18em; text-transform: uppercase;
+      color: var(--text-faint);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .plot.working .plot-status { color: currentColor; }
+    .status-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: currentColor; opacity: 0.35;
+    }
+    .plot.working .status-dot {
+      opacity: 1;
+      animation: pulse-dot 1.6s ease-in-out infinite;
+    }
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 0.5; }
+      50%      { opacity: 1; }
+    }
+
+    /* ===== Empty plots (dimmed harder per CD) ===== */
+    .plot.empty {
+      background: transparent;
+      border-style: dashed;
+      border-color: var(--rule);
+      opacity: 0.45;
+      cursor: cell;
+    }
+    .plot.empty:hover {
+      opacity: 0.85;
+      border-color: rgba(201, 168, 106, 0.4);
+      transform: none;
+      box-shadow: none;
+    }
+    .empty-marker {
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      aspect-ratio: 1; margin-bottom: 22px;
+    }
+    .empty-marker svg {
+      width: 28px; height: 28px;
+      color: var(--text-faint);
+      opacity: 0.5;
+    }
+    .empty-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px; letter-spacing: 0.18em;
+      text-transform: uppercase; color: var(--text-faint);
+      text-align: center;
+    }
+
+    /* ===== Detail view ===== */
+    .detail-back {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px; letter-spacing: 0.22em;
+      text-transform: uppercase; color: var(--text-faint);
+      background: transparent; border: none; cursor: pointer;
+      padding: 0; margin-bottom: 24px;
+      transition: color 0.2s;
+    }
+    .detail-back:hover { color: var(--text); }
+
+    .detail-grid {
+      display: grid;
+      grid-template-columns: 1.3fr 1fr;
+      gap: 48px;
+      align-items: start;
+    }
+
+    /* Big specimen */
+    .detail-specimen-wrap {
+      position: relative;
+      background: linear-gradient(180deg, #1f1a16 0%, #1a1612 60%, #15110e 100%);
+      border: 1px solid var(--rule);
+      border-radius: 22px;
+      padding: 48px 40px 40px;
+      overflow: hidden;
+      isolation: isolate;
+      color: var(--color-frontend);
+      min-height: 580px;
+    }
+    .detail-specimen-wrap .keylight {
+      position: absolute; inset: 0;
+      background: radial-gradient(
+        ellipse 60% 45% at 30% 15%,
+        currentColor 0%,
+        transparent 65%
+      );
+      opacity: 0.12;
+      mix-blend-mode: screen;
+      pointer-events: none;
+    }
+    .detail-specimen-wrap .horizon {
+      position: absolute;
+      left: 0; right: 0;
+      bottom: 60px;
+      height: 28px;
+      background: linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.45) 100%);
+      pointer-events: none;
+    }
+    .detail-specimen-wrap .ambient-line {
+      position: absolute;
+      bottom: 87px;
+      left: 8%; right: 8%;
+      height: 1px;
+      background: linear-gradient(90deg,
+        transparent, var(--rule-strong) 30%, var(--rule-strong) 70%, transparent);
+      opacity: 0.5;
+    }
+    .detail-specimen-wrap .roots-label {
+      position: absolute;
+      bottom: 32px;
+      left: 0; right: 0;
+      text-align: center;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 9px; letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: var(--text-faint);
+      opacity: 0.5;
+      z-index: 2;
+    }
+
+    .detail-specimen {
+      width: 100%;
+      height: 420px;
+      display: block;
+      overflow: visible;
+      position: relative;
+      z-index: 2;
+    }
+    .detail-eyebrow {
+      position: absolute;
+      top: 24px; left: 28px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 9px; letter-spacing: 0.3em;
+      text-transform: uppercase; color: var(--text-faint);
+      z-index: 2;
+    }
+    .detail-eyebrow .agent-name {
+      color: var(--text);
+      margin-left: 12px;
+    }
+    .detail-eyebrow .agent-stats {
+      color: var(--text-faint);
+      margin-left: 12px;
+    }
+
+    /* Clickable learning parts */
+    .learning-part {
+      cursor: pointer;
+      transform-origin: center;
+      transform-box: fill-box;
+      transition: transform 0.25s ease, opacity 0.3s ease, filter 0.3s ease;
+    }
+    .learning-part:hover {
+      transform: scale(1.25);
+    }
+    .learning-part:hover .label-pop {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .learning-part .label-pop {
+      opacity: 0;
+      transform: translateY(4px);
+      transition: opacity 0.2s ease, transform 0.2s ease;
+      pointer-events: none;
+    }
+    .learning-part.selected {
+      transform: scale(1.4);
+      filter: drop-shadow(0 0 14px currentColor);
+    }
+    .detail-specimen.has-selection .learning-part:not(.selected) {
+      opacity: 0.28;
+    }
+
+    /* Detail panel — sticky */
+    .detail-panel {
+      position: sticky;
+      top: 32px;
+      display: flex;
+      flex-direction: column;
+      min-height: 580px;
+    }
+    .panel-empty {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 32px 0;
+    }
+    .panel-empty .hint-eyebrow {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px; letter-spacing: 0.28em;
+      text-transform: uppercase; color: var(--text-faint);
+      margin-bottom: 16px;
+    }
+    .panel-empty .hint-title {
+      font-family: 'Spectral', serif;
+      font-style: italic;
+      font-size: 28px; line-height: 1.2;
+      color: var(--text-soft);
+      max-width: 320px;
+    }
+    .panel-empty .legend {
+      margin-top: 36px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .legend-row {
+      display: flex; align-items: center; gap: 12px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10.5px; letter-spacing: 0.14em;
+      text-transform: uppercase; color: var(--text-soft);
+    }
+    .legend-glyph {
+      width: 22px; height: 22px;
+      display: inline-flex; align-items: center; justify-content: center;
+      color: var(--color-frontend);
+    }
+
+    .panel-card {
+      background: var(--bg-soft);
+      border: 1px solid var(--rule);
+      border-radius: 18px;
+      padding: 28px;
+      display: none;
+    }
+    .panel-card.active { display: block; }
+    .panel-card .card-eyebrow {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px; letter-spacing: 0.28em;
+      text-transform: uppercase; color: var(--text-faint);
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 20px;
+    }
+    .panel-card .card-eyebrow .type {
+      color: var(--color-frontend);
+    }
+    .panel-card .quote {
+      font-family: 'Spectral', serif;
+      font-style: italic;
+      font-size: 22px; line-height: 1.35;
+      color: var(--text);
+      margin-bottom: 24px;
+      padding-left: 14px;
+      border-left: 2px solid var(--color-frontend);
+    }
+    .panel-card .meta-grid {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 10px 24px;
+      margin-bottom: 24px;
+    }
+    .panel-card .meta-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px; letter-spacing: 0.22em;
+      text-transform: uppercase; color: var(--text-faint);
+    }
+    .panel-card .meta-value {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      color: var(--text-soft);
+    }
+    .panel-card .actions {
+      display: flex; gap: 12px;
+      padding-top: 18px;
+      border-top: 1px solid var(--rule);
+    }
+    .panel-card .actions button {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px; font-weight: 500;
+      letter-spacing: 0.2em; text-transform: uppercase;
+      color: var(--text-soft);
+      background: transparent;
+      border: 1px solid var(--rule-strong);
+      padding: 8px 14px; border-radius: 999px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .panel-card .actions button:hover {
+      color: var(--text);
+      border-color: var(--text-soft);
+    }
+    .panel-card .actions button.danger:hover {
+      color: var(--color-qa);
+      border-color: var(--color-qa);
+    }
+
+    /* ===== Growth log ===== */
+    .growth-log {
+      margin-top: 64px;
+      padding-top: 32px;
+      border-top: 1px solid var(--rule);
+    }
+    .growth-log-title {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px; letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: var(--text-faint);
+      margin-bottom: 22px;
+    }
+    .log-rows {
+      display: flex; flex-direction: column;
+    }
+    .log-row {
+      display: grid;
+      grid-template-columns: 90px 110px 1fr;
+      gap: 24px;
+      padding: 12px 0;
+      border-top: 1px solid var(--rule);
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      cursor: pointer;
+      transition: background 0.2s, padding 0.2s;
+    }
+    .log-row:hover {
+      background: rgba(255,255,255,0.015);
+      padding-left: 12px;
+    }
+    .log-time { color: var(--text-faint); }
+    .log-type {
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      font-size: 10px;
+    }
+    .log-type.bloom { color: var(--color-creative); }
+    .log-type.leaf { color: var(--text-soft); }
+    .log-type.thorn { color: var(--color-qa); }
+    .log-type.fruit { color: var(--color-frontend); }
+    .log-type.tendril { color: var(--text-faint); }
+    .log-text { color: var(--text); font-family: 'Inter', sans-serif; font-size: 13px; }
+
+    /* Reduced motion respect (FD perf budget) */
+    @media (prefers-reduced-motion: reduce) {
+      .form-stem, .form-blooms, .bloom.breathing, .tendril,
+      .plot.working .keylight, .plot.working .status-dot,
+      .pulse-dot { animation: none !important; }
+    }
+
+    /* Mid-size collapse */
+    @media (max-width: 1280px) {
+      .garden { grid-template-columns: repeat(2, 1fr); }
+      .detail-grid { grid-template-columns: 1fr; }
+      .detail-panel { position: static; }
+      body { padding: 40px 32px 60px; }
+      .title { font-size: 36px; }
+    }
+  </style>
+</head>
+<body>
+  <!-- ===== Masthead ===== -->
+  <header class="masthead">
+    <div class="masthead-left">
+      <span class="eyebrow">Agent Hub · v0.2</span>
+      <h1 class="title">The Cultivar.</h1>
+      <span class="subtitle">
+        4 specimens<span class="dot"></span>23 learnings tended<span class="dot"></span>1 active
+      </span>
+    </div>
+    <div class="masthead-right">
+      <div class="view-toggle" role="tablist">
+        <button data-view="garden" class="current">Garden</button>
+        <button data-view="specimen">Specimen</button>
+      </div>
+      <button class="plant-btn">+ Plant</button>
+    </div>
+  </header>
+
+  <!-- ============================================================ -->
+  <!-- GARDEN VIEW                                                  -->
+  <!-- ============================================================ -->
+  <section id="garden-view" class="view active">
+
+    <div class="garden">
+
+      <!-- ─────── designer: 3 learnings, idle ─────── -->
+      <article class="plot" data-agent="designer" style="--sway-delay: 1.7s">
+        <div class="keylight"></div>
+        <div class="horizon"></div>
+        <svg class="specimen" viewBox="0 0 100 100" aria-hidden="true">
+          <!-- soil contact shadow -->
+          <ellipse class="soil-shadow" cx="50" cy="93" rx="13" ry="1.5"
+                   fill="rgba(0,0,0,0.55)"/>
+          <g class="form-stem" stroke="currentColor" stroke-width="1.4"
+             fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="50" y1="92" x2="50" y2="38"/>
+            <!-- leaves -->
+            <path class="leaf" d="M50 70 C 42 68 36 64 30 56 C 36 60 44 64 50 66 Z"
+                  stroke="none"/>
+            <path class="leaf" d="M50 70 C 58 68 64 64 70 56 C 64 60 56 64 50 66 Z"
+                  stroke="none"/>
+            <path class="leaf" d="M50 56 C 44 54 40 50 35 44 C 40 48 46 52 50 53 Z"
+                  stroke="none"/>
+            <path class="leaf" d="M50 56 C 56 54 60 50 65 44 C 60 48 54 52 50 53 Z"
+                  stroke="none"/>
+          </g>
+          <g class="form-blooms">
+            <g class="bloom breathing" style="--breathe-delay: 0s">
+              <circle class="halo" cx="50" cy="33" r="6" fill="currentColor"/>
+              <circle class="core" cx="50" cy="33" r="2.8" fill="currentColor"/>
+              <circle class="glint" cx="49" cy="32" r="0.8" fill="#fff"/>
+            </g>
+            <g class="bloom breathing" style="--breathe-delay: 0.6s">
+              <circle class="halo" cx="42" cy="28" r="4" fill="currentColor"/>
+              <circle class="core" cx="42" cy="28" r="1.9" fill="currentColor"/>
+              <circle class="glint" cx="41.5" cy="27.5" r="0.5" fill="#fff"/>
+            </g>
+            <g class="bloom breathing" style="--breathe-delay: 1.2s">
+              <circle class="halo" cx="58" cy="28" r="4" fill="currentColor"/>
+              <circle class="core" cx="58" cy="28" r="1.9" fill="currentColor"/>
+              <circle class="glint" cx="57.5" cy="27.5" r="0.5" fill="#fff"/>
+            </g>
+          </g>
+        </svg>
+        <div class="plot-meta-block">
+          <div class="plot-name">designer</div>
+          <div class="plot-meta">3 learnings · last grown 2 days ago</div>
+          <div class="plot-status"><span class="status-dot"></span>idle</div>
+        </div>
+      </article>
+
+      <!-- ─────── creative-director: 8 learnings, working ─────── -->
+      <article class="plot working" data-agent="creative" style="--sway-delay: 3.2s">
+        <div class="keylight"></div>
+        <div class="horizon"></div>
+        <svg class="specimen" viewBox="0 0 100 100" aria-hidden="true">
+          <ellipse class="soil-shadow" cx="50" cy="93" rx="14" ry="1.7"
+                   fill="rgba(0,0,0,0.6)"/>
+          <g class="form-stem fast" stroke="currentColor" stroke-width="1.4"
+             fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="50" y1="92" x2="50" y2="28"/>
+            <!-- branches -->
+            <line x1="50" y1="60" x2="44" y2="52"/>
+            <line x1="50" y1="60" x2="56" y2="52"/>
+            <!-- leaves -->
+            <path class="leaf" d="M50 74 C 40 72 32 68 26 58 C 33 63 42 68 50 70 Z"
+                  stroke="none"/>
+            <path class="leaf" d="M50 74 C 60 72 68 68 74 58 C 67 63 58 68 50 70 Z"
+                  stroke="none"/>
+            <!-- thorn (correction) -->
+            <path class="thorn" d="M50 50 L 46 49 L 50 47 Z"/>
+            <!-- tendrils -->
+            <path class="tendril" stroke="currentColor" stroke-width="1"
+                  d="M50 40 Q 40 36 38 30"/>
+            <path class="tendril" stroke="currentColor" stroke-width="1"
+                  d="M50 40 Q 60 36 62 30"/>
+          </g>
+          <g class="form-blooms fast">
+            <g class="bloom breathing" style="--breathe-delay: 0s">
+              <circle class="halo" cx="50" cy="22" r="7.5" fill="currentColor"/>
+              <circle class="core" cx="50" cy="22" r="3.5" fill="currentColor"/>
+              <circle class="glint" cx="49" cy="21" r="1" fill="#fff"/>
+            </g>
+            <g class="bloom breathing" style="--breathe-delay: 0.4s">
+              <circle class="halo" cx="40" cy="19" r="5" fill="currentColor"/>
+              <circle class="core" cx="40" cy="19" r="2.4" fill="currentColor"/>
+              <circle class="glint" cx="39.5" cy="18.5" r="0.6" fill="#fff"/>
+            </g>
+            <g class="bloom breathing" style="--breathe-delay: 0.9s">
+              <circle class="halo" cx="60" cy="19" r="5" fill="currentColor"/>
+              <circle class="core" cx="60" cy="19" r="2.4" fill="currentColor"/>
+              <circle class="glint" cx="59.5" cy="18.5" r="0.6" fill="#fff"/>
+            </g>
+            <g class="bloom breathing" style="--breathe-delay: 1.3s">
+              <circle class="halo" cx="34" cy="30" r="3.5" fill="currentColor"/>
+              <circle class="core" cx="34" cy="30" r="1.6" fill="currentColor"/>
+            </g>
+            <g class="bloom breathing" style="--breathe-delay: 1.8s">
+              <circle class="halo" cx="66" cy="30" r="3.5" fill="currentColor"/>
+              <circle class="core" cx="66" cy="30" r="1.6" fill="currentColor"/>
+            </g>
+          </g>
+        </svg>
+        <div class="plot-meta-block">
+          <div class="plot-name">creative-director</div>
+          <div class="plot-meta">8 learnings · last grown 3h ago</div>
+          <div class="plot-status"><span class="status-dot"></span>working</div>
+        </div>
+      </article>
+
+      <!-- ─────── frontend-designer: 11 learnings, idle (richest) ─────── -->
+      <article class="plot" data-agent="frontend"
+               style="--sway-delay: 4.8s"
+               id="open-detail-plot">
+        <div class="keylight"></div>
+        <div class="horizon"></div>
+        <svg class="specimen" viewBox="0 0 100 100" aria-hidden="true">
+          <ellipse class="soil-shadow" cx="50" cy="93" rx="16" ry="2"
+                   fill="rgba(0,0,0,0.65)"/>
+          <g class="form-stem" stroke="currentColor" stroke-width="1.4"
+             fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="50" y1="92" x2="50" y2="20"/>
+            <line x1="50" y1="50" x2="40" y2="40"/>
+            <line x1="50" y1="50" x2="60" y2="40"/>
+            <!-- leaves -->
+            <path class="leaf" d="M50 76 C 38 74 30 70 24 60 C 32 65 42 70 50 72 Z"
+                  stroke="none"/>
+            <path class="leaf" d="M50 76 C 62 74 70 70 76 60 C 68 65 58 70 50 72 Z"
+                  stroke="none"/>
+            <path class="leaf" d="M50 62 C 42 60 36 56 30 48 C 38 53 46 58 50 59 Z"
+                  stroke="none"/>
+            <path class="leaf" d="M50 62 C 58 60 64 56 70 48 C 62 53 54 58 50 59 Z"
+                  stroke="none"/>
+            <!-- thorns -->
+            <path class="thorn" d="M50 70 L 45 69 L 50 67 Z"/>
+            <path class="thorn" d="M50 56 L 55 55 L 50 53 Z"/>
+            <!-- fruit -->
+            <g>
+              <line stroke="currentColor" stroke-width="1" x1="40" y1="40" x2="34" y2="46"/>
+              <circle class="fruit-body" cx="34" cy="49" r="2.5" fill="currentColor"/>
+              <circle class="fruit-glint" cx="33" cy="48" r="0.6" fill="#fff"/>
+            </g>
+            <g>
+              <line stroke="currentColor" stroke-width="1" x1="60" y1="40" x2="66" y2="46"/>
+              <circle class="fruit-body" cx="66" cy="49" r="2.5" fill="currentColor"/>
+              <circle class="fruit-glint" cx="65" cy="48" r="0.6" fill="#fff"/>
+            </g>
+            <!-- tendril -->
+            <path class="tendril" stroke="currentColor" stroke-width="1"
+                  d="M50 22 Q 47 14 52 10"/>
+          </g>
+          <g class="form-blooms">
+            <g class="bloom breathing" style="--breathe-delay: 0s">
+              <circle class="halo" cx="50" cy="17" r="7" fill="currentColor"/>
+              <circle class="core" cx="50" cy="17" r="3.3" fill="currentColor"/>
+              <circle class="glint" cx="49" cy="16" r="0.9" fill="#fff"/>
+            </g>
+            <g class="bloom breathing" style="--breathe-delay: 0.5s">
+              <circle class="halo" cx="42" cy="32" r="4.5" fill="currentColor"/>
+              <circle class="core" cx="42" cy="32" r="2.1" fill="currentColor"/>
+              <circle class="glint" cx="41.5" cy="31.5" r="0.6" fill="#fff"/>
+            </g>
+            <g class="bloom breathing" style="--breathe-delay: 1s">
+              <circle class="halo" cx="58" cy="32" r="4.5" fill="currentColor"/>
+              <circle class="core" cx="58" cy="32" r="2.1" fill="currentColor"/>
+              <circle class="glint" cx="57.5" cy="31.5" r="0.6" fill="#fff"/>
+            </g>
+          </g>
+        </svg>
+        <div class="plot-meta-block">
+          <div class="plot-name">frontend-designer</div>
+          <div class="plot-meta">11 learnings · last grown 14:02</div>
+          <div class="plot-status">
+            <span class="status-dot"></span>idle · click to inspect →
+          </div>
+        </div>
+      </article>
+
+      <!-- ─────── qa-tester: 1 learning, idle, sparse ─────── -->
+      <article class="plot" data-agent="qa" style="--sway-delay: 0.9s">
+        <div class="keylight"></div>
+        <div class="horizon"></div>
+        <svg class="specimen" viewBox="0 0 100 100" aria-hidden="true">
+          <ellipse class="soil-shadow" cx="50" cy="93" rx="10" ry="1.3"
+                   fill="rgba(0,0,0,0.5)"/>
+          <g class="form-stem" stroke="currentColor" stroke-width="1.4"
+             fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="50" y1="92" x2="50" y2="44"/>
+            <path class="leaf" d="M50 76 C 42 74 38 70 33 62 C 39 66 45 70 50 71 Z"
+                  stroke="none"/>
+            <path class="leaf" d="M50 76 C 58 74 62 70 67 62 C 61 66 55 70 50 71 Z"
+                  stroke="none"/>
+          </g>
+          <g class="form-blooms">
+            <g class="bloom breathing">
+              <circle class="halo" cx="50" cy="40" r="4" fill="currentColor"/>
+              <circle class="core" cx="50" cy="40" r="2" fill="currentColor"/>
+              <circle class="glint" cx="49.5" cy="39.5" r="0.5" fill="#fff"/>
+            </g>
+          </g>
+        </svg>
+        <div class="plot-meta-block">
+          <div class="plot-name">qa-tester</div>
+          <div class="plot-meta">1 learning · planted yesterday</div>
+          <div class="plot-status"><span class="status-dot"></span>idle</div>
+        </div>
+      </article>
+    </div>
+
+    <!-- Empty plots row -->
+    <div class="garden">
+      <article class="plot empty">
+        <div class="empty-marker">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="1" stroke-linecap="round">
+            <line x1="12" y1="6" x2="12" y2="18"/>
+            <line x1="6" y1="12" x2="18" y2="12"/>
+          </svg>
+        </div>
+        <div class="empty-label">plant here</div>
+      </article>
+      <article class="plot empty">
+        <div class="empty-marker">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="1" stroke-linecap="round">
+            <line x1="12" y1="6" x2="12" y2="18"/>
+            <line x1="6" y1="12" x2="18" y2="12"/>
+          </svg>
+        </div>
+        <div class="empty-label">plant here</div>
+      </article>
+      <article class="plot empty">
+        <div class="empty-marker">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="1" stroke-linecap="round">
+            <line x1="12" y1="6" x2="12" y2="18"/>
+            <line x1="6" y1="12" x2="18" y2="12"/>
+          </svg>
+        </div>
+        <div class="empty-label">plant here</div>
+      </article>
+      <article class="plot empty">
+        <div class="empty-marker">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="1" stroke-linecap="round">
+            <line x1="12" y1="6" x2="12" y2="18"/>
+            <line x1="6" y1="12" x2="18" y2="12"/>
+          </svg>
+        </div>
+        <div class="empty-label">plant here</div>
+      </article>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- SPECIMEN (DETAIL) VIEW                                       -->
+  <!-- ============================================================ -->
+  <section id="specimen-view" class="view">
+    <button class="detail-back" id="back-to-garden">← back to garden</button>
+
+    <div class="detail-grid">
+      <!-- Big specimen panel -->
+      <div class="detail-specimen-wrap">
+        <div class="keylight"></div>
+        <div class="horizon"></div>
+        <div class="ambient-line"></div>
+        <div class="detail-eyebrow">
+          Specimen <span class="agent-name">frontend-designer</span>
+          <span class="agent-stats">· 11 learnings · grown 14:02</span>
+        </div>
+        <svg class="detail-specimen" id="detail-specimen" viewBox="0 0 400 460" aria-label="frontend-designer specimen">
+          <!-- soil contact shadow -->
+          <ellipse cx="200" cy="438" rx="50" ry="5"
+                   fill="rgba(0,0,0,0.65)" filter="blur(3px)"/>
+
+          <!-- non-clickable scaffold: stem + branches (the spine of the form) -->
+          <g class="form-stem" stroke="#a8b9a7" stroke-width="1.6" fill="none"
+             stroke-linecap="round" stroke-linejoin="round" opacity="0.85">
+            <line x1="200" y1="436" x2="200" y2="80"/>
+            <!-- branches -->
+            <line x1="200" y1="220" x2="160" y2="180"/>
+            <line x1="200" y1="220" x2="240" y2="180"/>
+            <line x1="200" y1="320" x2="170" y2="290"/>
+            <line x1="200" y1="320" x2="230" y2="290"/>
+          </g>
+
+          <!-- clickable anatomy parts -->
+          <g class="form-blooms" stroke="none">
+
+            <!-- L01 — bloom · "Adapt content not layout" -->
+            <g class="learning-part" data-learning-id="L01" tabindex="0" role="button">
+              <circle r="14" cx="200" cy="95" fill="#a8b9a7" opacity="0.3" filter="blur(2px)"/>
+              <circle r="7"  cx="200" cy="95" fill="#a8b9a7"/>
+              <circle r="2"  cx="198" cy="93" fill="#fff" opacity="0.6"/>
+              <text class="label-pop" x="200" y="68"
+                    text-anchor="middle" fill="#e8dfd0"
+                    font-family="IBM Plex Mono" font-size="9"
+                    letter-spacing="2px" text-transform="uppercase">
+                L01 · BLOOM
+              </text>
+            </g>
+
+            <!-- L06 — bloom · "Restraint over novelty" -->
+            <g class="learning-part" data-learning-id="L06" tabindex="0" role="button">
+              <circle r="10" cx="170" cy="115" fill="#a8b9a7" opacity="0.3" filter="blur(2px)"/>
+              <circle r="5"  cx="170" cy="115" fill="#a8b9a7"/>
+              <circle r="1.5" cx="168.5" cy="113.5" fill="#fff" opacity="0.6"/>
+              <text class="label-pop" x="170" y="92"
+                    text-anchor="middle" fill="#e8dfd0"
+                    font-family="IBM Plex Mono" font-size="9" letter-spacing="2px">
+                L06
+              </text>
+            </g>
+
+            <!-- L07 — bloom · "One accent, one moment" -->
+            <g class="learning-part" data-learning-id="L07" tabindex="0" role="button">
+              <circle r="10" cx="230" cy="115" fill="#a8b9a7" opacity="0.3" filter="blur(2px)"/>
+              <circle r="5"  cx="230" cy="115" fill="#a8b9a7"/>
+              <circle r="1.5" cx="228.5" cy="113.5" fill="#fff" opacity="0.6"/>
+              <text class="label-pop" x="230" y="92"
+                    text-anchor="middle" fill="#e8dfd0"
+                    font-family="IBM Plex Mono" font-size="9" letter-spacing="2px">
+                L07
+              </text>
+            </g>
+
+            <!-- L05 — fruit · "Spring presets > linear easing" -->
+            <g class="learning-part" data-learning-id="L05" tabindex="0" role="button">
+              <circle r="7" cx="160" cy="195" fill="#a8b9a7" opacity="0.7"/>
+              <circle r="2" cx="158" cy="193" fill="#fff" opacity="0.6"/>
+              <text class="label-pop" x="160" y="178"
+                    text-anchor="middle" fill="#e8dfd0"
+                    font-family="IBM Plex Mono" font-size="9" letter-spacing="2px">
+                L05 · FRUIT
+              </text>
+            </g>
+
+            <!-- L10 — fruit · "framer-motion layoutId for shared elements" -->
+            <g class="learning-part" data-learning-id="L10" tabindex="0" role="button">
+              <circle r="7" cx="240" cy="195" fill="#a8b9a7" opacity="0.7"/>
+              <circle r="2" cx="238" cy="193" fill="#fff" opacity="0.6"/>
+              <text class="label-pop" x="240" y="178"
+                    text-anchor="middle" fill="#e8dfd0"
+                    font-family="IBM Plex Mono" font-size="9" letter-spacing="2px">
+                L10 · FRUIT
+              </text>
+            </g>
+
+            <!-- L02 — leaf · "Prefer Inter over Geist" -->
+            <g class="learning-part" data-learning-id="L02" tabindex="0" role="button">
+              <path d="M200 290 C 175 286 158 278 144 260 C 165 270 185 280 200 282 Z"
+                    fill="#a8b9a7" opacity="0.55"/>
+              <text class="label-pop" x="160" y="258"
+                    text-anchor="middle" fill="#e8dfd0"
+                    font-family="IBM Plex Mono" font-size="9" letter-spacing="2px">
+                L02 · LEAF
+              </text>
+            </g>
+
+            <!-- L03 — leaf · "Tailwind tokens only" -->
+            <g class="learning-part" data-learning-id="L03" tabindex="0" role="button">
+              <path d="M200 290 C 225 286 242 278 256 260 C 235 270 215 280 200 282 Z"
+                    fill="#a8b9a7" opacity="0.55"/>
+              <text class="label-pop" x="240" y="258"
+                    text-anchor="middle" fill="#e8dfd0"
+                    font-family="IBM Plex Mono" font-size="9" letter-spacing="2px">
+                L03 · LEAF
+              </text>
+            </g>
+
+            <!-- L08 — leaf · "Mobile is real target (375px)" -->
+            <g class="learning-part" data-learning-id="L08" tabindex="0" role="button">
+              <path d="M200 348 C 178 344 162 338 150 322 C 170 332 188 340 200 342 Z"
+                    fill="#a8b9a7" opacity="0.55"/>
+              <text class="label-pop" x="166" y="316"
+                    text-anchor="middle" fill="#e8dfd0"
+                    font-family="IBM Plex Mono" font-size="9" letter-spacing="2px">
+                L08 · LEAF
+              </text>
+            </g>
+
+            <!-- L04 — thorn · "Don't bloat z-index" -->
+            <g class="learning-part" data-learning-id="L04" tabindex="0" role="button">
+              <path d="M200 260 L 188 256 L 200 252 Z" fill="#d99a7a" opacity="0.85"/>
+              <text class="label-pop" x="170" y="256"
+                    text-anchor="middle" fill="#e8dfd0"
+                    font-family="IBM Plex Mono" font-size="9" letter-spacing="2px">
+                L04 · THORN
+              </text>
+            </g>
+
+            <!-- L09 — thorn · "Stopped suggesting 3D for tiny cards" -->
+            <g class="learning-part" data-learning-id="L09" tabindex="0" role="button">
+              <path d="M200 178 L 212 174 L 200 170 Z" fill="#d99a7a" opacity="0.85"/>
+              <text class="label-pop" x="230" y="172"
+                    text-anchor="middle" fill="#e8dfd0"
+                    font-family="IBM Plex Mono" font-size="9" letter-spacing="2px">
+                L09 · THORN
+              </text>
+            </g>
+
+            <!-- L11 — tendril · "Maybe try CSS @container?" (in flight) -->
+            <g class="learning-part" data-learning-id="L11" tabindex="0" role="button">
+              <path class="tendril" d="M200 82 Q 196 60 208 50"
+                    stroke="#a8b9a7" stroke-width="1.2" fill="none"
+                    stroke-linecap="round"/>
+              <text class="label-pop" x="226" y="50"
+                    text-anchor="middle" fill="#e8dfd0"
+                    font-family="IBM Plex Mono" font-size="9" letter-spacing="2px">
+                L11 · TENDRIL
+              </text>
+            </g>
+          </g>
+        </svg>
+
+        <div class="roots-label">— soil line —</div>
+      </div>
+
+      <!-- Right panel -->
+      <aside class="detail-panel">
+        <div class="panel-empty" id="panel-empty">
+          <div class="hint-eyebrow">Inspect</div>
+          <div class="hint-title">
+            Click any bloom, leaf, thorn, or fruit on the specimen to read what grew it.
+          </div>
+          <div class="legend">
+            <div class="legend-row">
+              <span class="legend-glyph">
+                <svg width="20" height="20" viewBox="0 0 20 20">
+                  <circle cx="10" cy="10" r="6" fill="currentColor" opacity="0.3" filter="blur(1.5px)"/>
+                  <circle cx="10" cy="10" r="3" fill="currentColor"/>
+                </svg>
+              </span>
+              Bloom — named rules you taught it
+            </div>
+            <div class="legend-row">
+              <span class="legend-glyph">
+                <svg width="20" height="20" viewBox="0 0 20 20">
+                  <path d="M10 14 C 6 13 3 11 1 7 C 4 9 7 12 10 12 Z"
+                        fill="currentColor" opacity="0.55"/>
+                </svg>
+              </span>
+              Leaf — neutral preferences
+            </div>
+            <div class="legend-row">
+              <span class="legend-glyph" style="color: var(--color-qa);">
+                <svg width="20" height="20" viewBox="0 0 20 20">
+                  <path d="M10 12 L 5 10 L 10 8 Z" fill="currentColor" opacity="0.85"/>
+                </svg>
+              </span>
+              Thorn — corrections from mistakes
+            </div>
+            <div class="legend-row">
+              <span class="legend-glyph">
+                <svg width="20" height="20" viewBox="0 0 20 20">
+                  <circle cx="10" cy="11" r="4" fill="currentColor" opacity="0.75"/>
+                  <circle cx="8.5" cy="9.5" r="1" fill="#fff" opacity="0.6"/>
+                </svg>
+              </span>
+              Fruit — rules applied N times, ripened
+            </div>
+            <div class="legend-row">
+              <span class="legend-glyph">
+                <svg width="20" height="20" viewBox="0 0 20 20">
+                  <path d="M10 16 Q 6 10 12 6" stroke="currentColor" stroke-width="1.2"
+                        stroke-dasharray="2 2" fill="none" stroke-linecap="round"/>
+                </svg>
+              </span>
+              Tendril — in flight, not yet confirmed
+            </div>
+          </div>
+        </div>
+
+        <div class="panel-card" id="panel-card">
+          <div class="card-eyebrow">
+            <span id="card-id">L07</span>
+            <span>·</span>
+            <span class="type" id="card-type">BLOOM</span>
+          </div>
+          <div class="quote" id="card-quote">
+            One accent, one moment.
+          </div>
+          <div class="meta-grid">
+            <div class="meta-label">recorded</div>
+            <div class="meta-value" id="card-recorded">2026-05-09</div>
+            <div class="meta-label">source</div>
+            <div class="meta-value" id="card-source">design review · WorldAICard</div>
+            <div class="meta-label">applied</div>
+            <div class="meta-value" id="card-applied">6 times</div>
+            <div class="meta-label">last</div>
+            <div class="meta-value" id="card-last">14:02 today · Cultivar mockup</div>
+          </div>
+          <div class="actions">
+            <button>Edit</button>
+            <button>Append note</button>
+            <button class="danger">Prune</button>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <!-- Growth log -->
+    <div class="growth-log">
+      <div class="growth-log-title">Growth log · last 30 days</div>
+      <div class="log-rows" id="log-rows">
+        <div class="log-row" data-learning-id="L11">
+          <span class="log-time">14:02 today</span>
+          <span class="log-type tendril">tendril</span>
+          <span class="log-text">"Maybe try CSS @container?" — not yet confirmed</span>
+        </div>
+        <div class="log-row" data-learning-id="L07">
+          <span class="log-time">09:18 today</span>
+          <span class="log-type bloom">bloom</span>
+          <span class="log-text">"One accent, one moment" — applied to Cultivar palette</span>
+        </div>
+        <div class="log-row" data-learning-id="L05">
+          <span class="log-time">yesterday</span>
+          <span class="log-type fruit">fruit</span>
+          <span class="log-text">"Spring presets over linear easing" — applied 7 times now</span>
+        </div>
+        <div class="log-row" data-learning-id="L09">
+          <span class="log-time">3 days ago</span>
+          <span class="log-type thorn">thorn</span>
+          <span class="log-text">Stopped suggesting R3F for small-canvas cards (corrected)</span>
+        </div>
+        <div class="log-row" data-learning-id="L02">
+          <span class="log-time">1 week ago</span>
+          <span class="log-type leaf">leaf</span>
+          <span class="log-text">"Prefer Inter over Geist" recorded as default</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- BEHAVIOR                                                     -->
+  <!-- ============================================================ -->
+  <script>
+    // Learning content for the right panel
+    const LEARNINGS = {
+      L01: {
+        type: 'BLOOM', quote: 'Adapt content, not layout.',
+        recorded: '2026-04-22',
+        source: 'design philosophy · daily-companion',
+        applied: '14 times',
+        last: '08:40 today · NewsSlideshow critique'
+      },
+      L02: {
+        type: 'LEAF', quote: 'Prefer Inter over Geist as default sans.',
+        recorded: '2026-05-07',
+        source: 'after Geist trial in Skill card',
+        applied: '— (preference)',
+        last: 'standing default'
+      },
+      L03: {
+        type: 'LEAF', quote: 'Tailwind tokens only — no inline hex.',
+        recorded: '2026-04-30',
+        source: 'reviewer flag · #4a3a2c on OffersCard',
+        applied: '— (preference)',
+        last: 'standing default'
+      },
+      L04: {
+        type: 'THORN', quote: "Don't reach for z-index when ordering already does the job.",
+        recorded: '2026-05-02',
+        source: 'correction · WellnessCard z-stack incident',
+        applied: '3 corrections avoided since',
+        last: '4 days ago'
+      },
+      L05: {
+        type: 'FRUIT', quote: 'Spring presets ({damping, stiffness}) over linear easing for any UI change.',
+        recorded: '2026-04-18',
+        source: 'NewsSlideshow transition redesign',
+        applied: '7 times',
+        last: 'yesterday · Cultivar sway tuning'
+      },
+      L06: {
+        type: 'BLOOM', quote: 'Restraint over novelty. If a token works, use it.',
+        recorded: '2026-04-11',
+        source: 'design philosophy · stated',
+        applied: '11 times',
+        last: '3 hours ago · v2 mockup review'
+      },
+      L07: {
+        type: 'BLOOM', quote: 'One accent, one moment.',
+        recorded: '2026-05-09',
+        source: 'design review · WorldAICard',
+        applied: '6 times',
+        last: '14:02 today · Cultivar palette'
+      },
+      L08: {
+        type: 'LEAF', quote: 'Mobile (375px) is a real target, not an afterthought.',
+        recorded: '2026-04-25',
+        source: 'after dad opened Daily Companion on phone',
+        applied: '— (preference)',
+        last: 'every layout review'
+      },
+      L09: {
+        type: 'THORN', quote: 'Stop suggesting R3F for tiny cards — SVG with depth tricks wins.',
+        recorded: '2026-05-11',
+        source: 'correction · current Cultivar review',
+        applied: '2 corrections avoided since',
+        last: '3 days ago'
+      },
+      L10: {
+        type: 'FRUIT', quote: "Use framer-motion's layoutId for shared-element transitions.",
+        recorded: '2026-04-08',
+        source: 'JarvisCard hero treatment',
+        applied: '5 times',
+        last: '2 days ago · agent hub plot→detail'
+      },
+      L11: {
+        type: 'TENDRIL', quote: 'Maybe try CSS @container queries for the plot sizing?',
+        recorded: '14:02 today',
+        source: 'in-flight thought during v2 build',
+        applied: '— (unconfirmed)',
+        last: '— (this session)'
+      }
+    };
+
+    // View toggle
+    const viewToggle = document.querySelectorAll('.view-toggle button');
+    function setView(view) {
+      document.querySelectorAll('.view').forEach(v => {
+        v.classList.toggle('active', v.id === view + '-view');
+      });
+      viewToggle.forEach(b => b.classList.toggle('current', b.dataset.view === view));
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    viewToggle.forEach(btn => btn.addEventListener('click', () => setView(btn.dataset.view)));
+
+    // Click the frontend-designer plot in garden to go to detail
+    const detailPlot = document.getElementById('open-detail-plot');
+    detailPlot.addEventListener('click', () => setView('specimen'));
+
+    // Back button
+    document.getElementById('back-to-garden').addEventListener('click', () => setView('garden'));
+
+    // Learning selection
+    const parts = document.querySelectorAll('.learning-part');
+    const svg = document.getElementById('detail-specimen');
+    const panelEmpty = document.getElementById('panel-empty');
+    const panelCard = document.getElementById('panel-card');
+
+    function selectLearning(id) {
+      const data = LEARNINGS[id];
+      if (!data) return;
+      parts.forEach(p => p.classList.toggle('selected', p.dataset.learningId === id));
+      svg.classList.add('has-selection');
+      panelEmpty.style.display = 'none';
+      panelCard.classList.add('active');
+      document.getElementById('card-id').textContent = id;
+      document.getElementById('card-type').textContent = data.type;
+      document.getElementById('card-quote').textContent = data.quote;
+      document.getElementById('card-recorded').textContent = data.recorded;
+      document.getElementById('card-source').textContent = data.source;
+      document.getElementById('card-applied').textContent = data.applied;
+      document.getElementById('card-last').textContent = data.last;
+    }
+
+    parts.forEach(p => p.addEventListener('click', () => selectLearning(p.dataset.learningId)));
+
+    // Growth log rows highlight matching part
+    document.querySelectorAll('.log-row').forEach(row => {
+      row.addEventListener('click', () => selectLearning(row.dataset.learningId));
+    });
+
+    // Esc deselects
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        parts.forEach(p => p.classList.remove('selected'));
+        svg.classList.remove('has-selection');
+        panelEmpty.style.display = '';
+        panelCard.classList.remove('active');
+      }
+    });
+
+    // Cursor parallax on garden plots (two-layer, FD move #3)
+    document.querySelectorAll('#garden-view .plot:not(.empty)').forEach(plot => {
+      const stem = plot.querySelector('.form-stem');
+      const blooms = plot.querySelector('.form-blooms');
+      let rafId = null;
+      plot.addEventListener('mousemove', (e) => {
+        if (rafId) return;
+        rafId = requestAnimationFrame(() => {
+          const r = plot.getBoundingClientRect();
+          const x = (e.clientX - r.left - r.width / 2) / (r.width / 2);
+          const y = (e.clientY - r.top - r.height / 2) / (r.height / 2);
+          if (stem)   stem.style.translate   = `${x * 3}px ${y * 3}px`;
+          if (blooms) blooms.style.translate = `${x * 6}px ${y * 6}px`;
+          rafId = null;
+        });
+      });
+      plot.addEventListener('mouseleave', () => {
+        if (stem)   stem.style.translate = '';
+        if (blooms) blooms.style.translate = '';
+      });
+    });
+  </script>
+</body>
+</html>

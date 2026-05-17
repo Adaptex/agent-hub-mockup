@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Prism Desk — Agent Hub</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;1,7..72,400&family=Syne:wght@500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink: #080a0c;
+      --panel: #12151a;
+      --line: rgba(255, 255, 255, 0.09);
+      --text: #ece6dc;
+      --muted: #8b93a1;
+      --faint: #555d6b;
+      --volt: #5cf0c4;
+      --ember: #ffb14a;
+      --orchid: #d4b8ff;
+      --coral: #ff8f86;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body {
+      min-height: 100%;
+      background: var(--ink);
+      color: var(--text);
+      font-family: "Literata", Georgia, serif;
+    }
+
+    body {
+      overflow-x: hidden;
+      background-image:
+        radial-gradient(ellipse 100% 80% at 50% -20%, rgba(92, 240, 196, 0.07), transparent 55%),
+        radial-gradient(ellipse 70% 50% at 100% 50%, rgba(212, 184, 255, 0.05), transparent 50%),
+        radial-gradient(ellipse 60% 40% at 0% 80%, rgba(255, 177, 74, 0.06), transparent 45%);
+    }
+
+    .noise {
+      pointer-events: none;
+      position: fixed;
+      inset: 0;
+      opacity: 0.035;
+      mix-blend-mode: overlay;
+      background: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      z-index: 0;
+    }
+
+    .wrap {
+      position: relative;
+      z-index: 1;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: clamp(28px, 5vw, 56px) clamp(20px, 4vw, 40px) 80px;
+    }
+
+    header {
+      position: relative;
+      z-index: 30;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 24px;
+      flex-wrap: wrap;
+      margin-bottom: clamp(36px, 6vw, 72px);
+    }
+
+    .eyebrow {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 10px;
+      letter-spacing: 0.34em;
+      text-transform: uppercase;
+      color: var(--faint);
+    }
+    h1 {
+      font-family: "Syne", sans-serif;
+      font-weight: 700;
+      font-size: clamp(2rem, 5vw, 3.2rem);
+      line-height: 1.02;
+      margin-top: 10px;
+      letter-spacing: -0.03em;
+    }
+    h1 span {
+      display: block;
+      font-weight: 500;
+      font-size: 0.42em;
+      letter-spacing: 0.28em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-top: 12px;
+    }
+
+    .cta {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      padding: 14px 26px;
+      border-radius: 999px;
+      border: none;
+      cursor: pointer;
+      background: linear-gradient(120deg, var(--volt), #3ad1a8);
+      color: #03140f;
+      font-weight: 600;
+      box-shadow: 0 16px 50px rgba(92, 240, 196, 0.25);
+      transition: transform 0.2s, box-shadow 0.25s;
+    }
+    .cta:hover {
+      transform: translateY(-3px) scale(1.02);
+      box-shadow: 0 22px 60px rgba(92, 240, 196, 0.35);
+    }
+
+    /* ===== CSS 3D stage ===== */
+    .stage-perspective {
+      perspective: 1200px;
+      perspective-origin: 50% 35%;
+    }
+
+    .desk {
+      position: relative;
+      height: min(520px, 72vh);
+      transform-style: preserve-3d;
+      transition: transform 0.1s ease-out;
+    }
+
+    .desk-surface {
+      position: absolute;
+      left: 50%;
+      top: 58%;
+      width: 110%;
+      height: 42%;
+      transform: translate(-50%, -50%) rotateX(72deg) translateZ(-80px);
+      transform-style: preserve-3d;
+      pointer-events: none;
+      background: linear-gradient(180deg, rgba(30, 36, 44, 0.95), rgba(12, 14, 18, 0.98));
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      box-shadow:
+        0 80px 120px rgba(0, 0, 0, 0.65),
+        inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    }
+    .desk-surface::after {
+      content: "";
+      position: absolute;
+      inset: 8%;
+      border-radius: 16px;
+      border: 1px dashed rgba(255, 255, 255, 0.04);
+      pointer-events: none;
+    }
+
+    .fan {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: clamp(8px, 2vw, 18px);
+      transform-style: preserve-3d;
+      padding: 0 4%;
+    }
+
+    .card-slot {
+      width: clamp(150px, 22vw, 200px);
+      height: clamp(240px, 36vw, 320px);
+      transform-style: preserve-3d;
+      cursor: pointer;
+      --slot-rot: 0deg;
+      --slot-y: 0px;
+      transform: rotateY(var(--slot-rot)) translateY(var(--slot-y)) translateZ(12px);
+      transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .card-slot:nth-child(1) { --slot-rot: -18deg; }
+    .card-slot:nth-child(2) { --slot-rot: -6deg; }
+    .card-slot:nth-child(3) { --slot-rot: 6deg; }
+    .card-slot:nth-child(4) { --slot-rot: 18deg; }
+
+    .card-slot:hover {
+      --slot-y: -18px;
+    }
+    .card-slot.active {
+      --slot-y: -28px;
+      z-index: 5;
+    }
+
+    .card {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      transform-style: preserve-3d;
+      transition: transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .card-slot.flipped .card {
+      transform: rotateY(180deg);
+    }
+
+    .face {
+      position: absolute;
+      inset: 0;
+      backface-visibility: hidden;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      padding: 20px 18px;
+    }
+
+    .face-front {
+      background: linear-gradient(165deg, rgba(28, 32, 40, 0.92), rgba(14, 16, 20, 0.96));
+      box-shadow:
+        0 24px 50px rgba(0, 0, 0, 0.45),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+    }
+    .face-back {
+      transform: rotateY(180deg);
+      background: linear-gradient(200deg, #0f1218, #1a1f28);
+      padding: 22px;
+    }
+
+    .prism {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 8px 0 14px;
+      transform-style: preserve-3d;
+    }
+    .prism-inner {
+      width: 56%;
+      aspect-ratio: 1;
+      transform: rotateX(-12deg) rotateY(28deg);
+      background: linear-gradient(135deg, var(--accent, #888), transparent 60%);
+      clip-path: polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%);
+      box-shadow: 0 0 40px var(--accent-glow, rgba(255, 255, 255, 0.15));
+      animation: prism-pulse 4s ease-in-out infinite;
+    }
+    @keyframes prism-pulse {
+      0%, 100% { filter: brightness(1); transform: rotateX(-12deg) rotateY(28deg) scale(1); }
+      50% { filter: brightness(1.15); transform: rotateX(-12deg) rotateY(28deg) scale(1.04); }
+    }
+
+    .agent-label {
+      font-family: "Syne", sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+    .agent-meta {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 9px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-top: 6px;
+    }
+    .status-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: auto;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 9px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--faint);
+    }
+    .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--accent, #888);
+      box-shadow: 0 0 12px var(--accent-glow, rgba(255, 255, 255, 0.3));
+    }
+    .card-slot[data-agent="creative"] .dot {
+      animation: blink 1.2s ease-in-out infinite;
+    }
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.35; }
+    }
+
+    .face-back h3 {
+      font-family: "Syne", sans-serif;
+      font-size: 17px;
+      margin-bottom: 12px;
+    }
+    .learn-mini {
+      font-size: 12px;
+      line-height: 1.5;
+      color: var(--muted);
+      font-style: italic;
+      margin-bottom: 14px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--line);
+    }
+    .learn-mini:last-of-type {
+      border-bottom: none;
+      margin-bottom: 0;
+      padding-bottom: 0;
+    }
+    .tap-hint {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 8px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--faint);
+      margin-top: 14px;
+      text-align: center;
+    }
+
+    .card-slot[data-agent="designer"] {
+      --accent: var(--orchid);
+      --accent-glow: rgba(212, 184, 255, 0.45);
+    }
+    .card-slot[data-agent="creative"] {
+      --accent: var(--ember);
+      --accent-glow: rgba(255, 177, 74, 0.5);
+    }
+    .card-slot[data-agent="frontend"] {
+      --accent: var(--volt);
+      --accent-glow: rgba(92, 240, 196, 0.45);
+    }
+    .card-slot[data-agent="qa"] {
+      --accent: var(--coral);
+      --accent-glow: rgba(255, 143, 134, 0.45);
+    }
+
+    footer {
+      position: relative;
+      z-index: 30;
+      margin-top: 48px;
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 9px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--faint);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .prism-inner, .card-slot[data-agent="creative"] .dot { animation: none; }
+      .cta:hover { transform: none; }
+    }
+
+    @media (max-width: 720px) {
+      .fan { flex-wrap: wrap; height: auto; padding-top: 20px; }
+      .card-slot {
+        width: calc(50% - 12px);
+        height: 260px;
+        --slot-rot: 0deg !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="noise" aria-hidden="true"></div>
+  <div class="wrap">
+    <header>
+      <div>
+        <p class="eyebrow">Daily Companion · Agent Hub · CSS depth study</p>
+        <h1>Prism Desk<span>no WebGL — pure light &amp; angle</span></h1>
+      </div>
+      <button type="button" class="cta" id="shuffle">Shuffle focus</button>
+    </header>
+
+    <div class="stage-perspective">
+      <div class="desk" id="desk">
+        <div class="desk-surface" aria-hidden="true"></div>
+        <div class="fan" id="fan"></div>
+      </div>
+    </div>
+
+    <footer>
+      <span>Optimizes for bell-jar containment + atelier staging + instant load</span>
+      <span>Hover lift · click flip · mouse tilt</span>
+    </footer>
+  </div>
+
+  <script>
+    const DATA = [
+      {
+        id: "designer",
+        name: "Designer",
+        learnings: 3,
+        status: "idle",
+        quote: "Optical center beats math center on hero blocks.",
+      },
+      {
+        id: "creative",
+        name: "Creative director",
+        learnings: 8,
+        status: "working",
+        quote: "Lead onboarding with the outcome, not the mechanism.",
+      },
+      {
+        id: "frontend",
+        name: "Frontend designer",
+        learnings: 11,
+        status: "idle",
+        quote: "Glass needs an edge highlight or it reads as grey plastic.",
+      },
+      {
+        id: "qa",
+        name: "QA tester",
+        learnings: 1,
+        status: "idle",
+        quote: "Empty and error states are part of the feature, not footnotes.",
+      },
+    ];
+
+    const fan = document.getElementById("fan");
+    const desk = document.getElementById("desk");
+
+    function cardEl(d) {
+      const slot = document.createElement("div");
+      slot.className = "card-slot";
+      slot.dataset.agent = d.id;
+      slot.innerHTML = `
+        <div class="card">
+          <div class="face face-front">
+            <div class="prism"><div class="prism-inner"></div></div>
+            <div class="agent-label">${d.name}</div>
+            <div class="agent-meta">${d.learnings} learnings · prism desk</div>
+            <div class="status-row"><span class="dot"></span>${d.status}</div>
+          </div>
+          <div class="face face-back">
+            <h3>${d.name}</h3>
+            <p class="learn-mini">“${d.quote}”</p>
+            <p class="learn-mini">Flip again to collapse · this card is a cabinet specimen.</p>
+            <p class="tap-hint">click anywhere on desk</p>
+          </div>
+        </div>
+      `;
+      slot.addEventListener("click", (e) => {
+        e.stopPropagation();
+        document.querySelectorAll(".card-slot").forEach((s) => {
+          if (s !== slot) s.classList.remove("flipped", "active");
+        });
+        slot.classList.toggle("flipped");
+        slot.classList.toggle("active", slot.classList.contains("flipped"));
+      });
+      return slot;
+    }
+
+    DATA.forEach((d) => fan.appendChild(cardEl(d)));
+
+    desk.addEventListener("click", () => {
+      document.querySelectorAll(".card-slot").forEach((s) => s.classList.remove("flipped", "active"));
+    });
+
+    let mx = 0,
+      my = 0;
+    window.addEventListener("mousemove", (e) => {
+      mx = (e.clientX / window.innerWidth - 0.5) * 2;
+      my = (e.clientY / window.innerHeight - 0.5) * 2;
+      desk.style.transform = `rotateX(${(-my * 6).toFixed(2)}deg) rotateY(${(mx * 8).toFixed(2)}deg)`;
+    });
+
+    document.getElementById("shuffle").addEventListener("click", () => {
+      const slots = [...document.querySelectorAll(".card-slot")];
+      slots.sort(() => Math.random() - 0.5);
+      slots.forEach((s) => fan.appendChild(s));
+      slots[0].click();
+    });
+  </script>
+</body>
+</html>

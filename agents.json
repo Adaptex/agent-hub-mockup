@@ -1,0 +1,132 @@
+[
+  {
+    "id": "designer",
+    "name": "Designer",
+    "short": "designer",
+    "color": "#c8b4ff",
+    "status": "idle",
+    "stage": 2,
+    "xp": 30,
+    "lede": "Tightens layout rhythm and keeps the companion voice consistent across surfaces.",
+    "learnings": [
+      {
+        "id": "learn-seed-designer-0",
+        "part": "Spacing",
+        "quote": "Prefer optical centering over mathematical center for hero blocks.",
+        "timestamp": 0,
+        "context": "seed"
+      },
+      {
+        "id": "learn-seed-designer-1",
+        "part": "Tone",
+        "quote": "Avoid engagement-bait closers; end with a direct optional follow-up.",
+        "timestamp": 0,
+        "context": "seed"
+      },
+      {
+        "id": "learn-seed-designer-2",
+        "part": "Motion",
+        "quote": "Stagger hero reveals once; do not loop ambient motion on headings.",
+        "timestamp": 0,
+        "context": "seed"
+      }
+    ],
+    "specialization": ["design", "typography"],
+    "reliability": 0.75,
+    "executionHistory": []
+  },
+  {
+    "id": "creative",
+    "name": "Creative director",
+    "short": "creative-director",
+    "color": "#ff9a4a",
+    "status": "working",
+    "stage": 3,
+    "xp": 80,
+    "lede": "Shapes narrative arcs for features and names that feel human, not template.",
+    "learnings": [
+      {
+        "id": "learn-seed-creative-0",
+        "part": "Naming",
+        "quote": "Trade generic feature names for verbs the user would say aloud.",
+        "timestamp": 0,
+        "context": "seed"
+      },
+      {
+        "id": "learn-seed-creative-1",
+        "part": "Story",
+        "quote": "Lead with outcome, not mechanism, in onboarding copy.",
+        "timestamp": 0,
+        "context": "seed"
+      },
+      {
+        "id": "learn-seed-creative-2",
+        "part": "Metaphor",
+        "quote": "One strong metaphor beats three mixed ones in a single surface.",
+        "timestamp": 0,
+        "context": "seed"
+      }
+    ],
+    "specialization": ["writing", "naming"],
+    "reliability": 0.88,
+    "executionHistory": []
+  },
+  {
+    "id": "frontend",
+    "name": "Frontend designer",
+    "short": "frontend-designer",
+    "color": "#62ffc4",
+    "status": "idle",
+    "stage": 3,
+    "xp": 110,
+    "lede": "Ships tactile UI: depth, light, and motion that respect reduced-motion users.",
+    "learnings": [
+      {
+        "id": "learn-seed-frontend-0",
+        "part": "Depth",
+        "quote": "Layer glass with edge highlights, not flat translucent panels.",
+        "timestamp": 0,
+        "context": "seed"
+      },
+      {
+        "id": "learn-seed-frontend-1",
+        "part": "Focus",
+        "quote": "Keyboard focus rings must survive dark glassmorphism stacks.",
+        "timestamp": 0,
+        "context": "seed"
+      },
+      {
+        "id": "learn-seed-frontend-2",
+        "part": "Density",
+        "quote": "When in doubt, add air before adding another column.",
+        "timestamp": 0,
+        "context": "seed"
+      }
+    ],
+    "specialization": ["design", "coding"],
+    "reliability": 0.91,
+    "executionHistory": []
+  },
+  {
+    "id": "qa",
+    "name": "QA tester",
+    "short": "qa-tester",
+    "color": "#ff8f82",
+    "status": "idle",
+    "stage": 1,
+    "xp": 10,
+    "lede": "Treats every flow like a skeptical first-time user with a stopwatch.",
+    "learnings": [
+      {
+        "id": "learn-seed-qa-0",
+        "part": "Flows",
+        "quote": "Verify empty, loading, and error states before declaring a feature done.",
+        "timestamp": 0,
+        "context": "seed"
+      }
+    ],
+    "specialization": ["testing"],
+    "reliability": 0.60,
+    "executionHistory": []
+  }
+]

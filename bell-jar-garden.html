@@ -1,0 +1,984 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Bell Jar Garden — Agent Hub</title>
+<style>
+  :root {
+    --paper: #f6f1e6;
+    --paper-deep: #ede5d2;
+    --ink: #1a1814;
+    --ink-soft: #4a4439;
+    --ink-mute: #7a7261;
+    --accent: #b8410e;
+    --accent-soft: #d97852;
+    --gold: #c89752;
+    --wood: #6b4a2b;
+    --wood-deep: #4a3219;
+    --wood-light: #8a6440;
+    --glass: rgba(245, 238, 220, 0.08);
+    --glass-edge: rgba(255, 240, 210, 0.45);
+    --warm-spill: rgba(255, 210, 150, 0.35);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+    color: var(--ink);
+    background:
+      radial-gradient(ellipse 90% 60% at 50% 0%, #2a2018 0%, #1a1410 45%, #0e0a07 100%);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Header */
+  .topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 22px 40px;
+    border-bottom: 1px solid rgba(200, 151, 82, 0.18);
+    color: var(--paper);
+  }
+  .brand {
+    font-size: 13px;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: var(--gold);
+  }
+  .date {
+    font-size: 12px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+  }
+
+  /* Title */
+  .title-block {
+    text-align: center;
+    padding: 50px 24px 30px;
+    color: var(--paper);
+  }
+  .title-block h1 {
+    font-size: 56px;
+    margin: 0;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    line-height: 1;
+  }
+  .title-block .sub {
+    margin-top: 14px;
+    font-size: 13px;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--gold);
+    opacity: 0.85;
+  }
+
+  /* The room */
+  .room {
+    position: relative;
+    margin: 0 auto;
+    max-width: 1280px;
+    padding: 40px 40px 120px;
+    perspective: 1600px;
+  }
+
+  /* Pendant warm light from above */
+  .ceiling-light {
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 600px;
+    height: 280px;
+    background: radial-gradient(ellipse at 50% 0%, var(--warm-spill) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  /* The wooden shelf */
+  .shelf {
+    position: relative;
+    margin-top: 30px;
+    transform-style: preserve-3d;
+    transform: rotateX(8deg);
+    z-index: 2;
+  }
+  .shelf-top {
+    position: relative;
+    height: 64px;
+    background:
+      linear-gradient(180deg, var(--wood-light) 0%, var(--wood) 30%, var(--wood-deep) 100%),
+      repeating-linear-gradient(90deg,
+        rgba(0,0,0,0.04) 0px,
+        rgba(0,0,0,0.04) 2px,
+        transparent 2px,
+        transparent 28px);
+    background-blend-mode: multiply;
+    border-radius: 4px 4px 0 0;
+    box-shadow:
+      0 -2px 0 rgba(255, 220, 170, 0.15) inset,
+      0 -20px 60px rgba(255, 180, 120, 0.18);
+  }
+  .shelf-top::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(90deg,
+      transparent 0px,
+      transparent 120px,
+      rgba(0,0,0,0.15) 120px,
+      rgba(0,0,0,0.15) 121px);
+    border-radius: inherit;
+    opacity: 0.4;
+  }
+  .shelf-edge {
+    height: 18px;
+    background: linear-gradient(180deg, var(--wood-deep) 0%, #2c1c0d 100%);
+    border-radius: 0 0 4px 4px;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.55);
+  }
+
+  /* Cloches row */
+  .cloches {
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    right: 0;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0;
+    padding: 0 40px;
+    align-items: end;
+  }
+  .station {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-bottom: 0;
+  }
+
+  /* Individual cloche (bell jar) */
+  .cloche {
+    position: relative;
+    width: 240px;
+    height: 320px;
+    margin-bottom: 6px;
+    cursor: pointer;
+    transition: transform 0.4s ease;
+  }
+  .cloche:hover { transform: translateY(-4px); }
+
+  /* The glass dome shape */
+  .dome {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    border-radius: 110px 110px 12px 12px / 180px 180px 12px 12px;
+    background:
+      linear-gradient(180deg,
+        rgba(255, 230, 190, 0.08) 0%,
+        rgba(200, 220, 230, 0.04) 40%,
+        rgba(180, 200, 220, 0.06) 100%);
+    border: 1px solid var(--glass-edge);
+    border-top-color: rgba(255, 240, 210, 0.7);
+    border-bottom-color: rgba(120, 100, 70, 0.5);
+    backdrop-filter: blur(0.5px);
+    box-shadow:
+      inset 0 8px 24px rgba(255, 230, 190, 0.18),
+      inset 0 -20px 40px rgba(80, 50, 20, 0.25),
+      0 12px 30px rgba(0, 0, 0, 0.4);
+  }
+
+  /* Glass refraction highlights */
+  .dome::before {
+    content: "";
+    position: absolute;
+    top: 8%;
+    left: 14%;
+    width: 22%;
+    height: 60%;
+    background: linear-gradient(135deg,
+      rgba(255, 255, 240, 0.55) 0%,
+      rgba(255, 255, 240, 0.18) 40%,
+      transparent 100%);
+    border-radius: 50%;
+    filter: blur(1.5px);
+    pointer-events: none;
+  }
+  .dome::after {
+    content: "";
+    position: absolute;
+    top: 12%;
+    right: 18%;
+    width: 6%;
+    height: 30%;
+    background: linear-gradient(180deg,
+      rgba(255, 255, 240, 0.3) 0%,
+      transparent 100%);
+    border-radius: 50%;
+    filter: blur(1px);
+    pointer-events: none;
+  }
+
+  /* Brass finial on top of cloche */
+  .finial {
+    position: absolute;
+    top: -16px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 18px;
+    height: 28px;
+    background: linear-gradient(180deg, #e3b974 0%, var(--gold) 50%, #8a6532 100%);
+    border-radius: 50% 50% 30% 30% / 60% 60% 40% 40%;
+    box-shadow:
+      0 2px 4px rgba(0, 0, 0, 0.5),
+      inset 0 1px 2px rgba(255, 240, 200, 0.8);
+    z-index: 3;
+  }
+  .finial::after {
+    content: "";
+    position: absolute;
+    bottom: -4px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 24px;
+    height: 6px;
+    background: linear-gradient(180deg, var(--gold) 0%, #6a4a20 100%);
+    border-radius: 2px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+  }
+
+  /* The plant inside the dome */
+  .specimen {
+    position: absolute;
+    bottom: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 200px;
+    height: 280px;
+    pointer-events: none;
+    z-index: 1;
+  }
+  .specimen svg {
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+
+  /* Soil mound */
+  .soil {
+    position: absolute;
+    bottom: 6px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 160px;
+    height: 24px;
+    background:
+      radial-gradient(ellipse at 50% 30%, #6b4a2b 0%, #3e2613 70%, #261507 100%);
+    border-radius: 50% 50% 8px 8px / 80% 80% 12px 12px;
+    z-index: 0;
+    box-shadow:
+      inset 0 2px 4px rgba(255, 180, 100, 0.18),
+      inset 0 -4px 8px rgba(0, 0, 0, 0.4);
+  }
+
+  /* Sway motion — phase-offset per cloche */
+  .sway {
+    transform-origin: 50% 95%;
+    animation: sway 7s ease-in-out infinite;
+    animation-delay: var(--sway-delay, 0s);
+  }
+  @keyframes sway {
+    0%, 100% { transform: rotate(-1.2deg); }
+    50%      { transform: rotate(1.2deg); }
+  }
+
+  /* Breathing accents (blooms pulse) */
+  .breathe {
+    transform-origin: center;
+    animation: breathe 4s ease-in-out infinite;
+    animation-delay: var(--breathe-delay, 0s);
+  }
+  @keyframes breathe {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50%      { transform: scale(1.08); opacity: 0.85; }
+  }
+
+  /* Drifting motes inside the dome */
+  .motes {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 2;
+    overflow: hidden;
+    border-radius: inherit;
+  }
+  .mote {
+    position: absolute;
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: rgba(255, 220, 160, 0.7);
+    box-shadow: 0 0 6px rgba(255, 200, 130, 0.6);
+    animation: mote-float 16s linear infinite;
+  }
+  @keyframes mote-float {
+    0%   { transform: translate(0, 280px); opacity: 0; }
+    10%  { opacity: 1; }
+    90%  { opacity: 1; }
+    100% { transform: translate(20px, 0px); opacity: 0; }
+  }
+
+  /* Wooden plaque label */
+  .plaque {
+    margin-top: 12px;
+    padding: 8px 16px;
+    background: linear-gradient(180deg, #d4af6e 0%, var(--gold) 60%, #8a6a30 100%);
+    border-radius: 3px;
+    box-shadow:
+      0 2px 6px rgba(0, 0, 0, 0.5),
+      inset 0 1px 0 rgba(255, 240, 200, 0.7),
+      inset 0 -1px 0 rgba(80, 50, 10, 0.6);
+    text-align: center;
+    min-width: 180px;
+  }
+  .plaque .name {
+    font-size: 11px;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: #2a1808;
+    font-weight: 600;
+  }
+  .plaque .count {
+    margin-top: 3px;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    color: rgba(42, 24, 8, 0.7);
+  }
+
+  /* Status indicator */
+  .status-dot {
+    position: absolute;
+    top: 22px;
+    right: 22px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--ink-mute);
+    z-index: 4;
+  }
+  .station.working .status-dot {
+    background: var(--accent-soft);
+    box-shadow: 0 0 12px var(--accent-soft);
+    animation: pulse 1.8s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 0.6; }
+    50%      { opacity: 1; }
+  }
+
+  /* Reflections under the cloches on the shelf */
+  .reflection {
+    position: absolute;
+    bottom: -2px;
+    left: 50%;
+    transform: translateX(-50%) scaleY(-1);
+    width: 200px;
+    height: 60px;
+    background: linear-gradient(180deg,
+      rgba(255, 230, 190, 0.15) 0%,
+      transparent 100%);
+    filter: blur(8px);
+    pointer-events: none;
+    opacity: 0.5;
+    border-radius: 50%;
+  }
+
+  /* Footer panel */
+  .footer {
+    margin-top: 60px;
+    padding: 24px 40px;
+    text-align: center;
+    color: var(--ink-mute);
+    font-size: 12px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+  .footer .hint {
+    color: var(--gold);
+    opacity: 0.75;
+  }
+
+  /* Detail overlay */
+  .detail {
+    position: fixed;
+    inset: 0;
+    background: rgba(10, 7, 4, 0.92);
+    backdrop-filter: blur(8px);
+    display: none;
+    align-items: stretch;
+    justify-content: center;
+    z-index: 100;
+    padding: 40px;
+  }
+  .detail.open { display: flex; }
+  .detail-inner {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+    max-width: 1100px;
+    width: 100%;
+    color: var(--paper);
+  }
+  .detail-glass {
+    position: relative;
+    background: radial-gradient(ellipse at 50% 0%, rgba(255, 200, 150, 0.12) 0%, transparent 60%);
+    border: 1px solid rgba(200, 151, 82, 0.25);
+    border-radius: 12px;
+    padding: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .detail-glass .specimen {
+    position: relative;
+    width: 360px;
+    height: 500px;
+  }
+  .detail-info {
+    padding: 20px 0;
+  }
+  .detail-info .eyebrow {
+    font-size: 11px;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: var(--gold);
+  }
+  .detail-info h2 {
+    margin: 12px 0 4px;
+    font-size: 42px;
+    font-weight: 400;
+    line-height: 1;
+  }
+  .detail-info .meta {
+    color: var(--ink-mute);
+    font-size: 13px;
+    letter-spacing: 0.12em;
+  }
+  .detail-info .lede {
+    margin-top: 24px;
+    font-size: 16px;
+    line-height: 1.55;
+    color: var(--paper);
+    opacity: 0.85;
+  }
+  .learning-panel {
+    margin-top: 32px;
+    padding: 24px;
+    background: rgba(200, 151, 82, 0.08);
+    border-left: 2px solid var(--gold);
+    border-radius: 4px;
+    min-height: 140px;
+  }
+  .learning-panel .eyebrow-sm {
+    font-size: 10px;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 10px;
+  }
+  .learning-panel .quote {
+    font-size: 17px;
+    line-height: 1.5;
+    color: var(--paper);
+    font-style: italic;
+  }
+  .learning-panel .when {
+    margin-top: 10px;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    color: var(--ink-mute);
+    text-transform: uppercase;
+  }
+  .learning-panel .placeholder {
+    color: var(--ink-mute);
+    font-style: italic;
+    font-size: 14px;
+  }
+  .close-x {
+    position: absolute;
+    top: 24px;
+    right: 28px;
+    background: none;
+    border: 1px solid rgba(200, 151, 82, 0.4);
+    color: var(--gold);
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 18px;
+    z-index: 110;
+  }
+  .close-x:hover { background: rgba(200, 151, 82, 0.15); }
+
+  /* Clickable parts in detail view */
+  .part {
+    cursor: pointer;
+    transition: filter 0.25s ease, transform 0.25s ease;
+  }
+  .part:hover {
+    filter: brightness(1.35) drop-shadow(0 0 8px rgba(255, 220, 160, 0.7));
+  }
+  .part.active {
+    filter: brightness(1.4) drop-shadow(0 0 14px rgba(255, 200, 130, 0.85));
+  }
+
+  /* Anatomy legend in detail */
+  .legend {
+    margin-top: 24px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .legend-item {
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    padding: 6px 10px;
+    border: 1px solid rgba(200, 151, 82, 0.18);
+    border-radius: 999px;
+  }
+  .legend-item .swatch {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 8px;
+    vertical-align: middle;
+  }
+</style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">Daily Companion · Agent Hub</div>
+    <div class="date">Bell Jar Garden · Concept 05</div>
+  </header>
+
+  <section class="title-block">
+    <div class="sub">A collection under glass</div>
+    <h1>The Bell Jar Garden</h1>
+  </section>
+
+  <main class="room">
+    <div class="ceiling-light"></div>
+
+    <div class="shelf">
+      <div class="cloches">
+
+        <!-- 1. frontend-designer — rose with many learnings -->
+        <div class="station" data-agent="frontend-designer">
+          <div class="cloche" onclick="openDetail('frontend-designer')">
+            <div class="finial"></div>
+            <span class="status-dot"></span>
+            <div class="dome">
+              <div class="motes">
+                <span class="mote" style="left: 20%; animation-delay: 0s;"></span>
+                <span class="mote" style="left: 60%; animation-delay: 5s;"></span>
+                <span class="mote" style="left: 40%; animation-delay: 10s;"></span>
+              </div>
+              <div class="soil"></div>
+              <div class="specimen">
+                <svg viewBox="0 0 200 280">
+                  <g class="sway" style="--sway-delay: 0s;">
+                    <!-- main stem -->
+                    <path d="M 100 270 Q 96 200 100 140 Q 104 80 100 30"
+                          fill="none" stroke="#5a7a3a" stroke-width="3" stroke-linecap="round" />
+                    <!-- side stems -->
+                    <path d="M 100 200 Q 70 180 55 150" fill="none" stroke="#5a7a3a" stroke-width="2" stroke-linecap="round" />
+                    <path d="M 100 170 Q 135 155 150 120" fill="none" stroke="#5a7a3a" stroke-width="2" stroke-linecap="round" />
+                    <path d="M 100 110 Q 75 95 65 70" fill="none" stroke="#5a7a3a" stroke-width="2" stroke-linecap="round" />
+
+                    <!-- leaves -->
+                    <ellipse cx="55" cy="148" rx="14" ry="6" fill="#6a8a40" transform="rotate(-30 55 148)" />
+                    <ellipse cx="150" cy="120" rx="14" ry="6" fill="#7a9a48" transform="rotate(40 150 120)" />
+                    <ellipse cx="65" cy="70" rx="12" ry="5" fill="#6a8a40" transform="rotate(-20 65 70)" />
+                    <ellipse cx="115" cy="220" rx="13" ry="5" fill="#5a7a3a" transform="rotate(20 115 220)" />
+                    <ellipse cx="85" cy="240" rx="12" ry="5" fill="#5a7a3a" transform="rotate(-30 85 240)" />
+
+                    <!-- bloom: main rose -->
+                    <g class="breathe" style="--breathe-delay: 0s;">
+                      <circle cx="100" cy="30" r="22" fill="#b8410e" opacity="0.25" />
+                      <circle cx="100" cy="30" r="14" fill="#d97852" />
+                      <circle cx="100" cy="30" r="7" fill="#f4a47a" />
+                      <circle cx="97" cy="27" r="2.5" fill="#fff3e0" opacity="0.9" />
+                    </g>
+                    <!-- bud 1 -->
+                    <g class="breathe" style="--breathe-delay: 1.2s;">
+                      <circle cx="55" cy="150" r="11" fill="#c89752" opacity="0.3" />
+                      <circle cx="55" cy="150" r="6" fill="#d97852" />
+                      <circle cx="55" cy="150" r="3" fill="#f4a47a" />
+                    </g>
+                    <!-- bud 2 -->
+                    <g class="breathe" style="--breathe-delay: 2.4s;">
+                      <circle cx="150" cy="120" r="12" fill="#c89752" opacity="0.3" />
+                      <circle cx="150" cy="120" r="7" fill="#d97852" />
+                      <circle cx="150" cy="120" r="3.5" fill="#f4a47a" />
+                    </g>
+                    <!-- bud 3 small -->
+                    <g class="breathe" style="--breathe-delay: 3.6s;">
+                      <circle cx="65" cy="70" r="9" fill="#c89752" opacity="0.3" />
+                      <circle cx="65" cy="70" r="5" fill="#d97852" />
+                    </g>
+
+                    <!-- thorns -->
+                    <path d="M 96 220 L 88 218 L 96 216 Z" fill="#3a4d20" />
+                    <path d="M 104 180 L 112 178 L 104 176 Z" fill="#3a4d20" />
+                    <path d="M 96 130 L 88 128 L 96 126 Z" fill="#3a4d20" />
+                  </g>
+                </svg>
+              </div>
+            </div>
+            <div class="reflection"></div>
+          </div>
+          <div class="plaque">
+            <div class="name">frontend-designer</div>
+            <div class="count">11 learnings · idle</div>
+          </div>
+        </div>
+
+        <!-- 2. creative-director — working state, fewer but vivid blooms -->
+        <div class="station working" data-agent="creative-director">
+          <div class="cloche" onclick="openDetail('creative-director')">
+            <div class="finial"></div>
+            <span class="status-dot"></span>
+            <div class="dome">
+              <div class="motes">
+                <span class="mote" style="left: 30%; animation-delay: 2s;"></span>
+                <span class="mote" style="left: 70%; animation-delay: 7s;"></span>
+                <span class="mote" style="left: 50%; animation-delay: 12s;"></span>
+                <span class="mote" style="left: 15%; animation-delay: 4s;"></span>
+              </div>
+              <div class="soil"></div>
+              <div class="specimen">
+                <svg viewBox="0 0 200 280">
+                  <g class="sway" style="--sway-delay: 1s;">
+                    <!-- twin curling stems -->
+                    <path d="M 100 270 Q 85 200 95 130 Q 100 80 90 40"
+                          fill="none" stroke="#6a5a3a" stroke-width="2.5" stroke-linecap="round" />
+                    <path d="M 100 270 Q 115 200 105 130 Q 100 80 110 40"
+                          fill="none" stroke="#6a5a3a" stroke-width="2.5" stroke-linecap="round" />
+
+                    <!-- curly tendrils -->
+                    <path d="M 90 100 Q 75 95 70 80 Q 68 70 78 72"
+                          fill="none" stroke="#7a6a4a" stroke-width="1.5" stroke-linecap="round" />
+                    <path d="M 110 110 Q 125 105 130 90 Q 132 80 122 82"
+                          fill="none" stroke="#7a6a4a" stroke-width="1.5" stroke-linecap="round" />
+
+                    <!-- leaves heart-shaped -->
+                    <path d="M 90 180 Q 70 175 68 165 Q 70 158 80 162 Q 90 168 90 180 Z" fill="#a78540" />
+                    <path d="M 110 200 Q 130 195 132 185 Q 130 178 120 182 Q 110 188 110 200 Z" fill="#b89548" />
+
+                    <!-- top flower — large luminous -->
+                    <g class="breathe" style="--breathe-delay: 0s;">
+                      <circle cx="100" cy="40" r="28" fill="#e3b974" opacity="0.2" />
+                      <circle cx="100" cy="40" r="20" fill="#f4a47a" opacity="0.5" />
+                      <!-- petals -->
+                      <ellipse cx="100" cy="22" rx="6" ry="14" fill="#d97852" />
+                      <ellipse cx="118" cy="34" rx="6" ry="14" fill="#d97852" transform="rotate(60 118 34)" />
+                      <ellipse cx="118" cy="50" rx="6" ry="14" fill="#d97852" transform="rotate(120 118 50)" />
+                      <ellipse cx="100" cy="58" rx="6" ry="14" fill="#d97852" />
+                      <ellipse cx="82" cy="50" rx="6" ry="14" fill="#d97852" transform="rotate(-120 82 50)" />
+                      <ellipse cx="82" cy="34" rx="6" ry="14" fill="#d97852" transform="rotate(-60 82 34)" />
+                      <circle cx="100" cy="40" r="7" fill="#fff3d0" />
+                      <circle cx="98" cy="38" r="2.5" fill="#fff" opacity="0.95" />
+                    </g>
+
+                    <!-- secondary tiny blooms -->
+                    <g class="breathe" style="--breathe-delay: 1.5s;">
+                      <circle cx="78" cy="72" r="5" fill="#f4a47a" />
+                      <circle cx="78" cy="72" r="2" fill="#fff3d0" />
+                    </g>
+                    <g class="breathe" style="--breathe-delay: 2.8s;">
+                      <circle cx="122" cy="82" r="5" fill="#f4a47a" />
+                      <circle cx="122" cy="82" r="2" fill="#fff3d0" />
+                    </g>
+                  </g>
+                </svg>
+              </div>
+            </div>
+            <div class="reflection"></div>
+          </div>
+          <div class="plaque">
+            <div class="name">creative-director</div>
+            <div class="count">6 learnings · working</div>
+          </div>
+        </div>
+
+        <!-- 3. code-reviewer — sparse, sharp, succulent -->
+        <div class="station" data-agent="code-reviewer">
+          <div class="cloche" onclick="openDetail('code-reviewer')">
+            <div class="finial"></div>
+            <span class="status-dot"></span>
+            <div class="dome">
+              <div class="motes">
+                <span class="mote" style="left: 45%; animation-delay: 6s;"></span>
+                <span class="mote" style="left: 80%; animation-delay: 11s;"></span>
+              </div>
+              <div class="soil"></div>
+              <div class="specimen">
+                <svg viewBox="0 0 200 280">
+                  <g class="sway" style="--sway-delay: 2s;">
+                    <!-- thick succulent base -->
+                    <ellipse cx="100" cy="240" rx="40" ry="14" fill="#5a6a3a" />
+                    <ellipse cx="100" cy="232" rx="36" ry="12" fill="#6a7a44" />
+
+                    <!-- spiky succulent leaves rosette -->
+                    <g transform="translate(100 220)">
+                      <path d="M 0 0 Q -8 -30 -18 -55 Q -15 -25 -4 -2 Z" fill="#7a8a48" />
+                      <path d="M 0 0 Q 8 -30 18 -55 Q 15 -25 4 -2 Z" fill="#8a9a55" />
+                      <path d="M 0 0 Q -22 -25 -38 -42 Q -24 -22 -6 -3 Z" fill="#6a7a40" />
+                      <path d="M 0 0 Q 22 -25 38 -42 Q 24 -22 6 -3 Z" fill="#7a8a48" />
+                      <path d="M 0 0 Q -2 -38 0 -68 Q 2 -38 0 0 Z" fill="#8a9a55" />
+                      <path d="M 0 0 Q -14 -15 -32 -18 Q -14 -12 -4 -2 Z" fill="#6a7a40" />
+                      <path d="M 0 0 Q 14 -15 32 -18 Q 14 -12 4 -2 Z" fill="#7a8a48" />
+                    </g>
+
+                    <!-- single bright bloom on tall stalk -->
+                    <path d="M 100 152 L 100 80" stroke="#5a6a3a" stroke-width="2" />
+                    <g class="breathe" style="--breathe-delay: 0s;">
+                      <circle cx="100" cy="70" r="14" fill="#d97852" opacity="0.3" />
+                      <circle cx="100" cy="70" r="8" fill="#e3b974" />
+                      <circle cx="100" cy="70" r="3.5" fill="#fff3d0" />
+                    </g>
+
+                    <!-- spines (a few sharp points on leaves) -->
+                    <circle cx="82" cy="170" r="1.2" fill="#fff" opacity="0.7" />
+                    <circle cx="118" cy="170" r="1.2" fill="#fff" opacity="0.7" />
+                    <circle cx="100" cy="155" r="1.2" fill="#fff" opacity="0.7" />
+                    <circle cx="100" cy="185" r="1.2" fill="#fff" opacity="0.7" />
+                  </g>
+                </svg>
+              </div>
+            </div>
+            <div class="reflection"></div>
+          </div>
+          <div class="plaque">
+            <div class="name">code-reviewer</div>
+            <div class="count">3 learnings · idle</div>
+          </div>
+        </div>
+
+        <!-- 4. qa-tester — minimalist sprout, just starting -->
+        <div class="station" data-agent="qa-tester">
+          <div class="cloche" onclick="openDetail('qa-tester')">
+            <div class="finial"></div>
+            <span class="status-dot"></span>
+            <div class="dome">
+              <div class="motes">
+                <span class="mote" style="left: 55%; animation-delay: 8s;"></span>
+              </div>
+              <div class="soil"></div>
+              <div class="specimen">
+                <svg viewBox="0 0 200 280">
+                  <g class="sway" style="--sway-delay: 3s;">
+                    <!-- small sapling -->
+                    <path d="M 100 250 Q 98 220 100 200" fill="none" stroke="#6a7a3a" stroke-width="2.5" stroke-linecap="round" />
+                    <!-- two tiny leaves -->
+                    <ellipse cx="92" cy="210" rx="8" ry="4" fill="#8aa050" transform="rotate(-30 92 210)" />
+                    <ellipse cx="108" cy="200" rx="9" ry="4" fill="#8aa050" transform="rotate(35 108 200)" />
+                    <!-- single tip leaf -->
+                    <ellipse cx="100" cy="194" rx="5" ry="9" fill="#a8c068" />
+                    <!-- tiny dew drop -->
+                    <circle cx="100" cy="190" r="2" fill="#fff" opacity="0.7" />
+                  </g>
+                </svg>
+              </div>
+            </div>
+            <div class="reflection"></div>
+          </div>
+          <div class="plaque">
+            <div class="name">qa-tester</div>
+            <div class="count">1 learning · idle</div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="shelf-top"></div>
+      <div class="shelf-edge"></div>
+    </div>
+
+    <div class="footer">
+      <span>Click any bell jar to inspect the specimen ·&nbsp;</span>
+      <span class="hint">parts of the plant map to learnings</span>
+    </div>
+  </main>
+
+  <!-- Detail overlay -->
+  <div class="detail" id="detail">
+    <button class="close-x" onclick="closeDetail()">×</button>
+    <div class="detail-inner">
+      <div class="detail-glass">
+        <div class="specimen" id="detail-specimen"></div>
+      </div>
+      <div class="detail-info">
+        <div class="eyebrow" id="detail-eyebrow">Specimen</div>
+        <h2 id="detail-name">frontend-designer</h2>
+        <div class="meta" id="detail-meta">11 learnings · idle since 14 May</div>
+        <p class="lede" id="detail-lede">A cultivated rose tracking refinements to UI judgment.</p>
+
+        <div class="legend" id="detail-legend"></div>
+
+        <div class="learning-panel">
+          <div class="eyebrow-sm">Selected learning</div>
+          <div id="learning-body">
+            <p class="placeholder">Click a part of the plant to read what the agent learned there.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+  // Sample learning data per agent — would be wired to real ~/.claude/agents/ files later
+  const data = {
+    "frontend-designer": {
+      eyebrow: "Specimen 01 — Rosa",
+      lede: "A cultivated rose. Each bloom marks a moment of taste sharpened; thorns mark mistakes the agent now avoids by reflex.",
+      legend: [
+        { name: "Blooms", color: "#d97852" },
+        { name: "Buds",   color: "#c89752" },
+        { name: "Leaves", color: "#7a9a48" },
+        { name: "Thorns", color: "#3a4d20" }
+      ],
+      parts: [
+        { id: "main-bloom", label: "Main bloom",
+          quote: "Spacing must breathe. The dashboard's hero card was cramped at 16px gap — moved to 32px and the hierarchy clicked.",
+          when: "2026-05-11" },
+        { id: "bud-1", label: "Bud — sky brief",
+          quote: "Headlines look better in Iowan Old Style at the page-title weight, not the body weight. Body weight reads like an article excerpt.",
+          when: "2026-05-09" },
+        { id: "bud-2", label: "Bud — accent",
+          quote: "Reserve --accent (#b8410e) for one element per card. More than one and the eye loses the anchor.",
+          when: "2026-05-08" },
+        { id: "thorn-1", label: "Thorn",
+          quote: "Don't reach for shadows to add depth. Use stronger contrast on the foreground type instead — the page stays flat and confident.",
+          when: "2026-05-05" }
+      ]
+    },
+    "creative-director": {
+      eyebrow: "Specimen 02 — Heliantha",
+      lede: "A sun-facing bloom. Currently working — the petals are reaching. Tendrils track voice and rhythm; the central disc marks a headline that landed.",
+      legend: [
+        { name: "Sun bloom", color: "#d97852" },
+        { name: "Side blooms", color: "#f4a47a" },
+        { name: "Tendrils", color: "#7a6a4a" },
+        { name: "Leaves",  color: "#a78540" }
+      ],
+      parts: [
+        { id: "sun", label: "Sun bloom",
+          quote: "'Morning Edition' beats 'Daily Briefing' — the second sounds corporate, the first sounds like something arriving at your door.",
+          when: "2026-05-12" },
+        { id: "side-1", label: "Side bloom",
+          quote: "Microcopy on disabled states should explain the gate, not just say 'unavailable'. 'Voice arrives in phase 4' is better than 'Coming soon'.",
+          when: "2026-05-10" },
+        { id: "tendril-1", label: "Tendril",
+          quote: "Jarvis should never start a reply with 'Sure!' or 'Absolutely!' — too eager. A composed presence opens with content.",
+          when: "2026-05-09" }
+      ]
+    },
+    "code-reviewer": {
+      eyebrow: "Specimen 03 — Crassula",
+      lede: "A sparse, sharp succulent. Each spike is a class of bug the agent now catches by reflex. The single bloom marks an approved review.",
+      legend: [
+        { name: "Bloom",  color: "#e3b974" },
+        { name: "Leaves", color: "#7a8a48" },
+        { name: "Spines", color: "#ffffff" }
+      ],
+      parts: [
+        { id: "bloom", label: "Bloom",
+          quote: "Approved the SportSlideshow refactor — fallback ratio change was the right call; flagged no regressions.",
+          when: "2026-05-11" },
+        { id: "leaf-1", label: "Spiked leaf",
+          quote: "Watch for async server components rendering client-only hooks. The Jarvis card refactor would have shipped broken without the extraction.",
+          when: "2026-05-10" }
+      ]
+    },
+    "qa-tester": {
+      eyebrow: "Specimen 04 — Sapling",
+      lede: "A new sprout. Not much yet — one learning marks the first verified path. Watch this grow.",
+      legend: [
+        { name: "Leaf", color: "#a8c068" }
+      ],
+      parts: [
+        { id: "leaf", label: "First leaf",
+          quote: "RSS image fallback verified across BBC, Al Jazeera, The Verge. No more 'No image available' anywhere.",
+          when: "2026-05-13" }
+      ]
+    }
+  };
+
+  function openDetail(agentKey) {
+    const d = data[agentKey];
+    if (!d) return;
+
+    document.getElementById("detail-eyebrow").textContent = d.eyebrow;
+    document.getElementById("detail-name").textContent = agentKey;
+    document.getElementById("detail-lede").textContent = d.lede;
+
+    // Build legend
+    const legendEl = document.getElementById("detail-legend");
+    legendEl.innerHTML = d.legend.map(l =>
+      `<span class="legend-item"><span class="swatch" style="background:${l.color}"></span>${l.name}</span>`
+    ).join("");
+
+    // Build clickable parts list (simplified — for full version we'd render the SVG with onclick on each part)
+    const learningEl = document.getElementById("learning-body");
+    learningEl.innerHTML = `
+      <p class="placeholder">Click a part below to read its learning:</p>
+      <div style="margin-top:14px; display:flex; flex-direction:column; gap:8px;">
+        ${d.parts.map((p, i) =>
+          `<button onclick="showLearning('${agentKey}', ${i})" style="text-align:left; background:rgba(200,151,82,0.06); border:1px solid rgba(200,151,82,0.18); color:var(--paper); padding:10px 14px; border-radius:4px; cursor:pointer; font-family:inherit; font-size:13px;">
+            <strong style="color:var(--gold); letter-spacing:0.14em; text-transform:uppercase; font-size:10px;">${p.label}</strong>
+          </button>`
+        ).join("")}
+      </div>
+    `;
+
+    // Render a larger specimen (reuse SVG by clone — for mockup, just show the agent name as placeholder)
+    document.getElementById("detail-specimen").innerHTML = `
+      <div style="display:flex; align-items:center; justify-content:center; height:100%; color:var(--ink-mute); font-size:13px; letter-spacing:0.18em; text-transform:uppercase;">
+        ${agentKey} specimen ·&nbsp;<span style="color:var(--gold)">full SVG</span>
+      </div>
+    `;
+
+    document.getElementById("detail").classList.add("open");
+  }
+
+  function showLearning(agentKey, i) {
+    const part = data[agentKey].parts[i];
+    document.getElementById("learning-body").innerHTML = `
+      <p class="quote">"${part.quote}"</p>
+      <p class="when">${part.label} · ${part.when}</p>
+      <p style="margin-top:14px;"><a href="#" onclick="openDetail('${agentKey}'); return false;" style="color:var(--gold); font-size:11px; letter-spacing:0.2em; text-transform:uppercase; text-decoration:none;">← all learnings</a></p>
+    `;
+  }
+
+  function closeDetail() {
+    document.getElementById("detail").classList.remove("open");
+  }
+
+  document.getElementById("detail").addEventListener("click", e => {
+    if (e.target.id === "detail") closeDetail();
+  });
+  document.addEventListener("keydown", e => {
+    if (e.key === "Escape") closeDetail();
+  });
+</script>
+</body>
+</html>

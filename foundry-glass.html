@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Foundry Glass — Agent Hub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+:root {
+  --bg-void:          #111010;
+  --bg-panel:         #1a1917;
+  --bg-elevated:      #222020;
+  --border-subtle:    rgba(255,255,255,0.06);
+  --border-mid:       rgba(255,255,255,0.12);
+  --text-primary:     #f0ece4;
+  --text-secondary:   #a09890;
+  --text-faint:       #5a5450;
+  --accent-amber:     #ff8c00;
+  --accent-bright:    #ffcc44;
+  --accent-iron:      #c87941;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg-void); color: var(--text-primary); font-family: 'DM Mono', 'Courier New', monospace; }
+
+#scene-canvas { position: fixed; inset: 0; z-index: 0; display: block; cursor: grab; }
+#scene-canvas:active { cursor: grabbing; }
+
+/* Header */
+#header-bar {
+  position: fixed; top: 0; left: 0; right: 0; height: 48px; z-index: 30;
+  display: flex; align-items: center; padding: 0 20px; gap: 20px;
+  background: color-mix(in srgb, var(--bg-panel) 80%, transparent);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.header-wordmark { font-family: 'DM Serif Display', Georgia, serif; font-size: 17px; letter-spacing: 0.02em; color: var(--text-primary); flex-shrink: 0; }
+.header-stats { font-size: 11px; color: var(--text-faint); letter-spacing: 0.06em; text-transform: uppercase; }
+.header-spacer { flex: 1; }
+.header-nav { display: flex; gap: 6px; align-items: center; }
+.header-nav-link { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-faint); text-decoration: none; padding: 4px 8px; border-radius: 3px; border: 1px solid transparent; transition: color 0.15s, border-color 0.15s; }
+.header-nav-link:hover { color: var(--text-secondary); border-color: var(--border-subtle); }
+.header-nav-link.active { color: var(--accent-amber); border-color: rgba(255,140,0,0.3); }
+.header-btn { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; background: rgba(255,140,0,0.1); color: var(--accent-amber); border: 1px solid rgba(255,140,0,0.28); border-radius: 3px; padding: 5px 12px; cursor: pointer; transition: background 0.15s; }
+.header-btn:hover { background: rgba(255,140,0,0.18); }
+.header-motion-btn { background: transparent; border: 1px solid var(--border-subtle); color: var(--text-faint); border-radius: 3px; padding: 5px 10px; cursor: pointer; font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; transition: color 0.15s; white-space: nowrap; }
+.header-motion-btn:hover { color: var(--text-secondary); }
+
+/* Filter rail */
+#filter-rail {
+  position: fixed; left: 0; top: 48px; bottom: 72px; width: 200px; z-index: 10;
+  background: color-mix(in srgb, var(--bg-panel) 60%, transparent);
+  border-right: 1px solid var(--border-subtle);
+  display: flex; flex-direction: column; overflow: hidden;
+}
+.rail-header { padding: 14px 16px 10px; font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-faint); border-bottom: 1px solid var(--border-subtle); flex-shrink: 0; }
+.rail-agents { flex: 1; overflow-y: auto; padding: 6px 0; scrollbar-width: thin; scrollbar-color: var(--border-subtle) transparent; }
+.rail-agent-row {
+  display: flex; align-items: center; gap: 10px; padding: 8px 16px;
+  cursor: pointer; transition: background 0.12s;
+}
+.rail-agent-row:hover { background: var(--bg-elevated); }
+.rail-agent-row.selected { background: rgba(255,140,0,0.06); }
+.rail-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.rail-agent-name { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rail-agent-stage { font-size: 9px; color: var(--text-faint); margin-left: auto; text-transform: uppercase; flex-shrink: 0; }
+
+/* Detail panel */
+#detail-panel {
+  position: fixed; right: 0; top: 48px; bottom: 72px; width: 380px; z-index: 20;
+  background: var(--bg-panel);
+  border-left: 1px solid var(--border-subtle);
+  display: flex; flex-direction: column;
+  transform: translateX(100%); visibility: hidden;
+  transition: transform 0.28s cubic-bezier(0.22,1,0.36,1), visibility 0s linear 0.28s;
+}
+#detail-panel.is-open { transform: translateX(0); visibility: visible; transition: transform 0.28s cubic-bezier(0.22,1,0.36,1), visibility 0s linear 0s; }
+
+.panel-header { padding: 22px 48px 18px 20px; border-bottom: 1px solid var(--border-subtle); flex-shrink: 0; }
+.panel-agent-color-bar { width: 3px; height: 28px; border-radius: 1px; margin-bottom: 8px; }
+.panel-name { font-family: 'DM Serif Display', Georgia, serif; font-size: 26px; color: var(--text-primary); margin-bottom: 5px; line-height: 1.1; }
+.panel-spec { font-size: 10px; color: var(--text-faint); letter-spacing: 0.1em; text-transform: uppercase; }
+.panel-close { position: absolute; top: 14px; right: 14px; background: transparent; border: none; color: var(--text-faint); font-size: 18px; cursor: pointer; padding: 5px 7px; transition: color 0.15s; line-height: 1; }
+.panel-close:hover { color: var(--text-primary); }
+
+.panel-status-row { display: flex; align-items: center; gap: 12px; padding: 12px 20px; border-bottom: 1px solid var(--border-subtle); flex-shrink: 0; }
+.panel-stage-chip { font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; padding: 3px 8px; border-radius: 2px; border: 1px solid var(--border-subtle); color: var(--text-faint); }
+.panel-status-dot { width: 7px; height: 7px; border-radius: 50%; }
+.panel-status-idle { background: var(--text-faint); }
+.panel-status-working { background: var(--accent-amber); animation: dot-pulse 0.8s ease-in-out infinite; }
+@keyframes dot-pulse { 0%,100%{opacity:1} 50%{opacity:0.35} }
+.panel-xp-val { font-size: 11px; color: var(--text-faint); margin-left: auto; }
+
+.panel-body { flex: 1; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--border-subtle) transparent; }
+.panel-section { padding: 16px 20px; border-bottom: 1px solid var(--border-subtle); }
+.panel-section-label { font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-faint); margin-bottom: 10px; }
+
+.clarity-bar-wrap { display: flex; align-items: center; gap: 10px; }
+.clarity-bar-track { flex: 1; height: 3px; background: var(--border-subtle); position: relative; overflow: hidden; }
+.clarity-bar-fill { height: 100%; background: var(--accent-amber); transition: width 0.6s ease-out; }
+.clarity-pct { font-size: 12px; color: var(--text-secondary); flex-shrink: 0; }
+
+.panel-lede { font-family: 'DM Serif Display', Georgia, serif; font-style: italic; font-size: 14px; color: var(--text-secondary); line-height: 1.6; }
+
+.panel-learnings { display: flex; flex-direction: column; gap: 10px; }
+.panel-learning { padding: 10px 12px; background: var(--bg-elevated); border-radius: 3px; border-left: 2px solid; }
+.panel-learning-meta { font-size: 10px; color: var(--text-faint); margin-bottom: 4px; letter-spacing: 0.04em; }
+.panel-learning-quote { font-family: 'DM Serif Display', Georgia, serif; font-style: italic; font-size: 13px; color: var(--text-primary); line-height: 1.5; }
+
+.panel-actions { flex-shrink: 0; padding: 14px 20px; border-top: 1px solid var(--border-subtle); display: flex; gap: 8px; }
+.panel-action-btn { flex: 1; padding: 9px; border-radius: 3px; font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; transition: opacity 0.15s; border: 1px solid var(--border-subtle); }
+.panel-action-btn:hover { opacity: 0.8; }
+.panel-btn-feed { background: rgba(255,140,0,0.1); color: var(--accent-amber); border-color: rgba(255,140,0,0.25) !important; }
+.panel-btn-ghost { background: transparent; color: var(--text-secondary); }
+
+/* Feed tray */
+#feed-tray {
+  position: fixed; bottom: 0; left: 0; right: 0; height: 72px; z-index: 10;
+  display: flex; align-items: center; justify-content: center; gap: 16px;
+  background: linear-gradient(to top, rgba(17,16,16,0.9) 0%, transparent 100%);
+  pointer-events: none;
+}
+.tray-hint { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-faint); }
+
+/* Pour flash overlay */
+#pour-overlay {
+  position: fixed; inset: 0; z-index: 25; pointer-events: none;
+  background: radial-gradient(circle at var(--ox,50%) var(--oy,50%), rgba(255,140,0,0.12) 0%, transparent 50%);
+  opacity: 0; transition: opacity 0.1s ease-out;
+}
+#pour-overlay.on { opacity: 1; }
+#pour-overlay.fade { opacity: 0; transition: opacity 0.5s ease-out; }
+
+@media (prefers-reduced-motion: reduce) {
+  #detail-panel, #detail-panel.is-open { transition: none; }
+  .panel-status-working { animation: none; }
+  .clarity-bar-fill { transition: none; }
+  #pour-overlay, #pour-overlay.on, #pour-overlay.fade { opacity: 0 !important; transition: none; }
+}
+</style>
+</head>
+<body>
+
+<canvas id="scene-canvas"></canvas>
+
+<div id="header-bar">
+  <span class="header-wordmark">Foundry Glass</span>
+  <span class="header-stats" id="header-stats">— agents · — active</span>
+  <div class="header-spacer"></div>
+  <nav class="header-nav">
+    <a href="constellation-forge.html" class="header-nav-link">Forge</a>
+    <a href="tidal-archive.html" class="header-nav-link">Archive</a>
+    <a href="foundry-glass.html" class="header-nav-link active">Foundry</a>
+    <a href="vivarium.html" class="header-nav-link">Vivarium</a>
+    <a href="grove.html" class="header-nav-link">Grove</a>
+  </nav>
+  <button class="header-btn" id="header-new-agent">+ Agent</button>
+  <button class="header-motion-btn" id="header-motion-toggle">Motion ●</button>
+</div>
+
+<div id="filter-rail">
+  <div class="rail-header">Vessels on bench</div>
+  <div class="rail-agents" id="rail-agents"></div>
+</div>
+
+<div id="detail-panel">
+  <div class="panel-header">
+    <div class="panel-agent-color-bar" id="panel-color-bar"></div>
+    <div class="panel-name" id="panel-name">—</div>
+    <div class="panel-spec" id="panel-spec">—</div>
+    <button class="panel-close" id="panel-close" aria-label="Close">×</button>
+  </div>
+  <div class="panel-status-row" id="panel-status-row"></div>
+  <div class="panel-body">
+    <div class="panel-section">
+      <div class="panel-section-label">Clarity</div>
+      <div class="clarity-bar-wrap">
+        <div class="clarity-bar-track"><div class="clarity-bar-fill" id="clarity-fill" style="width:0%"></div></div>
+        <span class="clarity-pct" id="clarity-pct">0%</span>
+      </div>
+    </div>
+    <div class="panel-section">
+      <div class="panel-section-label">About</div>
+      <div class="panel-lede" id="panel-lede"></div>
+    </div>
+    <div class="panel-section">
+      <div class="panel-section-label">Refinement log</div>
+      <div class="panel-learnings" id="panel-learnings"></div>
+    </div>
+  </div>
+  <div class="panel-actions">
+    <button class="panel-action-btn panel-btn-feed" id="panel-feed">Feed skill</button>
+    <button class="panel-action-btn panel-btn-ghost" id="panel-run">Run</button>
+  </div>
+</div>
+
+<div id="feed-tray">
+  <span class="tray-hint" id="tray-hint">Select a vessel to inspect</span>
+</div>
+
+<div id="pour-overlay"></div>
+
+<script src="state-manager.js"></script>
+<script src="ui-modals.js"></script>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.min.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+// ── Seed data ─────────────────────────────────────────────────────────────────
+const SEED_AGENTS = [
+  { id:"designer", name:"Designer", color:"#c8b4ff", status:"idle", stage:2, xp:30, lede:"Tightens layout rhythm and keeps the companion voice consistent across surfaces.", learnings:[{id:"learn-seed-designer-0",part:"Spacing",quote:"Prefer optical centering over mathematical center for hero blocks.",timestamp:0,context:"seed"},{id:"learn-seed-designer-1",part:"Tone",quote:"Avoid engagement-bait closers; end with a direct optional follow-up.",timestamp:0,context:"seed"},{id:"learn-seed-designer-2",part:"Motion",quote:"Stagger hero reveals once; do not loop ambient motion on headings.",timestamp:0,context:"seed"}], specialization:["design","typography"], reliability:0.75, executionHistory:[] },
+  { id:"creative", name:"Creative director", color:"#ff9a4a", status:"working", stage:3, xp:80, lede:"Shapes narrative arcs for features and names that feel human, not template.", learnings:[{id:"learn-seed-creative-0",part:"Naming",quote:"Trade generic feature names for verbs the user would say aloud.",timestamp:0,context:"seed"},{id:"learn-seed-creative-1",part:"Story",quote:"Lead with outcome, not mechanism, in onboarding copy.",timestamp:0,context:"seed"},{id:"learn-seed-creative-2",part:"Metaphor",quote:"One strong metaphor beats three mixed ones in a single surface.",timestamp:0,context:"seed"}], specialization:["writing","naming"], reliability:0.88, executionHistory:[] },
+  { id:"frontend", name:"Frontend designer", color:"#62ffc4", status:"idle", stage:3, xp:110, lede:"Ships tactile UI: depth, light, and motion that respect reduced-motion users.", learnings:[{id:"learn-seed-frontend-0",part:"Depth",quote:"Layer glass with edge highlights, not flat translucent panels.",timestamp:0,context:"seed"},{id:"learn-seed-frontend-1",part:"Focus",quote:"Keyboard focus rings must survive dark glassmorphism stacks.",timestamp:0,context:"seed"},{id:"learn-seed-frontend-2",part:"Density",quote:"When in doubt, add air before adding another column.",timestamp:0,context:"seed"}], specialization:["design","coding"], reliability:0.91, executionHistory:[] },
+  { id:"qa", name:"QA tester", color:"#ff8f82", status:"idle", stage:1, xp:10, lede:"Treats every flow like a skeptical first-time user with a stopwatch.", learnings:[{id:"learn-seed-qa-0",part:"Flows",quote:"Verify empty, loading, and error states before declaring a feature done.",timestamp:0,context:"seed"}], specialization:["testing"], reliability:0.60, executionHistory:[] },
+];
+
+const STAGE_NAMES  = ['Seed','Forming','Faceted','Crystal'];
+const XP_THRESHOLDS = [0, 10, 40, 100, Infinity];
+
+// ── StateManager ───────────────────────────────────────────────────────────────
+const hub = new window.StateManager(SEED_AGENTS);
+window._agentHub = hub;
+
+let reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+let selectedId   = null;
+const agentObjs  = new Map(); // id → { group, vessel, shadow }
+let isDragging   = false;
+let hoverRimLight;
+
+// ── Renderer ───────────────────────────────────────────────────────────────────
+const canvas   = document.getElementById('scene-canvas');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type    = THREE.PCFSoftShadowMap;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x111010);
+scene.fog = new THREE.Fog(0x111010, 14, 28);
+
+const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+camera.position.set(0, 6, 9);
+camera.lookAt(0, 0, 0);
+
+const controls = new OrbitControls(camera, canvas);
+controls.enablePan  = false;
+controls.minPolarAngle = Math.PI / 6;
+controls.maxPolarAngle = Math.PI / 2.1;
+controls.minDistance   = 4;
+controls.maxDistance   = 14;
+controls.dampingFactor  = 0.08;
+controls.enableDamping  = true;
+controls.addEventListener('start', () => { isDragging = false; });
+controls.addEventListener('change', () => { isDragging = true; });
+
+// ── Lights ─────────────────────────────────────────────────────────────────────
+scene.add(new THREE.AmbientLight(0x1a1410, 0.08));
+
+const spotLight = new THREE.SpotLight(0xffb347, 2.5, 20, Math.PI / 4, 0.5, 1.5);
+spotLight.position.set(0, 10, 0);
+spotLight.castShadow = true;
+spotLight.shadow.mapSize.set(1024, 1024);
+spotLight.shadow.bias = -0.0005;
+scene.add(spotLight);
+scene.add(spotLight.target);
+
+const backfill = new THREE.DirectionalLight(0x4466aa, 0.15);
+backfill.position.set(-8, 3, -6);
+scene.add(backfill);
+
+hoverRimLight = new THREE.PointLight(0xffffff, 0, 5, 1.5);
+scene.add(hoverRimLight);
+
+// ── Pour shaders ───────────────────────────────────────────────────────────────
+const POUR_VERT = `varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`;
+const POUR_FRAG = `
+  uniform vec3 uColor; uniform float uReveal;
+  varying vec2 vUv;
+  void main(){
+    if(vUv.y > uReveal) discard;
+    float hot = 1.0 - clamp((uReveal - vUv.y) * 8.0, 0.0, 1.0);
+    vec3 col = mix(uColor, vec3(1.0, 0.95, 0.6), hot * 0.6);
+    gl_FragColor = vec4(col, 0.85);
+  }
+`;
+
+// ── Table ─────────────────────────────────────────────────────────────────────
+const tableGeo = new THREE.PlaneGeometry(18, 10);
+tableGeo.rotateX(-Math.PI / 2);
+const tableMat = new THREE.MeshStandardMaterial({ color:0x181614, roughness:0.92, metalness:0.08 });
+const table = new THREE.Mesh(tableGeo, tableMat);
+table.receiveShadow = true;
+scene.add(table);
+
+// Scorch lines (procedural table marks)
+for (let i = 0; i < 6; i++) {
+  const w = 0.02 + Math.random() * 0.03;
+  const l = 0.4 + Math.random() * 1.2;
+  const g = new THREE.PlaneGeometry(w, l);
+  g.rotateX(-Math.PI / 2);
+  g.rotateY(Math.random() * Math.PI);
+  const m = new THREE.MeshBasicMaterial({ color:0x0a0908, transparent:true, opacity:0.55 });
+  const mesh = new THREE.Mesh(g, m);
+  mesh.position.set((Math.random()-0.5)*8, 0.001, (Math.random()-0.5)*4);
+  scene.add(mesh);
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────────────
+function agentColor(agent) {
+  const h = typeof agent.color === 'string' ? agent.color : '#'+(agent.color||0x88ccff).toString(16).padStart(6,'0');
+  return { three: new THREE.Color(h), hex: h };
+}
+
+function tablePosition(index, total) {
+  const spacing = Math.min(1.9, 9 / Math.max(total, 1));
+  const x = (index - (total - 1) / 2) * spacing;
+  const z = (index % 2 === 0 ? 0.25 : -0.25) + (Math.random() - 0.5) * 0.1;
+  return new THREE.Vector3(x, 0, z);
+}
+
+// ── Vessel geometry per stage ─────────────────────────────────────────────────
+function vesselGeo(stage) {
+  switch (Math.min(stage, 3)) {
+    case 0: return new THREE.SphereGeometry(0.45, 12, 10);
+    case 1: return new THREE.SphereGeometry(0.55, 18, 16);
+    case 2: { const g = new THREE.IcosahedronGeometry(0.6, 1); return g; }
+    case 3: { const g = new THREE.IcosahedronGeometry(0.65, 2); return g; }
+  }
+}
+
+function vesselMat(stage, color) {
+  const st = Math.min(stage, 3);
+  const base = {
+    color: color,
+    transparent: true,
+    side: THREE.DoubleSide,
+    depthWrite: false,
+  };
+  if (st === 0) return new THREE.MeshStandardMaterial({ ...base, roughness:0.9, metalness:0, opacity:0.55, color:0xd0ccd8 });
+  if (st === 1) return new THREE.MeshPhysicalMaterial({ ...base, roughness:0.55, metalness:0.05, opacity:0.72 });
+  if (st === 2) return new THREE.MeshPhysicalMaterial({ ...base, roughness:0.22, metalness:0.1, opacity:0.88, transmission:0.35, ior:1.45, flatShading:true });
+  return new THREE.MeshPhysicalMaterial({ ...base, roughness:0.04, metalness:0.15, opacity:1, transmission:0.85, ior:1.52, thickness:0.4, flatShading:false });
+}
+
+// ── Build agent vessel ────────────────────────────────────────────────────────
+function buildVessel(agent, pos) {
+  const { three: col } = agentColor(agent);
+  const st = Math.min(agent.stage, 3);
+  const group = new THREE.Group();
+  group.position.copy(pos);
+  group.position.y = 0;
+
+  const geo = vesselGeo(st);
+  const mat = vesselMat(st, col);
+  const radius = st === 0 ? 0.45 : st === 1 ? 0.55 : 0.6 + st * 0.025;
+  const vessel = new THREE.Mesh(geo, mat);
+  vessel.position.y = radius;
+  vessel.castShadow = true;
+  vessel.userData._id = agent.id;
+  group.add(vessel);
+
+  // Colored shadow decal (stage 2+)
+  let shadow = null;
+  if (st >= 2) {
+    const sdGeo = new THREE.CircleGeometry(radius * 1.4, 24);
+    sdGeo.rotateX(-Math.PI / 2);
+    const rel = agent.reliability || 0.5;
+    const sdMat = new THREE.MeshBasicMaterial({
+      color: col, transparent: true,
+      opacity: rel * 0.22,
+      blending: THREE.MultiplyBlending,
+      depthWrite: false,
+    });
+    shadow = new THREE.Mesh(sdGeo, sdMat);
+    shadow.position.y = 0.005;
+    group.add(shadow);
+  }
+
+  group.userData = { agentId: agent.id, radius, bobOffset: Math.random() * Math.PI * 2 };
+  scene.add(group);
+  return { group, vessel, shadow };
+}
+
+// Lay agents out on table
+function repositionAll() {
+  const agents = hub.getAgents();
+  agents.forEach((a, i) => {
+    const obj = agentObjs.get(a.id);
+    if (!obj) return;
+    const pos = tablePosition(i, agents.length);
+    obj.group.position.x = pos.x;
+    obj.group.position.z = pos.z;
+    obj.group.userData.baseX = pos.x;
+    obj.group.userData.baseZ = pos.z;
+  });
+}
+
+function spawnAll() {
+  const agents = hub.getAgents();
+  agents.forEach((a, i) => {
+    const pos = tablePosition(i, agents.length);
+    pos.y = 0;
+    const obj = buildVessel(a, pos);
+    obj.group.userData.baseX = pos.x;
+    obj.group.userData.baseZ = pos.z;
+    agentObjs.set(a.id, obj);
+  });
+}
+spawnAll();
+updateRail();
+updateHeaderStats();
+
+// ── Raycaster ─────────────────────────────────────────────────────────────────
+const rc = new THREE.Raycaster();
+const mp = new THREE.Vector2();
+let lastMouseDown = { x: 0, y: 0 };
+
+canvas.addEventListener('mousedown', (e) => { lastMouseDown = { x: e.clientX, y: e.clientY }; isDragging = false; });
+canvas.addEventListener('click', (e) => {
+  const dx = e.clientX - lastMouseDown.x;
+  const dy = e.clientY - lastMouseDown.y;
+  if (Math.hypot(dx, dy) > 5) return; // was a drag
+
+  const rect = canvas.getBoundingClientRect();
+  mp.set(((e.clientX-rect.left)/rect.width)*2-1, -((e.clientY-rect.top)/rect.height)*2+1);
+  rc.setFromCamera(mp, camera);
+
+  const vessels = [];
+  for (const [, obj] of agentObjs) { vessels.push(obj.vessel); }
+  const hits = rc.intersectObjects(vessels);
+  if (hits.length) {
+    selectAgent(hits[0].object.userData._id);
+  }
+});
+
+// Hover rim light
+canvas.addEventListener('mousemove', (e) => {
+  if (reduceMotion) return;
+  const rect = canvas.getBoundingClientRect();
+  mp.set(((e.clientX-rect.left)/rect.width)*2-1, -((e.clientY-rect.top)/rect.height)*2+1);
+  rc.setFromCamera(mp, camera);
+  const vessels = [];
+  for (const [, obj] of agentObjs) { vessels.push(obj.vessel); }
+  const hits = rc.intersectObjects(vessels);
+  if (hits.length) {
+    const id = hits[0].object.userData._id;
+    const obj = agentObjs.get(id);
+    const { three: col } = agentColor(hub.findAgent(id));
+    hoverRimLight.color.copy(col);
+    hoverRimLight.position.set(obj.group.position.x, 2, obj.group.position.z);
+    hoverRimLight.intensity = 1.2;
+    canvas.style.cursor = 'pointer';
+  } else {
+    hoverRimLight.intensity = 0;
+    canvas.style.cursor = selectedId ? 'grabbing' : 'grab';
+  }
+});
+
+// ── Selection ─────────────────────────────────────────────────────────────────
+function selectAgent(id) {
+  selectedId = id;
+  const a = hub.findAgent(id);
+  if (!a) return;
+  renderPanel(a);
+  document.getElementById('detail-panel').classList.add('is-open');
+  updateRail();
+  document.getElementById('tray-hint').textContent = `${a.name} selected — ${(a.learnings||[]).length} refinements`;
+  // Ease camera toward agent
+  if (!reduceMotion) {
+    const obj = agentObjs.get(id);
+    if (obj) {
+      controls.target.set(obj.group.position.x, 0, obj.group.position.z);
+    }
+  }
+}
+
+function closePanel() {
+  document.getElementById('detail-panel').classList.remove('is-open');
+  selectedId = null;
+  updateRail();
+  document.getElementById('tray-hint').textContent = 'Select a vessel to inspect';
+}
+
+document.getElementById('panel-close').addEventListener('click', closePanel);
+document.getElementById('panel-feed').addEventListener('click', () => {
+  if (selectedId && window.AgentModals) window.AgentModals.openFeedModal(selectedId);
+});
+document.getElementById('panel-run').addEventListener('click', () => {
+  if (!selectedId) return;
+  const a = hub.findAgent(selectedId);
+  if (!a) return;
+  a.status = a.status === 'working' ? 'idle' : 'working';
+  renderPanel(a);
+  updateHeaderStats();
+});
+
+// ── Panel rendering ───────────────────────────────────────────────────────────
+function renderPanel(agent) {
+  const { hex } = agentColor(agent);
+  const st = Math.min(agent.stage, 3);
+
+  document.getElementById('panel-color-bar').style.background = hex;
+  document.getElementById('panel-name').textContent = agent.name;
+  document.getElementById('panel-spec').textContent = (agent.specialization||[]).join(' · ') || '—';
+
+  // Status row
+  const isWorking = agent.status === 'working';
+  const rel = Math.round((agent.reliability||0.5)*100);
+  const floor = XP_THRESHOLDS[st];
+  const ceil  = st < 3 ? XP_THRESHOLDS[st+1] : XP_THRESHOLDS[st]+50;
+  const xpPct = st >= 3 ? 100 : Math.min(100, Math.round(((agent.xp-floor)/(ceil-floor))*100));
+  document.getElementById('panel-status-row').innerHTML =
+    `<span class="panel-stage-chip">${STAGE_NAMES[st]}</span>
+     <span class="panel-status-dot panel-status-${isWorking?'working':'idle'}"></span>
+     <span style="font-size:11px;color:var(--text-faint)">${isWorking?'working':'idle'}</span>
+     <span class="panel-xp-val">${agent.xp} XP · ${xpPct}% to next</span>`;
+
+  // Clarity
+  const clarityPct = rel;
+  document.getElementById('clarity-pct').textContent = clarityPct+'%';
+  const fill = document.getElementById('clarity-fill');
+  fill.style.background = hex;
+  requestAnimationFrame(() => fill.style.width = clarityPct+'%');
+
+  document.getElementById('panel-lede').textContent = agent.lede || '';
+
+  const ll = agent.learnings || [];
+  document.getElementById('panel-learnings').innerHTML = !ll.length
+    ? `<div style="font-size:13px;color:var(--text-faint)">No refinements yet.</div>`
+    : [...ll].reverse().map(l =>
+        `<div class="panel-learning" style="border-left-color:${hex}">
+           <div class="panel-learning-meta">${l.part} · ${l.timestamp ? window.StateManager.timeAgo(l.timestamp) : 'founding note'}</div>
+           <div class="panel-learning-quote">${l.quote}</div>
+         </div>`
+      ).join('');
+}
+
+// ── Rail ──────────────────────────────────────────────────────────────────────
+function updateRail() {
+  const agents = hub.getAgents();
+  document.getElementById('rail-agents').innerHTML = agents.map(a => {
+    const { hex } = agentColor(a);
+    const st = Math.min(a.stage, 3);
+    const isSelected = a.id === selectedId;
+    return `<div class="rail-agent-row${isSelected?' selected':''}" data-id="${a.id}">
+      <div class="rail-dot" style="background:${hex}"></div>
+      <span class="rail-agent-name">${a.name}</span>
+      <span class="rail-agent-stage">${STAGE_NAMES[st]}</span>
+    </div>`;
+  }).join('');
+  document.querySelectorAll('.rail-agent-row').forEach(row => {
+    row.addEventListener('click', () => selectAgent(row.dataset.id));
+  });
+}
+
+function updateHeaderStats() {
+  const agents = hub.getAgents();
+  const active = agents.filter(a=>a.status==='working').length;
+  document.getElementById('header-stats').textContent = `${agents.length} agent${agents.length!==1?'s':''} · ${active} active`;
+}
+
+// ── Hub events ────────────────────────────────────────────────────────────────
+hub.on('learningAdded', ({ agentId, promoted }) => {
+  updateHeaderStats();
+  updateRail();
+  const obj = agentObjs.get(agentId);
+  const a   = hub.findAgent(agentId);
+  if (obj && a) {
+    // Update shadow opacity (reliability could change)
+    if (obj.shadow) obj.shadow.material.opacity = (a.reliability||0.5) * 0.22;
+    if (!reduceMotion) triggerPour(obj, a);
+  }
+  if (selectedId === agentId && a) renderPanel(a);
+  if (promoted) promoteVessel(agentId);
+});
+
+hub.on('agentAdded', ({ agent }) => {
+  const agents = hub.getAgents();
+  const i   = agents.findIndex(a => a.id === agent.id);
+  const pos = tablePosition(i, agents.length);
+  pos.y = 0;
+  const obj = buildVessel(agent, pos);
+  obj.group.userData.baseX = pos.x;
+  obj.group.userData.baseZ = pos.z;
+  agentObjs.set(agent.id, obj);
+  repositionAll();
+  updateRail();
+  updateHeaderStats();
+});
+
+// ── Pour animation ────────────────────────────────────────────────────────────
+function triggerPour(obj, agent) {
+  const { three: col, hex } = agentColor(agent);
+  const st     = Math.min(agent.stage, 3);
+  const radius = obj.group.userData.radius || 0.5;
+  const topY   = radius * 2 + 0.1;
+  const midY   = radius * 0.6;
+
+  // Curved path from above vessel down into center
+  const curve = new THREE.QuadraticBezierCurve3(
+    new THREE.Vector3(0, topY + 0.4, 0),
+    new THREE.Vector3(0.1, (topY + midY) / 2, 0.1),
+    new THREE.Vector3(0, midY, 0),
+  );
+  const tubeGeo = new THREE.TubeGeometry(curve, 20, 0.025, 6, false);
+  const tubeMat = new THREE.ShaderMaterial({
+    uniforms: { uColor: { value: col }, uReveal: { value: 0 } },
+    vertexShader: POUR_VERT,
+    fragmentShader: POUR_FRAG,
+    transparent: true,
+    side: THREE.DoubleSide,
+    depthWrite: false,
+  });
+  const tube = new THREE.Mesh(tubeGeo, tubeMat);
+  obj.group.add(tube);
+
+  // Flash light
+  const flashLight = new THREE.PointLight(col, 3, 3, 2);
+  flashLight.position.set(0, radius, 0);
+  obj.group.add(flashLight);
+
+  const t0  = performance.now();
+  const dur = 700;
+  (function step(now) {
+    const t = Math.min((now - t0) / dur, 1);
+    tubeMat.uniforms.uReveal.value = t;
+    flashLight.intensity = 3 * (1 - t);
+    if (t < 1) {
+      requestAnimationFrame(step);
+    } else {
+      // Fade out
+      setTimeout(() => {
+        obj.group.remove(tube);
+        obj.group.remove(flashLight);
+        tubeGeo.dispose(); tubeMat.dispose();
+      }, 300);
+    }
+  })(t0);
+
+  // Overlay
+  const gp = obj.group.position.clone().project(camera);
+  const el = document.getElementById('pour-overlay');
+  el.style.setProperty('--ox', ((gp.x+1)/2*100).toFixed(1)+'%');
+  el.style.setProperty('--oy', ((1-gp.y)/2*100).toFixed(1)+'%');
+  el.classList.remove('fade'); el.classList.add('on');
+  setTimeout(() => { el.classList.remove('on'); el.classList.add('fade'); }, 120);
+}
+
+// ── Stage promotion ───────────────────────────────────────────────────────────
+function promoteVessel(agentId) {
+  const a   = hub.findAgent(agentId);
+  const obj = agentObjs.get(agentId);
+  if (!a || !obj) return;
+  const st = Math.min(a.stage, 3);
+  const { three: col } = agentColor(a);
+
+  obj.vessel.geometry.dispose();
+  obj.vessel.material.dispose();
+  obj.vessel.geometry = vesselGeo(st);
+  obj.vessel.material = vesselMat(st, col);
+  const r = st === 0 ? 0.45 : st === 1 ? 0.55 : 0.6 + st * 0.025;
+  obj.vessel.position.y = r;
+  obj.group.userData.radius = r;
+
+  // Add shadow if newly stage 2
+  if (st >= 2 && !obj.shadow) {
+    const sdGeo = new THREE.CircleGeometry(r * 1.4, 24);
+    sdGeo.rotateX(-Math.PI / 2);
+    const sdMat = new THREE.MeshBasicMaterial({ color:col, transparent:true, opacity:(a.reliability||0.5)*0.22, blending:THREE.MultiplyBlending, depthWrite:false });
+    obj.shadow = new THREE.Mesh(sdGeo, sdMat);
+    obj.shadow.position.y = 0.005;
+    obj.group.add(obj.shadow);
+  }
+}
+
+// ── UI controls ───────────────────────────────────────────────────────────────
+document.getElementById('header-new-agent').addEventListener('click', () => {
+  if (window.AgentModals) window.AgentModals.openCreateModal();
+});
+document.getElementById('header-motion-toggle').addEventListener('click', () => {
+  reduceMotion = !reduceMotion;
+  document.getElementById('header-motion-toggle').textContent = reduceMotion ? 'Motion ○' : 'Motion ●';
+});
+
+// ── Tick ──────────────────────────────────────────────────────────────────────
+const clock = new THREE.Clock();
+let elapsed = 0;
+
+function tick() {
+  requestAnimationFrame(tick);
+  const dt = clock.getDelta();
+  elapsed += dt;
+  controls.update();
+
+  // Gentle vessel bob
+  if (!reduceMotion) {
+    for (const [id, obj] of agentObjs) {
+      const ud = obj.group.userData;
+      const a  = hub.findAgent(id);
+      if (!a) continue;
+      const r = ud.radius || 0.5;
+      obj.vessel.position.y = r + Math.sin(elapsed * 0.9 + ud.bobOffset) * 0.025;
+      // Selection scale
+      const target = id === selectedId ? 1.08 : 1.0;
+      const cur    = obj.group.scale.x;
+      if (Math.abs(cur - target) > 0.001) obj.group.scale.setScalar(cur + (target - cur) * 0.1);
+    }
+  }
+
+  renderer.render(scene, camera);
+}
+tick();
+
+// ── Resize ─────────────────────────────────────────────────────────────────────
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+</script>
+</body>
+</html>

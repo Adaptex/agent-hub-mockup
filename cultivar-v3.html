@@ -1,0 +1,770 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Cultivar v3 — Agent Hub</title>
+<style>
+  :root {
+    --bg: #0c0a08;
+    --surface: #161310;
+    --border: rgba(200, 151, 82, 0.12);
+    --paper: #f0e8d8;
+    --ink-mute: #7a7261;
+    --gold: #c89752;
+    --gold-dim: rgba(200, 151, 82, 0.4);
+    --green: #6a8a40;
+    --green-dark: #3a5420;
+    --green-light: #a8c868;
+    --rose: #c84040;
+    --rose-light: #e88070;
+    --rose-glow: #ffb8a0;
+    --sun: #e3a030;
+    --sun-glow: #fff3c0;
+    --blue-green: #508878;
+    --sprout: #90b858;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    font-family: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+    background: var(--bg);
+    color: var(--paper);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  .top {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 18px 40px; border-bottom: 1px solid var(--border);
+  }
+  .brand { font-size: 12px; letter-spacing: 0.28em; text-transform: uppercase; color: var(--gold); }
+  .tag { font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--gold-dim); }
+
+  .hero { text-align: center; padding: 44px 24px 12px; }
+  .hero h1 {
+    font-size: 54px; font-weight: 400;
+    background: linear-gradient(180deg, var(--paper) 30%, var(--green-light) 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  }
+  .hero .sub {
+    margin-top: 12px; font-size: 13px; letter-spacing: 0.24em;
+    text-transform: uppercase; color: var(--green-light); opacity: 0.6;
+  }
+
+  .stats-bar {
+    display: flex; justify-content: center; gap: 48px; padding: 20px;
+  }
+  .stat { text-align: center; }
+  .stat-val { display: block; font-size: 28px; color: var(--paper); }
+  .stat-label { font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold-dim); margin-top: 4px; }
+
+  /* Shelf */
+  .shelf-wrap {
+    max-width: 1300px; margin: 10px auto 0; padding: 0 28px;
+    position: relative;
+  }
+  .ceiling-light {
+    position: absolute; top: -40px; left: 50%; transform: translateX(-50%);
+    width: 700px; height: 200px;
+    background: radial-gradient(ellipse at 50% 0%, rgba(255,210,150,0.2) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .grid {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 18px; position: relative; z-index: 1;
+  }
+
+  /* Plant station */
+  .plant-station {
+    position: relative; border: 1px solid var(--border);
+    border-radius: 16px; overflow: hidden; cursor: pointer;
+    background: var(--surface);
+    transition: transform 0.35s, box-shadow 0.35s;
+  }
+  .plant-station:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 24px 60px rgba(0,0,0,0.5);
+  }
+
+  .plant-glow {
+    position: absolute; inset: 0; pointer-events: none; opacity: 0.4;
+    transition: opacity 0.3s;
+  }
+  .plant-station:hover .plant-glow { opacity: 0.7; }
+
+  .plant-area {
+    height: 310px; position: relative;
+    display: flex; align-items: flex-end; justify-content: center;
+    padding-bottom: 0;
+  }
+
+  /* Soil */
+  .soil {
+    position: absolute; bottom: 0; left: 0; right: 0; height: 50px;
+    background: linear-gradient(180deg, #3a2818 0%, #2a1a0e 60%, #1a100a 100%);
+    border-top: 1px solid rgba(100, 70, 40, 0.3);
+  }
+  .soil::before {
+    content: ""; position: absolute; inset: 0;
+    background: radial-gradient(ellipse at 50% 0%, rgba(120, 80, 40, 0.2) 0%, transparent 60%);
+  }
+
+  .plant-svg { position: relative; z-index: 1; width: 220px; height: 290px; }
+
+  /* Spores / pollen particles */
+  .spores {
+    position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 2;
+  }
+  .spore {
+    position: absolute; border-radius: 50%;
+    animation: spore-rise linear infinite;
+  }
+  @keyframes spore-rise {
+    0%   { transform: translateY(0) translateX(0); opacity: 0; }
+    10%  { opacity: 0.8; }
+    90%  { opacity: 0.6; }
+    100% { transform: translateY(-280px) translateX(var(--dx)); opacity: 0; }
+  }
+
+  /* Bioluminescent glow pulse */
+  @keyframes bio-glow {
+    0%, 100% { opacity: 0.3; r: var(--r1); }
+    50%      { opacity: 0.7; r: var(--r2); }
+  }
+  @keyframes bio-glow-fixed {
+    0%, 100% { opacity: 0.25; }
+    50%      { opacity: 0.65; }
+  }
+
+  /* Multi-layer sway */
+  @keyframes sway-slow {
+    0%, 100% { transform: rotate(-1deg); }
+    50%      { transform: rotate(1.2deg); }
+  }
+  @keyframes sway-med {
+    0%, 100% { transform: rotate(-1.8deg); }
+    50%      { transform: rotate(2deg); }
+  }
+  @keyframes sway-fast {
+    0%, 100% { transform: rotate(-2.5deg); }
+    50%      { transform: rotate(3deg); }
+  }
+  .sway-stem { animation: sway-slow 6s ease-in-out infinite; transform-origin: 50% 98%; }
+  .sway-leaf { animation: sway-med 4.5s ease-in-out infinite; transform-origin: 50% 100%; }
+  .sway-bloom { animation: sway-fast 3.8s ease-in-out infinite; transform-origin: 50% 100%; }
+
+  /* Bloom breathing */
+  @keyframes bloom-breathe {
+    0%, 100% { transform: scale(1); }
+    50%      { transform: scale(1.06); }
+  }
+  .bloom-pulse { animation: bloom-breathe 4s ease-in-out infinite; transform-origin: center; }
+
+  /* Unfurling (very slow growth hint) */
+  @keyframes unfurl {
+    0%   { transform: scaleY(0.85) scaleX(0.9); opacity: 0.5; }
+    100% { transform: scaleY(1) scaleX(1); opacity: 1; }
+  }
+  .unfurling { animation: unfurl 30s ease-out forwards; transform-origin: 50% 100%; }
+
+  /* Level badge */
+  .level-badge {
+    position: absolute; top: 14px; right: 14px;
+    width: 38px; height: 38px; border-radius: 50%;
+    border: 2px solid var(--gold);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 600; color: var(--gold);
+    background: rgba(12,10,8,0.85); z-index: 3;
+  }
+  .status {
+    position: absolute; top: 16px; left: 16px;
+    display: flex; align-items: center; gap: 6px;
+    font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--gold-dim); z-index: 3;
+  }
+  .status-dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(200,151,82,0.35); }
+  .plant-station.working .status-dot {
+    background: var(--sun);
+    box-shadow: 0 0 10px var(--sun);
+    animation: pulse 1.6s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100% { opacity: 0.5; } 50% { opacity: 1; } }
+
+  /* Info panel */
+  .plant-info {
+    padding: 14px 18px 18px; position: relative; z-index: 2;
+    border-top: 1px solid var(--border);
+    background: rgba(0,0,0,0.3);
+  }
+  .plant-name { font-size: 19px; }
+  .plant-stage { font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--green-light); margin-top: 2px; }
+
+  .xp-bar { margin-top: 12px; height: 5px; background: rgba(106,138,64,0.1); border-radius: 3px; overflow: hidden; }
+  .xp-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--green-dark), var(--green-light)); }
+  .xp-label { margin-top: 5px; display: flex; justify-content: space-between; font-size: 9px; color: var(--ink-mute); letter-spacing: 0.1em; }
+
+  .evo-dots { display: flex; align-items: center; justify-content: center; gap: 0; margin-top: 10px; }
+  .evo-dot { width: 7px; height: 7px; border-radius: 50%; border: 1.5px solid rgba(106,138,64,0.3); }
+  .evo-dot.done { background: var(--green); border-color: var(--green); }
+  .evo-dot.now { background: var(--green-light); border-color: var(--green-light); box-shadow: 0 0 8px rgba(168,200,104,0.5); }
+  .evo-line { width: 14px; height: 1px; background: rgba(106,138,64,0.15); }
+  .evo-line.done { background: var(--green); }
+
+  /* Wooden shelf bottom */
+  .shelf-base {
+    max-width: 1300px; margin: 0 auto; padding: 0 28px;
+  }
+  .shelf-surface {
+    height: 18px;
+    background: linear-gradient(180deg, #5a3a1e 0%, #3a2410 100%);
+    border-radius: 0 0 4px 4px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  }
+
+  /* Detail overlay */
+  .overlay {
+    position: fixed; inset: 0;
+    background: rgba(8, 6, 4, 0.95);
+    backdrop-filter: blur(10px);
+    display: none; z-index: 100; overflow-y: auto;
+  }
+  .overlay.open { display: block; }
+  .overlay-inner {
+    max-width: 960px; margin: 0 auto;
+    padding: 56px 40px 80px;
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 56px; align-items: start;
+  }
+  .detail-left {
+    display: flex; align-items: center; justify-content: center;
+    min-height: 440px; border: 1px solid var(--border);
+    border-radius: 16px; background: var(--surface);
+    position: relative; overflow: hidden;
+  }
+  .detail-left .light-spill {
+    position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+    width: 300px; height: 200px;
+    background: radial-gradient(ellipse at 50% 0%, rgba(255,210,150,0.15) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .detail-right { padding-top: 16px; }
+  .d-eyebrow { font-size: 10px; letter-spacing: 0.3em; text-transform: uppercase; color: var(--green-light); }
+  .d-name { font-size: 38px; font-weight: 400; margin: 8px 0 4px; }
+  .d-meta { font-size: 12px; color: var(--ink-mute); letter-spacing: 0.14em; }
+  .d-lede { margin-top: 18px; font-size: 15px; line-height: 1.55; opacity: 0.8; }
+
+  .evo-timeline {
+    margin-top: 24px; display: flex; align-items: center; gap: 8px;
+    padding: 16px; background: rgba(106,138,64,0.04);
+    border-radius: 10px; border: 1px solid var(--border);
+  }
+  .evo-step { text-align: center; flex: 1; opacity: 0.25; }
+  .evo-step.reached { opacity: 0.6; }
+  .evo-step.active { opacity: 1; }
+  .evo-icon {
+    width: 44px; height: 44px; margin: 0 auto; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 600; color: rgba(106,138,64,0.3);
+    border: 2px solid rgba(106,138,64,0.15); background: rgba(106,138,64,0.03);
+  }
+  .evo-step.reached .evo-icon { border-color: var(--green); color: var(--green); }
+  .evo-step.active .evo-icon { border-color: var(--green-light); color: var(--green-light); box-shadow: 0 0 14px rgba(168,200,104,0.3); background: rgba(106,138,64,0.08); }
+  .evo-step-name { margin-top: 5px; font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(106,138,64,0.3); }
+  .evo-step.active .evo-step-name, .evo-step.reached .evo-step-name { color: var(--green-light); }
+  .evo-arrow { color: rgba(106,138,64,0.2); font-size: 14px; }
+
+  .learnings { margin-top: 22px; display: flex; flex-direction: column; gap: 8px; }
+  .learn-row { padding: 12px 16px; background: rgba(106,138,64,0.03); border: 1px solid var(--border); border-radius: 8px; }
+  .learn-row:hover { background: rgba(106,138,64,0.07); }
+  .learn-part { font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--green-light); }
+  .learn-quote { margin-top: 4px; font-size: 13px; line-height: 1.45; font-style: italic; opacity: 0.8; }
+  .learn-when { margin-top: 5px; font-size: 9px; color: var(--ink-mute); letter-spacing: 0.12em; }
+
+  .close-x {
+    position: fixed; top: 22px; right: 26px;
+    background: none; border: 1px solid var(--border);
+    color: var(--green-light); width: 38px; height: 38px;
+    border-radius: 50%; cursor: pointer; font-size: 18px; z-index: 110;
+  }
+  .close-x:hover { background: rgba(106,138,64,0.1); }
+
+  .footer {
+    text-align: center; padding: 36px;
+    font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--gold-dim);
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="brand">Daily Companion · Agent Hub</div>
+  <div class="tag">Cultivar v3 · Concept 08</div>
+</header>
+
+<section class="hero">
+  <h1>The Cultivar</h1>
+  <p class="sub">Each bloom is a lesson remembered</p>
+</section>
+
+<div class="stats-bar">
+  <div class="stat"><span class="stat-val">21</span><span class="stat-label">Total Learnings</span></div>
+  <div class="stat"><span class="stat-val">4</span><span class="stat-label">Specimens</span></div>
+</div>
+
+<div class="shelf-wrap">
+  <div class="ceiling-light"></div>
+  <main class="grid">
+
+    <!-- ROSA — frontend-designer -->
+    <div class="plant-station" data-agent="frontend-designer" onclick="openDetail('frontend-designer')">
+      <div class="plant-glow" style="background: radial-gradient(ellipse at 50% 60%, rgba(200,64,64,0.15) 0%, transparent 60%);"></div>
+      <div class="level-badge">Lv4</div>
+      <div class="status"><span class="status-dot"></span>idle</div>
+      <div class="plant-area">
+        <div class="spores">
+          <span class="spore" style="left:20%; bottom:40px; width:3px; height:3px; background:rgba(255,184,160,0.7); box-shadow:0 0 6px rgba(255,184,160,0.5); animation-duration:14s; animation-delay:0s; --dx:15px;"></span>
+          <span class="spore" style="left:60%; bottom:50px; width:2px; height:2px; background:rgba(255,184,160,0.6); box-shadow:0 0 4px rgba(255,184,160,0.4); animation-duration:18s; animation-delay:3s; --dx:-10px;"></span>
+          <span class="spore" style="left:45%; bottom:30px; width:2.5px; height:2.5px; background:rgba(255,184,160,0.7); box-shadow:0 0 5px rgba(255,184,160,0.5); animation-duration:16s; animation-delay:7s; --dx:12px;"></span>
+          <span class="spore" style="left:75%; bottom:45px; width:2px; height:2px; background:rgba(255,184,160,0.5); box-shadow:0 0 4px rgba(255,184,160,0.4); animation-duration:20s; animation-delay:10s; --dx:-18px;"></span>
+        </div>
+        <div class="soil"></div>
+        <svg class="plant-svg" viewBox="0 0 220 290" overflow="visible">
+          <defs>
+            <radialGradient id="rose-glow-1" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#ff8870" stop-opacity="0.6"/><stop offset="100%" stop-color="#ff8870" stop-opacity="0"/></radialGradient>
+            <radialGradient id="rose-glow-2" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#ffb8a0" stop-opacity="0.4"/><stop offset="100%" stop-color="#ffb8a0" stop-opacity="0"/></radialGradient>
+            <linearGradient id="stem-grad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#5a7a32"/><stop offset="100%" stop-color="#3a5420"/></linearGradient>
+          </defs>
+          <g class="sway-stem">
+            <!-- Main stem — thick at base, thin at tip -->
+            <path d="M 110 275 Q 108 230 110 180 Q 112 130 108 80 Q 106 50 110 25" fill="none" stroke="url(#stem-grad)" stroke-width="4" stroke-linecap="round">
+              <animate attributeName="stroke-width" values="4;3.5;4" dur="6s" repeatCount="indefinite"/>
+            </path>
+            <!-- Side stems -->
+            <path d="M 110 200 Q 82 185 60 155" fill="none" stroke="#4a6a28" stroke-width="2.5" stroke-linecap="round"/>
+            <path d="M 110 165 Q 140 150 162 118" fill="none" stroke="#4a6a28" stroke-width="2.5" stroke-linecap="round"/>
+            <path d="M 110 115 Q 85 100 68 72" fill="none" stroke="#4a6a28" stroke-width="2" stroke-linecap="round"/>
+
+            <!-- Leaves with veins -->
+            <g class="sway-leaf" style="animation-delay: 0.3s;">
+              <path d="M 60 155 Q 44 148 38 135 Q 44 140 54 142 Q 48 150 60 155 Z" fill="#5a8a30"/>
+              <line x1="58" y1="153" x2="42" y2="140" stroke="#4a7a28" stroke-width="0.5" opacity="0.5"/>
+            </g>
+            <g class="sway-leaf" style="animation-delay: 0.8s;">
+              <path d="M 162 118 Q 178 112 184 98 Q 178 106 168 108 Q 174 114 162 118 Z" fill="#6a9a40"/>
+              <line x1="164" y1="116" x2="180" y2="104" stroke="#5a8a38" stroke-width="0.5" opacity="0.5"/>
+            </g>
+            <g class="sway-leaf" style="animation-delay: 1.3s;">
+              <path d="M 68 72 Q 52 66 46 52 Q 52 58 62 60 Q 56 66 68 72 Z" fill="#5a8a30"/>
+              <line x1="66" y1="70" x2="50" y2="58" stroke="#4a7a28" stroke-width="0.5" opacity="0.5"/>
+            </g>
+            <g class="sway-leaf">
+              <path d="M 118 230 Q 134 226 140 214 Q 134 220 124 222 Q 130 226 118 230 Z" fill="#4a7a28"/>
+            </g>
+            <g class="sway-leaf" style="animation-delay: 0.5s;">
+              <path d="M 100 250 Q 84 246 78 234 Q 84 240 94 242 Q 88 246 100 250 Z" fill="#4a7a28"/>
+            </g>
+
+            <!-- Thorns -->
+            <polygon points="106,218 98,215 106,212" fill="#3a5420" opacity="0.8"/>
+            <polygon points="114,178 122,175 114,172" fill="#3a5420" opacity="0.8"/>
+            <polygon points="106,130 98,127 106,124" fill="#3a5420" opacity="0.8"/>
+
+            <!-- MAIN BLOOM — rose with real petals -->
+            <g class="sway-bloom bloom-pulse" style="animation-delay: 0s;">
+              <!-- Bioluminescent halo -->
+              <circle cx="110" cy="25" r="30" fill="url(#rose-glow-1)">
+                <animate attributeName="opacity" values="0.3;0.65;0.3" dur="4s" repeatCount="indefinite"/>
+              </circle>
+              <!-- Outer petals -->
+              <path d="M 110 8 Q 100 12 96 22 Q 100 18 110 15 Z" fill="#c84040"/>
+              <path d="M 110 8 Q 120 12 124 22 Q 120 18 110 15 Z" fill="#c84040"/>
+              <path d="M 96 22 Q 90 28 92 38 Q 96 32 100 26 Z" fill="#b83838"/>
+              <path d="M 124 22 Q 130 28 128 38 Q 124 32 120 26 Z" fill="#b83838"/>
+              <path d="M 92 38 Q 96 44 108 42 Q 100 40 96 34 Z" fill="#a83030"/>
+              <path d="M 128 38 Q 124 44 112 42 Q 120 40 124 34 Z" fill="#a83030"/>
+              <!-- Inner petals -->
+              <path d="M 106 14 Q 102 20 104 28 Q 106 22 108 18 Z" fill="#e87070"/>
+              <path d="M 114 14 Q 118 20 116 28 Q 114 22 112 18 Z" fill="#e87070"/>
+              <!-- Center -->
+              <circle cx="110" cy="25" r="5" fill="#ffb8a0"/>
+              <circle cx="108" cy="23" r="2" fill="#fff3e0" opacity="0.9"/>
+            </g>
+
+            <!-- BUD 2 — on right stem -->
+            <g class="sway-bloom bloom-pulse" style="animation-delay: 1.5s;">
+              <circle cx="162" cy="118" r="18" fill="url(#rose-glow-2)">
+                <animate attributeName="opacity" values="0.2;0.5;0.2" dur="4.5s" repeatCount="indefinite"/>
+              </circle>
+              <path d="M 162 106 Q 156 110 155 118 Q 158 114 162 110 Z" fill="#c84040"/>
+              <path d="M 162 106 Q 168 110 169 118 Q 166 114 162 110 Z" fill="#c84040"/>
+              <path d="M 155 118 Q 158 124 164 122 Q 160 120 158 116 Z" fill="#b83838"/>
+              <path d="M 169 118 Q 166 124 160 122 Q 164 120 166 116 Z" fill="#b83838"/>
+              <circle cx="162" cy="115" r="4" fill="#e88070"/>
+              <circle cx="161" cy="114" r="1.5" fill="#ffb8a0"/>
+            </g>
+
+            <!-- BUD 3 — on left stem, smaller -->
+            <g class="sway-bloom bloom-pulse" style="animation-delay: 2.8s;">
+              <circle cx="60" cy="155" r="14" fill="url(#rose-glow-2)">
+                <animate attributeName="opacity" values="0.15;0.45;0.15" dur="5s" repeatCount="indefinite"/>
+              </circle>
+              <path d="M 60 146 Q 55 150 55 156 Q 58 152 60 148 Z" fill="#c84040"/>
+              <path d="M 60 146 Q 65 150 65 156 Q 62 152 60 148 Z" fill="#c84040"/>
+              <circle cx="60" cy="152" r="3" fill="#e88070"/>
+            </g>
+
+            <!-- BUD 4 — highest, unfurling -->
+            <g class="sway-bloom unfurling" style="animation-delay: 0s;">
+              <circle cx="68" cy="72" r="12" fill="url(#rose-glow-2)">
+                <animate attributeName="opacity" values="0.1;0.4;0.1" dur="4.2s" repeatCount="indefinite"/>
+              </circle>
+              <path d="M 68 64 Q 64 68 64 74 Q 66 70 68 66 Z" fill="#c84040" opacity="0.8"/>
+              <path d="M 68 64 Q 72 68 72 74 Q 70 70 68 66 Z" fill="#c84040" opacity="0.8"/>
+              <circle cx="68" cy="70" r="2.5" fill="#e88070" opacity="0.7"/>
+            </g>
+          </g>
+        </svg>
+      </div>
+      <div class="plant-info">
+        <div class="plant-name">Rosa</div>
+        <div class="plant-stage">Mature bloom · 11 learnings</div>
+        <div class="xp-bar"><div class="xp-fill" style="width:73%"></div></div>
+        <div class="xp-label"><span>11 / 15</span><span>next growth</span></div>
+        <div class="evo-dots">
+          <span class="evo-dot done"></span><span class="evo-line done"></span>
+          <span class="evo-dot done"></span><span class="evo-line done"></span>
+          <span class="evo-dot done"></span><span class="evo-line done"></span>
+          <span class="evo-dot now"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- HELIANTHA — creative-director -->
+    <div class="plant-station working" data-agent="creative-director" onclick="openDetail('creative-director')">
+      <div class="plant-glow" style="background: radial-gradient(ellipse at 50% 55%, rgba(227,160,48,0.15) 0%, transparent 60%);"></div>
+      <div class="level-badge">Lv3</div>
+      <div class="status"><span class="status-dot"></span>working</div>
+      <div class="plant-area">
+        <div class="spores">
+          <span class="spore" style="left:30%; bottom:45px; width:3px; height:3px; background:rgba(255,243,192,0.7); box-shadow:0 0 6px rgba(255,243,192,0.5); animation-duration:12s; animation-delay:0s; --dx:10px;"></span>
+          <span class="spore" style="left:55%; bottom:35px; width:2.5px; height:2.5px; background:rgba(255,243,192,0.6); box-shadow:0 0 5px rgba(255,243,192,0.4); animation-duration:10s; animation-delay:2s; --dx:-14px;"></span>
+          <span class="spore" style="left:70%; bottom:50px; width:2px; height:2px; background:rgba(255,243,192,0.7); box-shadow:0 0 4px rgba(255,243,192,0.4); animation-duration:14s; animation-delay:5s; --dx:8px;"></span>
+          <span class="spore" style="left:40%; bottom:55px; width:3px; height:3px; background:rgba(255,243,192,0.6); box-shadow:0 0 5px rgba(255,243,192,0.5); animation-duration:11s; animation-delay:8s; --dx:-12px;"></span>
+          <span class="spore" style="left:25%; bottom:40px; width:2px; height:2px; background:rgba(255,243,192,0.5); box-shadow:0 0 4px rgba(255,243,192,0.3); animation-duration:16s; animation-delay:3s; --dx:18px;"></span>
+        </div>
+        <div class="soil"></div>
+        <svg class="plant-svg" viewBox="0 0 220 290" overflow="visible">
+          <defs>
+            <radialGradient id="sun-glow-1" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#ffe880" stop-opacity="0.5"/><stop offset="100%" stop-color="#ffe880" stop-opacity="0"/></radialGradient>
+          </defs>
+          <g class="sway-stem" style="animation-duration: 4.5s;">
+            <!-- Twin curling stems -->
+            <path d="M 105 275 Q 92 220 98 155 Q 102 100 95 50" fill="none" stroke="#6a5a32" stroke-width="3" stroke-linecap="round"/>
+            <path d="M 115 275 Q 128 220 122 155 Q 118 100 125 50" fill="none" stroke="#6a5a32" stroke-width="3" stroke-linecap="round"/>
+            <!-- Tendrils -->
+            <g class="sway-leaf" style="animation-delay: 0.4s;">
+              <path d="M 95 110 Q 78 105 72 88 Q 70 80 80 82 Q 75 95 95 110" fill="none" stroke="#7a6a3a" stroke-width="1.5" stroke-linecap="round"/>
+            </g>
+            <g class="sway-leaf" style="animation-delay: 1s;">
+              <path d="M 125 120 Q 142 115 148 98 Q 150 90 140 92 Q 145 105 125 120" fill="none" stroke="#7a6a3a" stroke-width="1.5" stroke-linecap="round"/>
+            </g>
+            <!-- Heart-shaped leaves -->
+            <g class="sway-leaf" style="animation-delay: 0.6s;">
+              <path d="M 95 190 Q 72 184 70 170 Q 74 164 84 170 Q 78 180 95 190 Z" fill="#a88540"/>
+              <line x1="92" y1="188" x2="76" y2="174" stroke="#988040" stroke-width="0.4" opacity="0.5"/>
+            </g>
+            <g class="sway-leaf" style="animation-delay: 1.2s;">
+              <path d="M 125 210 Q 148 204 150 190 Q 146 184 136 190 Q 142 200 125 210 Z" fill="#b89548"/>
+              <line x1="128" y1="208" x2="144" y2="194" stroke="#a88a40" stroke-width="0.4" opacity="0.5"/>
+            </g>
+
+            <!-- MAIN SUNFLOWER — with real petals -->
+            <g class="sway-bloom bloom-pulse" style="animation-delay: 0s;">
+              <circle cx="110" cy="45" r="35" fill="url(#sun-glow-1)">
+                <animate attributeName="opacity" values="0.3;0.7;0.3" dur="3.5s" repeatCount="indefinite"/>
+              </circle>
+              <!-- Petals arranged radially -->
+              <ellipse cx="110" cy="24" rx="5" ry="14" fill="#d97830"/>
+              <ellipse cx="125" cy="28" rx="5" ry="14" fill="#e3a030" transform="rotate(30 125 28)"/>
+              <ellipse cx="134" cy="40" rx="5" ry="14" fill="#d97830" transform="rotate(60 134 40)"/>
+              <ellipse cx="132" cy="55" rx="5" ry="14" fill="#e3a030" transform="rotate(90 132 55)"/>
+              <ellipse cx="122" cy="65" rx="5" ry="14" fill="#d97830" transform="rotate(120 122 65)"/>
+              <ellipse cx="110" cy="68" rx="5" ry="14" fill="#e3a030" transform="rotate(150 110 68)"/>
+              <ellipse cx="98" cy="65" rx="5" ry="14" fill="#d97830" transform="rotate(210 98 65)"/>
+              <ellipse cx="88" cy="55" rx="5" ry="14" fill="#e3a030" transform="rotate(240 88 55)"/>
+              <ellipse cx="86" cy="40" rx="5" ry="14" fill="#d97830" transform="rotate(270 86 40)"/>
+              <ellipse cx="95" cy="28" rx="5" ry="14" fill="#e3a030" transform="rotate(330 95 28)"/>
+              <!-- Center disc -->
+              <circle cx="110" cy="45" r="10" fill="#6a4a20"/>
+              <circle cx="110" cy="45" r="7" fill="#8a6a30"/>
+              <circle cx="108" cy="43" r="3" fill="#fff3c0" opacity="0.85"/>
+            </g>
+
+            <!-- Small side buds -->
+            <g class="sway-bloom bloom-pulse" style="animation-delay: 2s;">
+              <circle cx="72" cy="88" r="10" fill="url(#sun-glow-1)" opacity="0.4"/>
+              <circle cx="72" cy="88" r="5" fill="#e3a030"/>
+              <circle cx="72" cy="88" r="2.5" fill="#fff3c0"/>
+            </g>
+            <g class="sway-bloom bloom-pulse unfurling" style="animation-delay: 3s;">
+              <circle cx="148" cy="98" r="8" fill="url(#sun-glow-1)" opacity="0.3"/>
+              <circle cx="148" cy="98" r="4" fill="#d97830"/>
+              <circle cx="148" cy="98" r="2" fill="#fff3c0" opacity="0.7"/>
+            </g>
+          </g>
+        </svg>
+      </div>
+      <div class="plant-info">
+        <div class="plant-name">Heliantha</div>
+        <div class="plant-stage">Blooming · 6 learnings</div>
+        <div class="xp-bar"><div class="xp-fill" style="width:60%"></div></div>
+        <div class="xp-label"><span>6 / 10</span><span>next growth</span></div>
+        <div class="evo-dots">
+          <span class="evo-dot done"></span><span class="evo-line done"></span>
+          <span class="evo-dot done"></span><span class="evo-line done"></span>
+          <span class="evo-dot now"></span><span class="evo-line"></span>
+          <span class="evo-dot"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- CRASSULA — code-reviewer -->
+    <div class="plant-station" data-agent="code-reviewer" onclick="openDetail('code-reviewer')">
+      <div class="plant-glow" style="background: radial-gradient(ellipse at 50% 65%, rgba(80,136,120,0.12) 0%, transparent 60%);"></div>
+      <div class="level-badge">Lv2</div>
+      <div class="status"><span class="status-dot"></span>idle</div>
+      <div class="plant-area">
+        <div class="spores">
+          <span class="spore" style="left:50%; bottom:35px; width:2px; height:2px; background:rgba(200,220,180,0.5); box-shadow:0 0 4px rgba(200,220,180,0.3); animation-duration:20s; animation-delay:3s; --dx:8px;"></span>
+          <span class="spore" style="left:35%; bottom:45px; width:2px; height:2px; background:rgba(200,220,180,0.4); box-shadow:0 0 3px rgba(200,220,180,0.3); animation-duration:22s; animation-delay:10s; --dx:-6px;"></span>
+        </div>
+        <div class="soil"></div>
+        <svg class="plant-svg" viewBox="0 0 220 290" overflow="visible">
+          <g class="sway-stem" style="animation-duration: 8s;">
+            <!-- Succulent rosette -->
+            <g transform="translate(110 215)">
+              <!-- Base leaves — thick pointed -->
+              <path d="M 0 0 Q -10 -35 -22 -60 Q -18 -28 -4 -2 Z" fill="#6a8a48" class="sway-leaf"/>
+              <path d="M 0 0 Q 10 -35 22 -60 Q 18 -28 4 -2 Z" fill="#7a9a55" class="sway-leaf" style="animation-delay:0.5s"/>
+              <path d="M 0 0 Q -25 -28 -42 -45 Q -28 -24 -6 -3 Z" fill="#5a7a40" class="sway-leaf" style="animation-delay:0.2s"/>
+              <path d="M 0 0 Q 25 -28 42 -45 Q 28 -24 6 -3 Z" fill="#6a8a48" class="sway-leaf" style="animation-delay:0.7s"/>
+              <path d="M 0 0 Q -3 -42 0 -72 Q 3 -42 0 0 Z" fill="#7a9a55" class="sway-leaf" style="animation-delay:0.3s"/>
+              <path d="M 0 0 Q -16 -16 -36 -20 Q -16 -13 -4 -2 Z" fill="#5a7a40" class="sway-leaf" style="animation-delay:0.9s"/>
+              <path d="M 0 0 Q 16 -16 36 -20 Q 16 -13 4 -2 Z" fill="#6a8a48" class="sway-leaf" style="animation-delay:0.4s"/>
+              <!-- Leaf veins -->
+              <line x1="0" y1="-5" x2="-18" y2="-50" stroke="#5a7a38" stroke-width="0.4" opacity="0.4"/>
+              <line x1="0" y1="-5" x2="18" y2="-50" stroke="#6a8a48" stroke-width="0.4" opacity="0.4"/>
+              <line x1="0" y1="-5" x2="0" y2="-65" stroke="#6a8a48" stroke-width="0.4" opacity="0.4"/>
+              <!-- Spine tips -->
+              <circle cx="-22" cy="-60" r="1.5" fill="#e0e8d0" opacity="0.7"/>
+              <circle cx="22" cy="-60" r="1.5" fill="#e0e8d0" opacity="0.7"/>
+              <circle cx="0" cy="-72" r="1.5" fill="#e0e8d0" opacity="0.7"/>
+              <circle cx="-42" cy="-45" r="1.2" fill="#e0e8d0" opacity="0.6"/>
+              <circle cx="42" cy="-45" r="1.2" fill="#e0e8d0" opacity="0.6"/>
+            </g>
+            <!-- Bloom stalk -->
+            <path d="M 110 145 L 110 80" stroke="#5a7a38" stroke-width="2" stroke-linecap="round"/>
+            <!-- Single bloom -->
+            <g class="sway-bloom bloom-pulse" style="animation-delay: 0.5s;">
+              <circle cx="110" cy="75" r="16" fill="rgba(200,220,180,0.15)">
+                <animate attributeName="opacity" values="0.15;0.4;0.15" dur="5s" repeatCount="indefinite"/>
+              </circle>
+              <circle cx="110" cy="75" r="9" fill="#c8b870"/>
+              <circle cx="110" cy="75" r="5" fill="#e8d890"/>
+              <circle cx="109" cy="74" r="2" fill="#fff8e0" opacity="0.8"/>
+            </g>
+          </g>
+        </svg>
+      </div>
+      <div class="plant-info">
+        <div class="plant-name">Crassula</div>
+        <div class="plant-stage">First bloom · 3 learnings</div>
+        <div class="xp-bar"><div class="xp-fill" style="width:60%"></div></div>
+        <div class="xp-label"><span>3 / 5</span><span>next growth</span></div>
+        <div class="evo-dots">
+          <span class="evo-dot done"></span><span class="evo-line done"></span>
+          <span class="evo-dot now"></span><span class="evo-line"></span>
+          <span class="evo-dot"></span><span class="evo-line"></span>
+          <span class="evo-dot"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- SAPLING — qa-tester -->
+    <div class="plant-station" data-agent="qa-tester" onclick="openDetail('qa-tester')">
+      <div class="plant-glow" style="background: radial-gradient(ellipse at 50% 70%, rgba(144,184,88,0.1) 0%, transparent 55%);"></div>
+      <div class="level-badge">Lv1</div>
+      <div class="status"><span class="status-dot"></span>idle</div>
+      <div class="plant-area">
+        <div class="spores">
+          <span class="spore" style="left:50%; bottom:30px; width:2px; height:2px; background:rgba(200,230,160,0.4); box-shadow:0 0 3px rgba(200,230,160,0.3); animation-duration:24s; animation-delay:5s; --dx:4px;"></span>
+        </div>
+        <div class="soil"></div>
+        <svg class="plant-svg" viewBox="0 0 220 290" overflow="visible">
+          <g class="sway-stem" style="animation-duration: 7s;">
+            <!-- Tiny stem -->
+            <path d="M 110 255 Q 108 235 110 215" fill="none" stroke="#6a8a3a" stroke-width="2.5" stroke-linecap="round"/>
+            <!-- Two tiny leaves -->
+            <g class="sway-leaf" style="animation-delay: 0.3s;">
+              <path d="M 108 230 Q 94 226 90 216 Q 96 220 104 222 Q 98 226 108 230 Z" fill="#8aaa50"/>
+              <line x1="106" y1="228" x2="94" y2="220" stroke="#7a9a48" stroke-width="0.3" opacity="0.4"/>
+            </g>
+            <g class="sway-leaf" style="animation-delay: 0.8s;">
+              <path d="M 112 220 Q 126 216 130 206 Q 124 210 116 212 Q 122 216 112 220 Z" fill="#90b858"/>
+              <line x1="114" y1="218" x2="126" y2="210" stroke="#80a850" stroke-width="0.3" opacity="0.4"/>
+            </g>
+            <!-- Tip leaf -->
+            <g class="unfurling">
+              <path d="M 110 215 Q 104 206 108 196 Q 110 204 112 196 Q 116 206 110 215 Z" fill="#a8c868"/>
+            </g>
+            <!-- Dew drop -->
+            <circle cx="110" cy="203" r="2.5" fill="rgba(255,255,255,0.5)" stroke="rgba(255,255,255,0.2)" stroke-width="0.5">
+              <animate attributeName="opacity" values="0.4;0.7;0.4" dur="3s" repeatCount="indefinite"/>
+            </circle>
+          </g>
+        </svg>
+      </div>
+      <div class="plant-info">
+        <div class="plant-name">Sapling</div>
+        <div class="plant-stage">Seedling · 1 learning</div>
+        <div class="xp-bar"><div class="xp-fill" style="width:33%"></div></div>
+        <div class="xp-label"><span>1 / 3</span><span>next growth</span></div>
+        <div class="evo-dots">
+          <span class="evo-dot now"></span><span class="evo-line"></span>
+          <span class="evo-dot"></span><span class="evo-line"></span>
+          <span class="evo-dot"></span><span class="evo-line"></span>
+          <span class="evo-dot"></span>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+<div class="shelf-base"><div class="shelf-surface"></div></div>
+
+<div class="footer">Click a specimen to inspect its anatomy and learnings</div>
+
+<!-- Detail overlay -->
+<div class="overlay" id="overlay">
+  <button class="close-x" onclick="closeDetail()">&#215;</button>
+  <div class="overlay-inner">
+    <div class="detail-left">
+      <div class="light-spill"></div>
+      <div id="d-plant"></div>
+    </div>
+    <div class="detail-right">
+      <div class="d-eyebrow" id="d-eyebrow"></div>
+      <h2 class="d-name" id="d-name"></h2>
+      <div class="d-meta" id="d-meta"></div>
+      <p class="d-lede" id="d-lede"></p>
+      <div class="evo-timeline" id="d-evo"></div>
+      <div class="learnings" id="d-learn"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const agents = {
+  "frontend-designer": {
+    name: "Rosa",
+    stage: "Mature bloom",
+    level: 4, learnings: 11, nextAt: 15,
+    eyebrow: "Specimen 01 — Rosa",
+    lede: "A cultivated rose with bioluminescent blooms. Each flower opened from a moment of sharpened taste. The thorns mark mistakes the agent now avoids by reflex.",
+    stages: ["Seed", "Shoot", "Budding", "Mature bloom"],
+    currentStage: 3,
+    parts: [
+      { label: "Main bloom", quote: "Spacing must breathe. 16px to 32px and the hierarchy clicked.", when: "2026-05-11" },
+      { label: "Second bud", quote: "Headlines in Iowan Old Style at page-title weight, not body weight.", when: "2026-05-09" },
+      { label: "Thorn", quote: "Don't reach for shadows. Use stronger contrast on foreground type.", when: "2026-05-05" },
+      { label: "Third bud", quote: "Reserve accent for one element per card. Two anchors = no anchor.", when: "2026-05-08" },
+      { label: "First leaf", quote: "Morning Edition aesthetic: warm, editorial, deliberate.", when: "2026-05-03" }
+    ]
+  },
+  "creative-director": {
+    name: "Heliantha",
+    stage: "Blooming",
+    level: 3, learnings: 6, nextAt: 10,
+    eyebrow: "Specimen 02 — Heliantha",
+    lede: "A sun-facing bloom with curling tendrils. Currently photosynthesizing — the petals are reaching. Heart-shaped leaves track voice and rhythm.",
+    stages: ["Seed", "Tendril", "Blooming", "Crown"],
+    currentStage: 2,
+    parts: [
+      { label: "Sun disc", quote: "'Morning Edition' beats 'Daily Briefing' — the first sounds like something arriving at your door.", when: "2026-05-12" },
+      { label: "Tendril", quote: "Microcopy on disabled states should explain the gate, not just say unavailable.", when: "2026-05-10" },
+      { label: "Heart leaf", quote: "Jarvis should never open with eagerness. A composed presence opens with content.", when: "2026-05-09" }
+    ]
+  },
+  "code-reviewer": {
+    name: "Crassula",
+    stage: "First bloom",
+    level: 2, learnings: 3, nextAt: 5,
+    eyebrow: "Specimen 03 — Crassula",
+    lede: "A sparse, sharp succulent. Each spine tip glows faintly — a class of bug the agent now catches by reflex. The single bloom marks an approved review.",
+    stages: ["Seed", "First bloom", "Rosette", "Old growth"],
+    currentStage: 1,
+    parts: [
+      { label: "Bloom", quote: "Watch for async server components rendering client-only hooks.", when: "2026-05-10" },
+      { label: "Spine tip", quote: "Approved SportSlideshow refactor — ratio change was the right call.", when: "2026-05-11" }
+    ]
+  },
+  "qa-tester": {
+    name: "Sapling",
+    stage: "Seedling",
+    level: 1, learnings: 1, nextAt: 3,
+    eyebrow: "Specimen 04 — Sapling",
+    lede: "A new sprout with a dew drop. One learning — one leaf. Watch this grow.",
+    stages: ["Seedling", "Shoot", "Bush", "Canopy"],
+    currentStage: 0,
+    parts: [
+      { label: "First leaf", quote: "RSS fallback verified across BBC, Al Jazeera, The Verge. No broken placeholders.", when: "2026-05-13" }
+    ]
+  }
+};
+
+function openDetail(key) {
+  const a = agents[key];
+  if (!a) return;
+  document.getElementById('d-eyebrow').textContent = a.eyebrow;
+  document.getElementById('d-name').textContent = a.name;
+  document.getElementById('d-meta').textContent = 'Level ' + a.level + '  ·  ' + a.learnings + ' learnings  ·  ' + a.stage;
+  document.getElementById('d-lede').textContent = a.lede;
+
+  let evoHtml = '';
+  a.stages.forEach((s, i) => {
+    const cls = i < a.currentStage ? 'reached' : i === a.currentStage ? 'active' : '';
+    if (i > 0) evoHtml += '<span class="evo-arrow">&#8594;</span>';
+    evoHtml += '<div class="evo-step ' + cls + '"><div class="evo-icon">' + (i+1) + '</div><div class="evo-step-name">' + s + '</div></div>';
+  });
+  document.getElementById('d-evo').innerHTML = evoHtml;
+
+  document.getElementById('d-learn').innerHTML = a.parts.map(p =>
+    '<div class="learn-row"><div class="learn-part">' + p.label + '</div>' +
+    '<div class="learn-quote">"' + p.quote + '"</div>' +
+    '<div class="learn-when">' + p.when + '</div></div>'
+  ).join('');
+
+  const src = document.querySelector('[data-agent="' + key + '"] .plant-svg');
+  const container = document.getElementById('d-plant');
+  container.innerHTML = '';
+  if (src) {
+    const clone = src.cloneNode(true);
+    clone.style.width = '300px';
+    clone.style.height = '380px';
+    container.appendChild(clone);
+  }
+
+  document.getElementById('overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeDetail() {
+  document.getElementById('overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+document.getElementById('overlay').addEventListener('click', e => { if (e.target.id === 'overlay') closeDetail(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDetail(); });
+</script>
+</body>
+</html>

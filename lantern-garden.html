@@ -1,0 +1,1219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Lantern Garden — Agent Hub mockup</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Spectral:ital,wght@0,400;1,400&display=swap"
+    rel="stylesheet"
+  />
+  <style>
+    :root {
+      --night-sky-top: #06050b;
+      --night-sky-mid: #100a16;
+      --night-sky-low: #1d141a;
+      --ground-deep: #261814;
+      --ground-near: #1a110e;
+
+      --rule: #2a221d;
+      --rule-strong: #3d3128;
+      --text: #e8dfd0;
+      --text-soft: #a89888;
+      --text-faint: #786a5c;
+      --accent: #c9a86a;
+
+      --lantern-paper: #fde7b9;
+      --lantern-warm: #f4c878;
+      --lantern-glow: #ffb961;
+      --lantern-ink: #2a1a0e;
+
+      --color-designer: #c8b0e8;
+      --color-creative: #f4c878;
+      --color-frontend: #b8d4b8;
+      --color-qa:       #f0a888;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      background: var(--night-sky-top);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    body { padding: 48px 64px 0 64px; }
+
+    /* ===== Masthead ===== */
+    .masthead {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      padding-bottom: 28px;
+      border-bottom: 1px solid var(--rule);
+      margin-bottom: 0;
+      gap: 32px;
+      position: relative;
+      z-index: 50;
+    }
+    .masthead-left { display: flex; flex-direction: column; gap: 12px; }
+    .eyebrow {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px; font-weight: 500;
+      letter-spacing: 0.28em; text-transform: uppercase;
+      color: var(--text-faint);
+      display: flex; align-items: center; gap: 10px;
+    }
+    .eyebrow::before {
+      content: ''; width: 2px; height: 12px;
+      background: var(--accent); opacity: 0.5;
+    }
+    .title {
+      font-family: 'Spectral', serif;
+      font-style: italic; font-weight: 400;
+      font-size: 42px; line-height: 1;
+      letter-spacing: -0.02em;
+    }
+    .subtitle {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10.5px; letter-spacing: 0.2em;
+      text-transform: uppercase; color: var(--text-soft);
+    }
+    .subtitle .dot {
+      display: inline-block; width: 3px; height: 3px;
+      border-radius: 50%; background: var(--text-faint);
+      margin: 0 10px; vertical-align: middle;
+    }
+
+    .masthead-right { display: flex; align-items: center; gap: 14px; flex-shrink: 0; }
+    .view-toggle {
+      display: inline-flex;
+      border: 1px solid var(--rule);
+      border-radius: 999px;
+      padding: 2px;
+      background: rgba(10, 8, 14, 0.8);
+      backdrop-filter: blur(8px);
+    }
+    .view-toggle button {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px; font-weight: 500;
+      letter-spacing: 0.22em; text-transform: uppercase;
+      color: var(--text-faint);
+      background: transparent;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: all 0.25s ease;
+    }
+    .view-toggle button.current {
+      color: var(--text);
+      background: rgba(45, 30, 24, 0.9);
+      box-shadow: inset 0 0 0 1px var(--rule-strong);
+    }
+    .plant-btn {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px; font-weight: 500;
+      letter-spacing: 0.24em; text-transform: uppercase;
+      color: var(--accent);
+      border: 1px solid rgba(201, 168, 106, 0.3);
+      padding: 9px 18px; border-radius: 999px;
+      background: transparent; cursor: pointer;
+      transition: all 0.25s ease;
+    }
+    .plant-btn:hover {
+      background: rgba(201, 168, 106, 0.08);
+      border-color: var(--accent);
+    }
+
+    /* ===== Views ===== */
+    .view { display: none; }
+    .view.active { display: block; }
+
+    /* ===== Garden Night Scene ===== */
+    .garden-night {
+      position: relative;
+      width: calc(100% + 128px);
+      margin-left: -64px;
+      height: calc(100vh - 130px);
+      min-height: 680px;
+      overflow: hidden;
+      background:
+        radial-gradient(ellipse 80% 50% at 50% 100%, rgba(244, 200, 120, 0.05), transparent 70%),
+        linear-gradient(180deg,
+          var(--night-sky-top) 0%,
+          var(--night-sky-mid) 40%,
+          var(--night-sky-low) 70%,
+          var(--ground-deep) 88%,
+          var(--ground-near) 100%);
+    }
+
+    /* Stars (faint) */
+    .stars {
+      position: absolute;
+      inset: 0 0 30% 0;
+      background-image:
+        radial-gradient(1px 1px at 12% 20%, rgba(248,228,200,0.5), transparent),
+        radial-gradient(1px 1px at 28% 60%, rgba(248,228,200,0.4), transparent),
+        radial-gradient(1px 1px at 47% 18%, rgba(248,228,200,0.6), transparent),
+        radial-gradient(1px 1px at 62% 35%, rgba(248,228,200,0.45), transparent),
+        radial-gradient(1px 1px at 75% 12%, rgba(248,228,200,0.5), transparent),
+        radial-gradient(1px 1px at 88% 28%, rgba(248,228,200,0.55), transparent),
+        radial-gradient(1px 1px at 18% 42%, rgba(248,228,200,0.35), transparent),
+        radial-gradient(1px 1px at 55% 8%, rgba(248,228,200,0.6), transparent),
+        radial-gradient(1px 1px at 92% 48%, rgba(248,228,200,0.3), transparent);
+      pointer-events: none;
+    }
+
+    /* Distant tree silhouettes for depth */
+    .tree-line {
+      position: absolute;
+      bottom: 22%;
+      left: 0; right: 0;
+      height: 50px;
+      pointer-events: none;
+      opacity: 0.35;
+    }
+    .tree-line svg { display: block; width: 100%; height: 100%; }
+
+    /* Horizon haze (atmospheric perspective) */
+    .horizon-haze {
+      position: absolute;
+      bottom: 22%;
+      left: 0; right: 0;
+      height: 120px;
+      background: linear-gradient(180deg,
+        transparent,
+        rgba(244, 200, 120, 0.04) 60%,
+        rgba(244, 200, 120, 0.07) 100%);
+      pointer-events: none;
+    }
+
+    /* Ground plane (with subtle grass/dirt texture) */
+    .ground {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 22%;
+      background:
+        radial-gradient(ellipse 30% 100% at 14% 60%, rgba(244, 200, 120, 0.12), transparent 70%),
+        radial-gradient(ellipse 25% 100% at 38% 60%, rgba(244, 200, 120, 0.18), transparent 70%),
+        radial-gradient(ellipse 30% 100% at 62% 60%, rgba(244, 200, 120, 0.14), transparent 70%),
+        radial-gradient(ellipse 28% 100% at 86% 60%, rgba(240, 168, 136, 0.1), transparent 70%),
+        linear-gradient(180deg, var(--ground-deep) 0%, var(--ground-near) 100%);
+      pointer-events: none;
+    }
+    /* Grass blades — subtle SVG */
+    .grass {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 30px;
+      pointer-events: none;
+      opacity: 0.5;
+    }
+
+    /* Fireflies — small animated motes */
+    .firefly {
+      position: absolute;
+      width: 3px; height: 3px;
+      border-radius: 50%;
+      background: var(--lantern-warm);
+      box-shadow: 0 0 6px 2px rgba(244, 200, 120, 0.6);
+      pointer-events: none;
+      animation: firefly-drift 18s ease-in-out infinite, firefly-blink 4s ease-in-out infinite;
+    }
+    @keyframes firefly-drift {
+      0%, 100% { transform: translate(0, 0); }
+      25% { transform: translate(20px, -14px); }
+      50% { transform: translate(-12px, -22px); }
+      75% { transform: translate(8px, -8px); }
+    }
+    @keyframes firefly-blink {
+      0%, 100% { opacity: 0.7; }
+      50%      { opacity: 0.15; }
+    }
+
+    /* ===== Lantern groups ===== */
+    .lanterns-row {
+      position: absolute;
+      left: 0; right: 0;
+      bottom: 22%;  /* sits at horizon */
+      height: 0;
+      pointer-events: none;
+    }
+    .lantern-group {
+      position: absolute;
+      bottom: 0;
+      width: 22%;
+      pointer-events: auto;
+      cursor: pointer;
+    }
+    .lantern-group[data-agent='designer']  { left: 3%;  width: 22%; }
+    .lantern-group[data-agent='creative']  { left: 27%; width: 22%; }
+    .lantern-group[data-agent='frontend']  { left: 51%; width: 22%; }
+    .lantern-group[data-agent='qa']        { left: 75%; width: 22%; }
+
+    /* Each lantern hangs at a different height for natural rhythm */
+    .lantern-group[data-agent='designer'] .lantern-pendulum { transform: translateY(-220px); }
+    .lantern-group[data-agent='creative'] .lantern-pendulum { transform: translateY(-260px); }
+    .lantern-group[data-agent='frontend'] .lantern-pendulum { transform: translateY(-300px); }
+    .lantern-group[data-agent='qa']       .lantern-pendulum { transform: translateY(-180px); }
+
+    /* Warm ambient glow under each lantern (light pool on ground) */
+    .lantern-glow {
+      position: absolute;
+      bottom: -10px;
+      left: 50%;
+      width: 240px; height: 140px;
+      transform: translateX(-50%);
+      background: radial-gradient(ellipse at center,
+        rgba(244, 200, 120, 0.35) 0%,
+        rgba(244, 200, 120, 0.12) 40%,
+        transparent 70%);
+      pointer-events: none;
+      filter: blur(8px);
+    }
+
+    /* Cord from sky to lantern */
+    .lantern-cord {
+      position: absolute;
+      top: -1000px;
+      left: 50%;
+      width: 1px;
+      height: 1000px;
+      transform: translateX(-50%);
+      background: linear-gradient(180deg, transparent 0%, var(--rule-strong) 80%);
+      pointer-events: none;
+      opacity: 0.6;
+    }
+
+    /* The hanging lantern — outer pendulum (sway) */
+    .lantern-pendulum {
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform-origin: 50% -1000px;  /* cord pivot far above */
+      animation: pendulum-sway 6s ease-in-out infinite;
+      animation-delay: var(--sway-delay, 0s);
+    }
+    @keyframes pendulum-sway {
+      0%, 100% { transform: translateX(-50%) translateY(var(--y, -220px)) rotate(-1deg); }
+      50%      { transform: translateX(-50%) translateY(var(--y, -220px)) rotate(1deg); }
+    }
+    .lantern-group[data-agent='designer']  .lantern-pendulum { --y: -220px; animation-delay: 0s; }
+    .lantern-group[data-agent='creative']  .lantern-pendulum { --y: -260px; animation-delay: -2s; }
+    .lantern-group[data-agent='frontend']  .lantern-pendulum { --y: -300px; animation-delay: -4s; }
+    .lantern-group[data-agent='qa']        .lantern-pendulum { --y: -180px; animation-delay: -1s; }
+
+    /* The lantern itself — turntable rotation */
+    .lantern-turn {
+      perspective: 800px;
+      perspective-origin: 50% 50%;
+    }
+    .lantern {
+      width: 110px;
+      transform-style: preserve-3d;
+      animation: lantern-turn 22s ease-in-out infinite;
+      animation-delay: var(--turn-delay, 0s);
+      filter:
+        drop-shadow(0 0 22px rgba(244, 200, 120, 0.4))
+        drop-shadow(0 0 60px rgba(244, 200, 120, 0.18));
+    }
+    @keyframes lantern-turn {
+      0%, 100% { transform: rotateY(-28deg); }
+      50%      { transform: rotateY(28deg); }
+    }
+    .lantern-group[data-agent='designer'] .lantern { animation-delay: 0s; }
+    .lantern-group[data-agent='creative'] .lantern { animation-delay: -7s; animation-duration: 16s; }
+    .lantern-group[data-agent='frontend'] .lantern { animation-delay: -14s; }
+    .lantern-group[data-agent='qa']       .lantern { animation-delay: -4s; }
+
+    /* per-agent lantern tint (subtle) */
+    .lantern-group[data-agent='designer'] .lantern { color: var(--color-designer); }
+    .lantern-group[data-agent='creative'] .lantern { color: var(--color-creative); }
+    .lantern-group[data-agent='frontend'] .lantern { color: var(--color-frontend); }
+    .lantern-group[data-agent='qa']       .lantern { color: var(--color-qa); }
+
+    /* Working state: brighter glow + faster rotation */
+    .lantern-group.working .lantern-glow {
+      background: radial-gradient(ellipse at center,
+        rgba(244, 200, 120, 0.55) 0%,
+        rgba(244, 200, 120, 0.22) 40%,
+        transparent 70%);
+      animation: glow-pulse 2.6s ease-in-out infinite;
+    }
+    .lantern-group.working .lantern {
+      animation-duration: 14s;
+      filter:
+        drop-shadow(0 0 30px rgba(244, 200, 120, 0.65))
+        drop-shadow(0 0 80px rgba(244, 200, 120, 0.35));
+    }
+    @keyframes glow-pulse {
+      0%, 100% { opacity: 0.9; }
+      50%      { opacity: 1.1; }
+    }
+
+    /* ===== Wooden stake / sign at the base ===== */
+    .stake {
+      position: absolute;
+      bottom: -36px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      pointer-events: none;
+      z-index: 5;
+    }
+    .stake-plate {
+      background:
+        linear-gradient(180deg, rgba(244, 220, 180, 0.06) 0%, rgba(244, 220, 180, 0.03) 100%),
+        linear-gradient(180deg, #2a1d12 0%, #1c130b 100%);
+      border: 1px solid #3d2d20;
+      border-radius: 4px;
+      padding: 6px 14px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 9.5px; letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--text-soft);
+      box-shadow:
+        inset 0 1px 0 rgba(244, 220, 180, 0.05),
+        0 4px 12px -4px rgba(0,0,0,0.7);
+    }
+    .stake-meta {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 9px; letter-spacing: 0.15em;
+      color: var(--text-faint);
+    }
+
+    /* hover: lift slightly */
+    .lantern-group:hover .lantern {
+      animation-play-state: paused;
+      filter:
+        drop-shadow(0 0 36px rgba(244, 200, 120, 0.7))
+        drop-shadow(0 0 90px rgba(244, 200, 120, 0.4));
+    }
+    .lantern-group:hover .stake-plate {
+      color: var(--text);
+      border-color: var(--rule-strong);
+    }
+
+    /* Reduced motion */
+    @media (prefers-reduced-motion: reduce) {
+      .lantern, .lantern-pendulum, .firefly,
+      .lantern-group.working .lantern-glow,
+      .pulse-dot { animation: none !important; }
+    }
+
+    /* ===== Bottom inscription strip ===== */
+    .scene-credit {
+      position: absolute;
+      bottom: 16px; left: 50%;
+      transform: translateX(-50%);
+      font-family: 'Spectral', serif;
+      font-style: italic;
+      font-size: 13px;
+      color: var(--text-faint);
+      opacity: 0.55;
+      pointer-events: none;
+    }
+
+    /* ============================================================ */
+    /* SPECIMEN / DETAIL VIEW                                       */
+    /* ============================================================ */
+    .detail-wrap {
+      padding-top: 32px;
+    }
+    .detail-back {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px; letter-spacing: 0.22em;
+      text-transform: uppercase; color: var(--text-faint);
+      background: transparent; border: none; cursor: pointer;
+      padding: 0; margin-bottom: 24px;
+      transition: color 0.2s;
+    }
+    .detail-back:hover { color: var(--text); }
+
+    .detail-grid {
+      display: grid;
+      grid-template-columns: 1.3fr 1fr;
+      gap: 48px;
+      align-items: start;
+    }
+
+    .detail-scene {
+      position: relative;
+      border: 1px solid var(--rule);
+      border-radius: 22px;
+      height: 660px;
+      overflow: hidden;
+      background:
+        radial-gradient(ellipse 80% 60% at 50% 100%, rgba(244, 200, 120, 0.18), transparent 70%),
+        linear-gradient(180deg,
+          var(--night-sky-top) 0%,
+          var(--night-sky-mid) 50%,
+          var(--ground-deep) 90%,
+          var(--ground-near) 100%);
+      isolation: isolate;
+    }
+    .detail-eyebrow {
+      position: absolute;
+      top: 24px; left: 32px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 9px; letter-spacing: 0.3em;
+      text-transform: uppercase; color: var(--text-faint);
+      z-index: 10;
+    }
+    .detail-eyebrow .agent-name { color: var(--text); margin-left: 12px; }
+    .detail-eyebrow .agent-stats { color: var(--text-faint); margin-left: 12px; }
+
+    .detail-lantern-wrap {
+      position: absolute;
+      top: 12%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 280px;
+      perspective: 1400px;
+      perspective-origin: 50% 50%;
+      color: var(--color-frontend);
+    }
+    .detail-lantern {
+      width: 100%;
+      transform-style: preserve-3d;
+      animation: lantern-turn 32s ease-in-out infinite;
+      cursor: grab;
+      filter:
+        drop-shadow(0 0 40px rgba(244, 200, 120, 0.55))
+        drop-shadow(0 0 100px rgba(244, 200, 120, 0.25));
+    }
+    .detail-lantern:active { cursor: grabbing; }
+    .detail-lantern.paused { animation-play-state: paused; }
+
+    /* Light pool under the detail lantern */
+    .detail-light-pool {
+      position: absolute;
+      bottom: 12%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 360px; height: 200px;
+      background: radial-gradient(ellipse at center,
+        rgba(244, 200, 120, 0.4) 0%,
+        rgba(244, 200, 120, 0.12) 40%,
+        transparent 70%);
+      filter: blur(10px);
+      pointer-events: none;
+    }
+    .detail-cord {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      width: 1px;
+      height: 14%;
+      transform: translateX(-50%);
+      background: linear-gradient(180deg, transparent 0%, var(--rule-strong) 90%);
+      pointer-events: none;
+    }
+    .detail-floor-label {
+      position: absolute;
+      bottom: 24px;
+      left: 0; right: 0;
+      text-align: center;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 9px; letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: var(--text-faint);
+      opacity: 0.5;
+      z-index: 5;
+    }
+
+    /* Clickable motifs */
+    .motif {
+      cursor: pointer;
+      transform-origin: center;
+      transform-box: fill-box;
+      transition: transform 0.25s ease, filter 0.3s ease, opacity 0.3s ease;
+    }
+    .motif:hover { transform: scale(1.3); }
+    .motif.selected {
+      transform: scale(1.5);
+      filter: drop-shadow(0 0 12px var(--lantern-warm));
+    }
+    .detail-lantern.has-selection .motif:not(.selected) { opacity: 0.25; }
+
+    /* ===== Right panel ===== */
+    .detail-panel {
+      position: sticky;
+      top: 32px;
+      display: flex;
+      flex-direction: column;
+      min-height: 660px;
+    }
+    .panel-empty {
+      flex: 1; padding: 24px 0;
+      display: flex; flex-direction: column;
+      justify-content: center; align-items: flex-start;
+    }
+    .panel-empty .hint-eyebrow {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px; letter-spacing: 0.28em;
+      text-transform: uppercase; color: var(--text-faint);
+      margin-bottom: 16px;
+    }
+    .panel-empty .hint-title {
+      font-family: 'Spectral', serif;
+      font-style: italic;
+      font-size: 26px; line-height: 1.25;
+      color: var(--text-soft);
+      max-width: 340px;
+    }
+    .panel-empty .legend {
+      margin-top: 32px;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .legend-row {
+      display: flex; align-items: center; gap: 12px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10.5px; letter-spacing: 0.14em;
+      text-transform: uppercase; color: var(--text-soft);
+    }
+    .legend-glyph {
+      width: 22px; height: 22px;
+      display: inline-flex; align-items: center; justify-content: center;
+      color: var(--lantern-ink);
+      background: var(--lantern-paper);
+      border-radius: 3px;
+      padding: 2px;
+    }
+
+    .panel-card {
+      background: linear-gradient(180deg, rgba(45, 30, 24, 0.5), rgba(28, 19, 14, 0.5));
+      border: 1px solid var(--rule);
+      border-radius: 18px;
+      padding: 28px;
+      display: none;
+      backdrop-filter: blur(8px);
+    }
+    .panel-card.active { display: block; }
+    .panel-card .card-eyebrow {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px; letter-spacing: 0.28em;
+      text-transform: uppercase; color: var(--text-faint);
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 20px;
+    }
+    .panel-card .card-eyebrow .type { color: var(--accent); }
+    .panel-card .quote {
+      font-family: 'Spectral', serif;
+      font-style: italic;
+      font-size: 22px; line-height: 1.35;
+      color: var(--text);
+      margin-bottom: 24px;
+      padding-left: 14px;
+      border-left: 2px solid var(--accent);
+    }
+    .panel-card .meta-grid {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 10px 24px;
+      margin-bottom: 24px;
+    }
+    .panel-card .meta-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px; letter-spacing: 0.22em;
+      text-transform: uppercase; color: var(--text-faint);
+    }
+    .panel-card .meta-value {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px; color: var(--text-soft);
+    }
+    .panel-card .actions {
+      display: flex; gap: 12px;
+      padding-top: 18px;
+      border-top: 1px solid var(--rule);
+    }
+    .panel-card .actions button {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px; font-weight: 500;
+      letter-spacing: 0.2em; text-transform: uppercase;
+      color: var(--text-soft);
+      background: transparent;
+      border: 1px solid var(--rule-strong);
+      padding: 8px 14px; border-radius: 999px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .panel-card .actions button:hover {
+      color: var(--text); border-color: var(--text-soft);
+    }
+    .panel-card .actions button.danger:hover {
+      color: var(--color-qa); border-color: var(--color-qa);
+    }
+
+    @media (max-width: 1280px) {
+      .lantern-group { width: 24% !important; }
+      .detail-grid { grid-template-columns: 1fr; }
+      body { padding: 40px 32px 0 32px; }
+      .title { font-size: 36px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="masthead">
+    <div class="masthead-left">
+      <span class="eyebrow">Agent Hub · Lantern Garden · v0.1</span>
+      <h1 class="title">The Lantern Garden.</h1>
+      <span class="subtitle">
+        4 lanterns lit<span class="dot"></span>23 marks tended<span class="dot"></span>1 burning bright
+      </span>
+    </div>
+    <div class="masthead-right">
+      <div class="view-toggle" role="tablist">
+        <button data-view="garden" class="current">Garden</button>
+        <button data-view="lantern">Lantern</button>
+      </div>
+      <button class="plant-btn">+ Hang Lantern</button>
+    </div>
+  </header>
+
+  <!-- ============================================================ -->
+  <!-- GARDEN NIGHT VIEW                                            -->
+  <!-- ============================================================ -->
+  <section id="garden-view" class="view active">
+    <div class="garden-night">
+
+      <!-- Stars -->
+      <div class="stars"></div>
+
+      <!-- Tree silhouettes -->
+      <div class="tree-line">
+        <svg viewBox="0 0 1400 50" preserveAspectRatio="none">
+          <path d="M0 50 L 30 35 L 50 38 L 75 28 L 95 36 L 120 32 L 150 40
+                   L 180 34 L 210 30 L 240 38 L 275 32 L 310 36 L 345 28
+                   L 380 36 L 410 32 L 445 38 L 480 30 L 515 34 L 550 36
+                   L 585 32 L 620 38 L 655 30 L 690 36 L 725 32 L 760 38
+                   L 795 30 L 830 36 L 865 32 L 900 28 L 935 36 L 970 30
+                   L 1005 34 L 1040 32 L 1075 36 L 1110 30 L 1145 32 L 1180 36
+                   L 1215 30 L 1250 36 L 1285 32 L 1320 38 L 1355 30 L 1400 36
+                   L 1400 50 Z"
+                fill="#0a0510"/>
+        </svg>
+      </div>
+      <div class="horizon-haze"></div>
+
+      <!-- Ground -->
+      <div class="ground"></div>
+
+      <!-- Grass blades -->
+      <div class="grass">
+        <svg viewBox="0 0 1400 30" preserveAspectRatio="none">
+          <g stroke="#3d2818" stroke-width="0.6" fill="none" opacity="0.7">
+            <path d="M30 30 L 30 18"/>
+            <path d="M52 30 L 50 14"/>
+            <path d="M75 30 L 77 19"/>
+            <path d="M105 30 L 103 16"/>
+            <path d="M138 30 L 140 22"/>
+            <path d="M170 30 L 168 14"/>
+            <path d="M204 30 L 206 19"/>
+            <path d="M240 30 L 238 16"/>
+            <path d="M278 30 L 280 22"/>
+            <path d="M315 30 L 313 12"/>
+            <path d="M350 30 L 352 18"/>
+            <path d="M390 30 L 388 16"/>
+            <path d="M425 30 L 427 14"/>
+            <path d="M462 30 L 460 18"/>
+            <path d="M500 30 L 502 12"/>
+            <path d="M540 30 L 538 20"/>
+            <path d="M580 30 L 582 16"/>
+            <path d="M615 30 L 613 14"/>
+            <path d="M653 30 L 655 18"/>
+            <path d="M690 30 L 688 16"/>
+            <path d="M725 30 L 727 12"/>
+            <path d="M762 30 L 760 18"/>
+            <path d="M800 30 L 802 14"/>
+            <path d="M835 30 L 833 20"/>
+            <path d="M872 30 L 874 16"/>
+            <path d="M910 30 L 908 12"/>
+            <path d="M945 30 L 947 18"/>
+            <path d="M982 30 L 980 14"/>
+            <path d="M1020 30 L 1022 20"/>
+            <path d="M1058 30 L 1056 16"/>
+            <path d="M1095 30 L 1097 18"/>
+            <path d="M1130 30 L 1128 12"/>
+            <path d="M1168 30 L 1170 14"/>
+            <path d="M1205 30 L 1203 18"/>
+            <path d="M1242 30 L 1244 16"/>
+            <path d="M1280 30 L 1278 20"/>
+            <path d="M1318 30 L 1320 14"/>
+            <path d="M1355 30 L 1353 18"/>
+          </g>
+        </svg>
+      </div>
+
+      <!-- Fireflies -->
+      <div class="firefly" style="left: 12%; top: 35%; animation-delay: 0s;"></div>
+      <div class="firefly" style="left: 30%; top: 45%; animation-delay: -3s;"></div>
+      <div class="firefly" style="left: 55%; top: 32%; animation-delay: -6s;"></div>
+      <div class="firefly" style="left: 72%; top: 50%; animation-delay: -9s;"></div>
+      <div class="firefly" style="left: 88%; top: 40%; animation-delay: -12s;"></div>
+      <div class="firefly" style="left: 22%; top: 55%; animation-delay: -2s;"></div>
+      <div class="firefly" style="left: 64%; top: 58%; animation-delay: -7s;"></div>
+      <div class="firefly" style="left: 42%; top: 38%; animation-delay: -10s;"></div>
+
+      <!-- Lanterns -->
+      <div class="lanterns-row">
+
+        <!-- ─────── designer · 3 marks · hexagonal lantern ─────── -->
+        <div class="lantern-group" data-agent="designer">
+          <div class="lantern-cord"></div>
+          <div class="lantern-pendulum">
+            <div class="lantern-turn">
+              <svg class="lantern" viewBox="0 0 110 170" aria-hidden="true">
+                <!-- Top fixture (hexagonal cap) -->
+                <polygon points="32,16 78,16 70,26 40,26" fill="#2a1d12"/>
+                <line x1="55" y1="0" x2="55" y2="16" stroke="#3d2d20" stroke-width="1"/>
+                <!-- Hexagonal body (paper with warm glow) -->
+                <polygon points="34,26 76,26 76,128 34,128" fill="var(--lantern-paper)" opacity="0.92"/>
+                <!-- Inner light -->
+                <ellipse cx="55" cy="77" rx="22" ry="48" fill="var(--lantern-glow)" opacity="0.55" filter="blur(8px)"/>
+                <!-- Vertical edges (paper folds) -->
+                <line x1="34" y1="26" x2="34" y2="128" stroke="#8a6a3a" stroke-width="0.7" opacity="0.55"/>
+                <line x1="76" y1="26" x2="76" y2="128" stroke="#8a6a3a" stroke-width="0.7" opacity="0.55"/>
+                <!-- Inked motifs (3 learnings on the front panel) -->
+                <g>
+                  <!-- orb (named rule) -->
+                  <circle cx="55" cy="50" r="6" fill="none" stroke="var(--lantern-ink)" stroke-width="1.4"/>
+                  <circle cx="55" cy="50" r="2.5" fill="var(--lantern-ink)"/>
+                  <!-- notch (preference) -->
+                  <path d="M40 78 L 50 78" stroke="var(--lantern-ink)" stroke-width="1.5" stroke-linecap="round"/>
+                  <!-- inscription (correction) -->
+                  <path d="M44 102 Q 50 96 60 102 Q 66 108 70 102" stroke="var(--lantern-ink)" stroke-width="1.3" fill="none" stroke-linecap="round"/>
+                </g>
+                <!-- Bottom fixture -->
+                <polygon points="40,128 70,128 78,138 32,138" fill="#2a1d12"/>
+                <!-- Tassel -->
+                <line x1="55" y1="138" x2="55" y2="156" stroke="#3d2d20" stroke-width="1"/>
+                <circle cx="55" cy="158" r="3" fill="#2a1d12"/>
+                <path d="M52 161 L 53 168 M55 161 L 55 168 M58 161 L 57 168"
+                      stroke="#3d2d20" stroke-width="0.6"/>
+              </svg>
+            </div>
+          </div>
+          <div class="lantern-glow"></div>
+          <div class="stake">
+            <div class="stake-plate">designer</div>
+            <div class="stake-meta">3 marks · 2 days</div>
+          </div>
+        </div>
+
+        <!-- ─────── creative-director · 8 marks · ROUND lantern · working ─────── -->
+        <div class="lantern-group working" data-agent="creative">
+          <div class="lantern-cord"></div>
+          <div class="lantern-pendulum">
+            <div class="lantern-turn">
+              <svg class="lantern" viewBox="0 0 110 170" aria-hidden="true">
+                <line x1="55" y1="0" x2="55" y2="14" stroke="#3d2d20" stroke-width="1"/>
+                <!-- Top cap -->
+                <ellipse cx="55" cy="16" rx="22" ry="4" fill="#2a1d12"/>
+                <!-- Round body (paper sphere) -->
+                <ellipse cx="55" cy="74" rx="38" ry="52" fill="var(--lantern-paper)" opacity="0.92"/>
+                <!-- Inner light -->
+                <ellipse cx="55" cy="74" rx="30" ry="42" fill="var(--lantern-glow)" opacity="0.55" filter="blur(8px)"/>
+                <!-- Bamboo ribs (horizontal bands) -->
+                <ellipse cx="55" cy="40" rx="38" ry="1.5" fill="#8a6a3a" opacity="0.6"/>
+                <ellipse cx="55" cy="60" rx="38" ry="1.5" fill="#8a6a3a" opacity="0.5"/>
+                <ellipse cx="55" cy="84" rx="38" ry="1.5" fill="#8a6a3a" opacity="0.5"/>
+                <ellipse cx="55" cy="108" rx="38" ry="1.5" fill="#8a6a3a" opacity="0.6"/>
+                <!-- 8 motifs on front -->
+                <g>
+                  <!-- 3 orbs -->
+                  <circle cx="40" cy="50" r="4" fill="var(--lantern-ink)"/>
+                  <circle cx="55" cy="48" r="4.5" fill="var(--lantern-ink)"/>
+                  <circle cx="70" cy="52" r="3.5" fill="var(--lantern-ink)"/>
+                  <!-- 2 brushstroke inscriptions -->
+                  <path d="M38 70 Q 48 66 60 70" stroke="var(--lantern-ink)" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+                  <path d="M52 90 Q 60 86 72 90" stroke="var(--lantern-ink)" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+                  <!-- 1 facet (filled block) -->
+                  <rect x="40" y="98" width="10" height="3" fill="var(--lantern-ink)" rx="1"/>
+                  <!-- 2 notches -->
+                  <line x1="58" y1="100" x2="64" y2="100" stroke="var(--lantern-ink)" stroke-width="1.4" stroke-linecap="round"/>
+                  <line x1="48" y1="110" x2="54" y2="110" stroke="var(--lantern-ink)" stroke-width="1.4" stroke-linecap="round"/>
+                </g>
+                <!-- Bottom cap -->
+                <ellipse cx="55" cy="125" rx="16" ry="3" fill="#2a1d12"/>
+                <!-- Tassel -->
+                <line x1="55" y1="128" x2="55" y2="150" stroke="#3d2d20" stroke-width="1"/>
+                <path d="M50 150 L 53 165 M55 150 L 55 165 M60 150 L 57 165"
+                      stroke="#3d2d20" stroke-width="0.7"/>
+              </svg>
+            </div>
+          </div>
+          <div class="lantern-glow"></div>
+          <div class="stake">
+            <div class="stake-plate">creative-director</div>
+            <div class="stake-meta">8 marks · burning</div>
+          </div>
+        </div>
+
+        <!-- ─────── frontend-designer · 11 marks · CYLINDRICAL ─────── -->
+        <div class="lantern-group" data-agent="frontend" id="open-detail-group">
+          <div class="lantern-cord"></div>
+          <div class="lantern-pendulum">
+            <div class="lantern-turn">
+              <svg class="lantern" viewBox="0 0 110 200" aria-hidden="true">
+                <line x1="55" y1="0" x2="55" y2="12" stroke="#3d2d20" stroke-width="1"/>
+                <!-- Top cap (cylindrical) -->
+                <rect x="34" y="12" width="42" height="6" fill="#2a1d12"/>
+                <ellipse cx="55" cy="12" rx="21" ry="3" fill="#3d2d20"/>
+                <!-- Body (tall paper cylinder) -->
+                <rect x="32" y="18" width="46" height="140" fill="var(--lantern-paper)" opacity="0.92"/>
+                <!-- Cylinder curvature shading on right edge -->
+                <rect x="68" y="18" width="10" height="140" fill="rgba(0,0,0,0.15)"/>
+                <!-- Inner glow -->
+                <rect x="36" y="22" width="38" height="132" fill="var(--lantern-glow)" opacity="0.55" filter="blur(10px)"/>
+                <!-- Bamboo ribs (horizontal) -->
+                <line x1="32" y1="40" x2="78" y2="40" stroke="#8a6a3a" stroke-width="0.7" opacity="0.55"/>
+                <line x1="32" y1="64" x2="78" y2="64" stroke="#8a6a3a" stroke-width="0.7" opacity="0.55"/>
+                <line x1="32" y1="92" x2="78" y2="92" stroke="#8a6a3a" stroke-width="0.7" opacity="0.55"/>
+                <line x1="32" y1="120" x2="78" y2="120" stroke="#8a6a3a" stroke-width="0.7" opacity="0.55"/>
+                <line x1="32" y1="144" x2="78" y2="144" stroke="#8a6a3a" stroke-width="0.7" opacity="0.55"/>
+                <!-- 11 motifs distributed top→bottom -->
+                <g>
+                  <!-- top 3 orbs -->
+                  <circle cx="55" cy="32" r="4.5" fill="var(--lantern-ink)"/>
+                  <circle cx="44" cy="29" r="3" fill="var(--lantern-ink)"/>
+                  <circle cx="66" cy="29" r="3" fill="var(--lantern-ink)"/>
+                  <!-- 2 facets -->
+                  <rect x="40" y="50" width="9" height="3" fill="var(--lantern-ink)" rx="1"/>
+                  <rect x="61" y="50" width="9" height="3" fill="var(--lantern-ink)" rx="1"/>
+                  <!-- 2 inscriptions (brushstrokes) -->
+                  <path d="M40 78 Q 48 73 60 78" stroke="var(--lantern-ink)" stroke-width="1.4" fill="none" stroke-linecap="round"/>
+                  <path d="M48 106 Q 56 101 68 106" stroke="var(--lantern-ink)" stroke-width="1.4" fill="none" stroke-linecap="round"/>
+                  <!-- 3 notches -->
+                  <line x1="40" y1="130" x2="46" y2="130" stroke="var(--lantern-ink)" stroke-width="1.4" stroke-linecap="round"/>
+                  <line x1="52" y1="134" x2="58" y2="134" stroke="var(--lantern-ink)" stroke-width="1.4" stroke-linecap="round"/>
+                  <line x1="64" y1="130" x2="70" y2="130" stroke="var(--lantern-ink)" stroke-width="1.4" stroke-linecap="round"/>
+                  <!-- 1 dashed wax/tendril -->
+                  <circle cx="55" cy="20" r="2.5" fill="none" stroke="var(--lantern-ink)" stroke-width="1" stroke-dasharray="1.5 1.5"/>
+                </g>
+                <!-- Bottom cap -->
+                <rect x="34" y="158" width="42" height="6" fill="#2a1d12"/>
+                <ellipse cx="55" cy="164" rx="20" ry="3" fill="#2a1d12"/>
+                <!-- Tassel -->
+                <line x1="55" y1="166" x2="55" y2="186" stroke="#3d2d20" stroke-width="1"/>
+                <path d="M50 186 L 53 198 M55 186 L 55 198 M60 186 L 57 198"
+                      stroke="#3d2d20" stroke-width="0.7"/>
+              </svg>
+            </div>
+          </div>
+          <div class="lantern-glow"></div>
+          <div class="stake">
+            <div class="stake-plate">frontend-designer</div>
+            <div class="stake-meta">11 marks · click to inspect →</div>
+          </div>
+        </div>
+
+        <!-- ─────── qa-tester · 1 mark · SQUARE BOX ─────── -->
+        <div class="lantern-group" data-agent="qa">
+          <div class="lantern-cord"></div>
+          <div class="lantern-pendulum">
+            <div class="lantern-turn">
+              <svg class="lantern" viewBox="0 0 110 150" aria-hidden="true">
+                <line x1="55" y1="0" x2="55" y2="16" stroke="#3d2d20" stroke-width="1"/>
+                <!-- Top -->
+                <rect x="35" y="16" width="40" height="8" fill="#2a1d12"/>
+                <!-- Cube body -->
+                <rect x="38" y="24" width="34" height="80" fill="var(--lantern-paper)" opacity="0.92"/>
+                <!-- right-side shading -->
+                <rect x="62" y="24" width="10" height="80" fill="rgba(0,0,0,0.15)"/>
+                <!-- Inner glow -->
+                <rect x="42" y="28" width="26" height="72" fill="var(--lantern-glow)" opacity="0.55" filter="blur(8px)"/>
+                <!-- Frame edges -->
+                <rect x="38" y="24" width="34" height="80" fill="none" stroke="#8a6a3a" stroke-width="0.7" opacity="0.55"/>
+                <!-- 1 motif -->
+                <circle cx="55" cy="60" r="5" fill="none" stroke="var(--lantern-ink)" stroke-width="1.4"/>
+                <circle cx="55" cy="60" r="2" fill="var(--lantern-ink)"/>
+                <!-- Bottom -->
+                <rect x="35" y="104" width="40" height="8" fill="#2a1d12"/>
+                <!-- Tassel -->
+                <line x1="55" y1="112" x2="55" y2="130" stroke="#3d2d20" stroke-width="1"/>
+                <path d="M52 130 L 53 142 M55 130 L 55 142 M58 130 L 57 142"
+                      stroke="#3d2d20" stroke-width="0.6"/>
+              </svg>
+            </div>
+          </div>
+          <div class="lantern-glow"></div>
+          <div class="stake">
+            <div class="stake-plate">qa-tester</div>
+            <div class="stake-meta">1 mark · roughed</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="scene-credit">— the lanterns burn through the night —</div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- LANTERN (DETAIL) VIEW                                        -->
+  <!-- ============================================================ -->
+  <section id="lantern-view" class="view">
+    <div class="detail-wrap">
+      <button class="detail-back" id="back-to-garden">← back to garden</button>
+
+      <div class="detail-grid">
+        <!-- Detail scene -->
+        <div class="detail-scene">
+          <div class="detail-eyebrow">
+            Lantern <span class="agent-name">frontend-designer</span>
+            <span class="agent-stats">· 11 marks · hung 14:02</span>
+          </div>
+          <div class="detail-cord"></div>
+          <div class="detail-light-pool"></div>
+          <div class="detail-lantern-wrap">
+            <svg class="detail-lantern" id="detail-lantern" viewBox="0 0 280 460" aria-label="frontend-designer lantern">
+              <line x1="140" y1="0" x2="140" y2="20" stroke="#3d2d20" stroke-width="1.4"/>
+              <!-- Top fixture -->
+              <rect x="80" y="20" width="120" height="14" fill="#2a1d12"/>
+              <ellipse cx="140" cy="22" rx="60" ry="6" fill="#3d2d20"/>
+              <!-- Tall paper cylinder body -->
+              <rect x="76" y="34" width="128" height="340" fill="var(--lantern-paper)" opacity="0.95"/>
+              <!-- Side shading for cylinder -->
+              <rect x="180" y="34" width="24" height="340" fill="rgba(0,0,0,0.12)"/>
+              <!-- Inner glow -->
+              <rect x="84" y="42" width="112" height="324" fill="var(--lantern-glow)" opacity="0.55" filter="blur(14px)"/>
+              <!-- Bamboo ribs -->
+              <line x1="76" y1="78" x2="204" y2="78" stroke="#8a6a3a" stroke-width="1" opacity="0.5"/>
+              <line x1="76" y1="142" x2="204" y2="142" stroke="#8a6a3a" stroke-width="1" opacity="0.5"/>
+              <line x1="76" y1="206" x2="204" y2="206" stroke="#8a6a3a" stroke-width="1" opacity="0.5"/>
+              <line x1="76" y1="270" x2="204" y2="270" stroke="#8a6a3a" stroke-width="1" opacity="0.5"/>
+              <line x1="76" y1="334" x2="204" y2="334" stroke="#8a6a3a" stroke-width="1" opacity="0.5"/>
+
+              <!-- Clickable motifs (11 total) -->
+              <!-- L01 — orb (primary, top center) -->
+              <g class="motif" data-mark="L01" tabindex="0" role="button">
+                <circle cx="140" cy="62" r="12" fill="var(--lantern-ink)"/>
+              </g>
+              <!-- L06 — orb top-left -->
+              <g class="motif" data-mark="L06" tabindex="0" role="button">
+                <circle cx="108" cy="56" r="8" fill="var(--lantern-ink)"/>
+              </g>
+              <!-- L07 — orb top-right -->
+              <g class="motif" data-mark="L07" tabindex="0" role="button">
+                <circle cx="172" cy="56" r="8" fill="var(--lantern-ink)"/>
+              </g>
+              <!-- L05 — facet (filled block, mid-left) -->
+              <g class="motif" data-mark="L05" tabindex="0" role="button">
+                <rect x="100" y="118" width="28" height="9" rx="2" fill="var(--lantern-ink)"/>
+              </g>
+              <!-- L10 — facet (filled block, mid-right) -->
+              <g class="motif" data-mark="L10" tabindex="0" role="button">
+                <rect x="152" y="118" width="28" height="9" rx="2" fill="var(--lantern-ink)"/>
+              </g>
+              <!-- L09 — inscription (brushstroke arch) -->
+              <g class="motif" data-mark="L09" tabindex="0" role="button">
+                <path d="M96 184 Q 120 170 144 184 Q 168 198 192 184"
+                      stroke="var(--lantern-ink)" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+              </g>
+              <!-- L04 — inscription (brushstroke wave) -->
+              <g class="motif" data-mark="L04" tabindex="0" role="button">
+                <path d="M96 248 Q 120 232 144 248 Q 168 264 192 248"
+                      stroke="var(--lantern-ink)" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+              </g>
+              <!-- L02 — notch (short line) -->
+              <g class="motif" data-mark="L02" tabindex="0" role="button">
+                <line x1="100" y1="304" x2="120" y2="304" stroke="var(--lantern-ink)" stroke-width="3" stroke-linecap="round"/>
+              </g>
+              <!-- L03 — notch -->
+              <g class="motif" data-mark="L03" tabindex="0" role="button">
+                <line x1="130" y1="312" x2="150" y2="312" stroke="var(--lantern-ink)" stroke-width="3" stroke-linecap="round"/>
+              </g>
+              <!-- L08 — notch -->
+              <g class="motif" data-mark="L08" tabindex="0" role="button">
+                <line x1="160" y1="304" x2="180" y2="304" stroke="var(--lantern-ink)" stroke-width="3" stroke-linecap="round"/>
+              </g>
+              <!-- L11 — wax bead (dashed circle) -->
+              <g class="motif" data-mark="L11" tabindex="0" role="button">
+                <circle cx="140" cy="356" r="7" fill="none" stroke="var(--lantern-ink)" stroke-width="1.5" stroke-dasharray="2.5 2.5"/>
+              </g>
+
+              <!-- Bottom fixture -->
+              <rect x="80" y="374" width="120" height="12" fill="#2a1d12"/>
+              <ellipse cx="140" cy="386" rx="56" ry="6" fill="#2a1d12"/>
+              <!-- Tassel -->
+              <line x1="140" y1="390" x2="140" y2="438" stroke="#3d2d20" stroke-width="1.4"/>
+              <path d="M130 438 L 134 458 M140 438 L 140 458 M150 438 L 146 458"
+                    stroke="#3d2d20" stroke-width="1"/>
+            </svg>
+          </div>
+          <div class="detail-floor-label">— the garden floor —</div>
+        </div>
+
+        <!-- Right panel -->
+        <aside class="detail-panel">
+          <div class="panel-empty" id="panel-empty">
+            <div class="hint-eyebrow">Inspect</div>
+            <div class="hint-title">
+              Click any inked motif on the lantern to read what was painted there.
+            </div>
+            <div class="legend">
+              <div class="legend-row">
+                <span class="legend-glyph">
+                  <svg width="14" height="14" viewBox="0 0 14 14">
+                    <circle cx="7" cy="7" r="4" fill="currentColor"/>
+                  </svg>
+                </span>
+                Orb — named rules
+              </div>
+              <div class="legend-row">
+                <span class="legend-glyph">
+                  <svg width="14" height="14" viewBox="0 0 14 14">
+                    <line x1="3" y1="7" x2="11" y2="7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                  </svg>
+                </span>
+                Notch — neutral preferences
+              </div>
+              <div class="legend-row">
+                <span class="legend-glyph">
+                  <svg width="14" height="14" viewBox="0 0 14 14">
+                    <path d="M2 9 Q 5 5 7 9 Q 9 13 12 9" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+                  </svg>
+                </span>
+                Brushstroke — corrections inked in
+              </div>
+              <div class="legend-row">
+                <span class="legend-glyph">
+                  <svg width="14" height="14" viewBox="0 0 14 14">
+                    <rect x="3" y="6" width="8" height="2.5" rx="1" fill="currentColor"/>
+                  </svg>
+                </span>
+                Block — rules applied N times
+              </div>
+              <div class="legend-row">
+                <span class="legend-glyph">
+                  <svg width="14" height="14" viewBox="0 0 14 14">
+                    <circle cx="7" cy="7" r="4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="1.5 1.5"/>
+                  </svg>
+                </span>
+                Wax bead — in flight, not yet committed
+              </div>
+            </div>
+          </div>
+
+          <div class="panel-card" id="panel-card">
+            <div class="card-eyebrow">
+              <span id="card-id">L07</span>
+              <span>·</span>
+              <span class="type" id="card-type">ORB</span>
+            </div>
+            <div class="quote" id="card-quote">
+              One accent, one moment.
+            </div>
+            <div class="meta-grid">
+              <div class="meta-label">recorded</div>
+              <div class="meta-value" id="card-recorded">2026-05-09</div>
+              <div class="meta-label">source</div>
+              <div class="meta-value" id="card-source">design review · WorldAICard</div>
+              <div class="meta-label">applied</div>
+              <div class="meta-value" id="card-applied">6 times</div>
+              <div class="meta-label">last</div>
+              <div class="meta-value" id="card-last">14:02 today · Cultivar mockup</div>
+            </div>
+            <div class="actions">
+              <button>Edit</button>
+              <button>Append note</button>
+              <button class="danger">Strike</button>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    const LEARNINGS = {
+      L01: { type: 'ORB',   quote: 'Adapt content, not layout.',
+             recorded: '2026-04-22', source: 'design philosophy · daily-companion',
+             applied: '14 times', last: '08:40 today · NewsSlideshow critique' },
+      L02: { type: 'NOTCH', quote: 'Prefer Inter over Geist as default sans.',
+             recorded: '2026-05-07', source: 'after Geist trial in Skill card',
+             applied: '— (preference)', last: 'standing default' },
+      L03: { type: 'NOTCH', quote: 'Tailwind tokens only — no inline hex.',
+             recorded: '2026-04-30', source: 'reviewer flag · OffersCard',
+             applied: '— (preference)', last: 'standing default' },
+      L04: { type: 'BRUSHSTROKE', quote: "Don't reach for z-index when order already does the job.",
+             recorded: '2026-05-02', source: 'correction · WellnessCard z-stack',
+             applied: '3 corrections avoided since', last: '4 days ago' },
+      L05: { type: 'BLOCK', quote: 'Spring presets over linear easing for any UI change.',
+             recorded: '2026-04-18', source: 'NewsSlideshow transition',
+             applied: '7 times', last: 'yesterday · sway tuning' },
+      L06: { type: 'ORB', quote: 'Restraint over novelty. If a token works, use it.',
+             recorded: '2026-04-11', source: 'design philosophy · stated',
+             applied: '11 times', last: '3 hours ago · v2 mockup review' },
+      L07: { type: 'ORB', quote: 'One accent, one moment.',
+             recorded: '2026-05-09', source: 'design review · WorldAICard',
+             applied: '6 times', last: '14:02 today · Cultivar palette' },
+      L08: { type: 'NOTCH', quote: 'Mobile (375px) is a real target.',
+             recorded: '2026-04-25', source: 'after dad opened Daily Companion on phone',
+             applied: '— (preference)', last: 'every layout review' },
+      L09: { type: 'BRUSHSTROKE', quote: 'Stop suggesting R3F for tiny cards — SVG with depth tricks wins.',
+             recorded: '2026-05-11', source: 'correction · Cultivar review',
+             applied: '2 corrections avoided since', last: '3 days ago' },
+      L10: { type: 'BLOCK', quote: "Use framer-motion's layoutId for shared-element transitions.",
+             recorded: '2026-04-08', source: 'JarvisCard hero treatment',
+             applied: '5 times', last: '2 days ago · agent hub plot→detail' },
+      L11: { type: 'WAX BEAD', quote: 'Maybe try CSS @container queries for plot sizing?',
+             recorded: '14:02 today', source: 'in-flight thought during v2 build',
+             applied: '— (uncommitted)', last: '— (this session)' }
+    };
+
+    const viewToggle = document.querySelectorAll('.view-toggle button');
+    function setView(view) {
+      document.querySelectorAll('.view').forEach(v => {
+        v.classList.toggle('active', v.id === view + '-view');
+      });
+      viewToggle.forEach(b => b.classList.toggle('current', b.dataset.view === view));
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    viewToggle.forEach(b => b.addEventListener('click', () => setView(b.dataset.view)));
+
+    document.getElementById('open-detail-group').addEventListener('click', () => setView('lantern'));
+    document.getElementById('back-to-garden').addEventListener('click', () => setView('garden'));
+
+    const lantern = document.getElementById('detail-lantern');
+    lantern.addEventListener('mouseenter', () => lantern.classList.add('paused'));
+    lantern.addEventListener('mouseleave', () => lantern.classList.remove('paused'));
+
+    const motifs = document.querySelectorAll('.motif');
+    const panelEmpty = document.getElementById('panel-empty');
+    const panelCard = document.getElementById('panel-card');
+
+    function selectMotif(id) {
+      const data = LEARNINGS[id];
+      if (!data) return;
+      motifs.forEach(m => m.classList.toggle('selected', m.dataset.mark === id));
+      lantern.classList.add('has-selection');
+      panelEmpty.style.display = 'none';
+      panelCard.classList.add('active');
+      document.getElementById('card-id').textContent = id;
+      document.getElementById('card-type').textContent = data.type;
+      document.getElementById('card-quote').textContent = data.quote;
+      document.getElementById('card-recorded').textContent = data.recorded;
+      document.getElementById('card-source').textContent = data.source;
+      document.getElementById('card-applied').textContent = data.applied;
+      document.getElementById('card-last').textContent = data.last;
+    }
+    motifs.forEach(m => m.addEventListener('click', () => selectMotif(m.dataset.mark)));
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        motifs.forEach(m => m.classList.remove('selected'));
+        lantern.classList.remove('has-selection');
+        panelEmpty.style.display = '';
+        panelCard.classList.remove('active');
+      }
+    });
+  </script>
+</body>
+</html>

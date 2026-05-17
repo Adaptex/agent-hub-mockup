@@ -1,0 +1,1369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Constellation Forge — Agent Hub</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Syne:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --void: #030508;
+      --ember: #ff9a3c;
+      --ember-hot: #ffc56d;
+      --glass: rgba(8, 12, 22, 0.55);
+      --glass-edge: rgba(255, 255, 255, 0.12);
+      --text: #f6f0e8;
+      --text-soft: #a8b0c4;
+      --text-faint: #5a6278;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body {
+      height: 100%;
+      overflow: hidden;
+      background: var(--void);
+      color: var(--text);
+      font-family: "Newsreader", Georgia, serif;
+    }
+
+    #canvas-host {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+    }
+    #canvas-host canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Chromatic split + scan polish (subtle) */
+    .canvas-chrome {
+      pointer-events: none;
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      mix-blend-mode: screen;
+      opacity: 0.45;
+      background:
+        radial-gradient(ellipse 120% 80% at 50% 100%, rgba(255, 154, 60, 0.12), transparent 50%),
+        radial-gradient(ellipse 50% 40% at 0% 30%, rgba(120, 200, 255, 0.08), transparent 60%),
+        radial-gradient(ellipse 45% 35% at 100% 25%, rgba(255, 100, 180, 0.06), transparent 55%);
+    }
+
+    .grain {
+      pointer-events: none;
+      position: fixed;
+      inset: 0;
+      z-index: 2;
+      opacity: 0.055;
+      mix-blend-mode: overlay;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    }
+
+    .vignette {
+      pointer-events: none;
+      position: fixed;
+      inset: 0;
+      z-index: 3;
+      background: radial-gradient(ellipse 85% 85% at 50% 45%, transparent 30%, rgba(0, 0, 0, 0.72) 100%);
+    }
+
+    /* —— Intro curtain —— */
+    #intro {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(ellipse 80% 60% at 50% 40%, #0a1020 0%, #020308 70%);
+      transition: opacity 0.9s cubic-bezier(0.22, 1, 0.36, 1), visibility 0.9s;
+      /* Let clicks reach HUD / canvas except on the title card (see .title-stack) */
+      pointer-events: none;
+    }
+    #intro.hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+    #intro .orbit-ring {
+      width: min(72vw, 520px);
+      height: min(72vw, 520px);
+      border-radius: 50%;
+      border: 1px solid rgba(255, 200, 120, 0.15);
+      position: absolute;
+      animation: spin 48s linear infinite;
+      pointer-events: none;
+    }
+    #intro .orbit-ring:nth-child(2) {
+      width: min(58vw, 420px);
+      height: min(58vw, 420px);
+      border-color: rgba(120, 200, 255, 0.12);
+      animation-duration: 36s;
+      animation-direction: reverse;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    #intro .title-stack {
+      position: relative;
+      text-align: center;
+      z-index: 2;
+      pointer-events: auto;
+      padding: 24px 28px 32px;
+      border-radius: 20px;
+      border: 1px solid rgba(255, 200, 120, 0.12);
+      background: rgba(4, 8, 16, 0.45);
+      backdrop-filter: blur(12px);
+    }
+    #intro .kicker {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 10px;
+      letter-spacing: 0.42em;
+      text-transform: uppercase;
+      color: rgba(255, 200, 140, 0.55);
+      margin-bottom: 20px;
+    }
+    #intro h1 {
+      font-family: "Syne", sans-serif;
+      font-weight: 800;
+      font-size: clamp(2.4rem, 8vw, 5.2rem);
+      line-height: 0.95;
+      letter-spacing: -0.04em;
+      background: linear-gradient(120deg, #fff 0%, #ffc56d 35%, #7dffb3 70%, #c4a8ff 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      filter: drop-shadow(0 0 40px rgba(255, 180, 100, 0.35));
+    }
+    #intro .sub {
+      margin-top: 18px;
+      font-size: clamp(15px, 2.2vw, 19px);
+      color: rgba(200, 210, 230, 0.75);
+      max-width: 420px;
+      line-height: 1.45;
+      font-style: italic;
+    }
+    #intro .enter {
+      margin-top: 36px;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 11px;
+      letter-spacing: 0.28em;
+      text-transform: uppercase;
+      padding: 16px 36px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 200, 120, 0.45);
+      background: rgba(255, 200, 120, 0.08);
+      color: var(--ember-hot);
+      cursor: pointer;
+      pointer-events: auto;
+      transition: transform 0.25s, box-shadow 0.25s, background 0.25s;
+    }
+    #intro .enter:hover {
+      transform: scale(1.04);
+      background: rgba(255, 200, 120, 0.18);
+      box-shadow: 0 0 60px rgba(255, 180, 80, 0.25);
+    }
+    #intro .skip {
+      margin-top: 16px;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 9px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--text-faint);
+      background: none;
+      border: none;
+      cursor: pointer;
+      pointer-events: auto;
+    }
+    #intro .skip:hover { color: var(--text-soft); }
+
+    @media (prefers-reduced-motion: reduce) {
+      #intro .orbit-ring { animation: none; opacity: 0.4; }
+    }
+
+    /* —— HUD —— */
+    .ui-root {
+      position: fixed;
+      inset: 0;
+      z-index: 4;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: clamp(18px, 3.5vw, 44px);
+    }
+    /* Every descendant can receive clicks (not only direct children — chips live in footer) */
+    .ui-root * {
+      pointer-events: auto;
+    }
+
+    .masthead {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 28px;
+      flex-wrap: wrap;
+    }
+    .eyebrow {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 9px;
+      letter-spacing: 0.36em;
+      text-transform: uppercase;
+      color: var(--text-faint);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .eyebrow::before {
+      content: "";
+      width: 28px;
+      height: 2px;
+      background: linear-gradient(90deg, var(--ember), transparent);
+    }
+    .title-block h1 {
+      font-family: "Syne", sans-serif;
+      font-weight: 700;
+      font-size: clamp(1.85rem, 4vw, 2.75rem);
+      line-height: 1.02;
+      margin-top: 8px;
+      letter-spacing: -0.03em;
+    }
+    .title-block .lede {
+      margin-top: 10px;
+      max-width: 400px;
+      font-size: 15px;
+      line-height: 1.5;
+      color: var(--text-soft);
+    }
+
+    .masthead-actions {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 12px;
+    }
+    .stat-pill {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 9px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--text-soft);
+      padding: 10px 16px;
+      border-radius: 999px;
+      border: 1px solid var(--glass-edge);
+      background: var(--glass);
+      backdrop-filter: blur(14px);
+    }
+    .stat-pill strong { color: var(--ember-hot); font-weight: 600; }
+
+    .design-nav { display: flex; gap: 4px; justify-content: flex-end; }
+    .design-nav-link {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--text-soft); text-decoration: none;
+      padding: 5px 10px; border-radius: 999px;
+      border: 1px solid transparent;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .design-nav-link:hover { color: var(--nebula-pale); border-color: var(--glass-edge); }
+    .design-nav-link.active { color: var(--ember-hot); border-color: rgba(255,154,60,0.35); }
+
+    .cta-row { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+    .btn {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      border-radius: 999px;
+      padding: 11px 18px;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: transform 0.2s, box-shadow 0.25s, border-color 0.2s, background 0.2s;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #ffb347, #ff6b2c);
+      color: #1a0a04;
+      font-weight: 600;
+      border-color: rgba(255, 255, 255, 0.35);
+      box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4), 0 14px 50px rgba(255, 120, 40, 0.45);
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4), 0 20px 60px rgba(255, 140, 60, 0.55);
+    }
+    .btn-ghost {
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text-soft);
+      border-color: var(--glass-edge);
+    }
+    .btn-ghost:hover { border-color: rgba(255, 255, 255, 0.25); color: var(--text); }
+    .btn-ghost.active {
+      border-color: rgba(255, 180, 100, 0.5);
+      color: var(--ember-hot);
+      background: rgba(255, 160, 80, 0.1);
+    }
+
+    .hint {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 8px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--text-faint);
+      margin-top: 4px;
+    }
+
+    .dock {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .legend { display: flex; gap: 8px; flex-wrap: wrap; max-width: 680px; }
+    .chip {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 8px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      padding: 8px 14px;
+      border-radius: 999px;
+      border: 1px solid var(--glass-edge);
+      background: var(--glass);
+      color: var(--text-faint);
+      cursor: pointer;
+      backdrop-filter: blur(10px);
+      transition: border-color 0.2s, color 0.2s, transform 0.15s, box-shadow 0.25s;
+    }
+    .chip:hover { transform: translateY(-2px); color: var(--text-soft); }
+    .chip.on {
+      border-color: rgba(255, 255, 255, 0.28);
+      color: var(--text);
+    }
+    .chip[data-agent="designer"].on { box-shadow: 0 0 28px rgba(196, 168, 255, 0.35); }
+    .chip[data-agent="creative"].on { box-shadow: 0 0 28px rgba(255, 180, 80, 0.4); }
+    .chip[data-agent="frontend"].on { box-shadow: 0 0 28px rgba(125, 255, 179, 0.3); }
+    .chip[data-agent="qa"].on { box-shadow: 0 0 28px rgba(255, 139, 122, 0.35); }
+
+    /* Drawer */
+    .drawer {
+      position: fixed;
+      top: 0;
+      right: 0;
+      width: min(440px, 100vw);
+      height: 100%;
+      z-index: 6;
+      pointer-events: none;
+      background: linear-gradient(170deg, rgba(10, 14, 24, 0.92) 0%, rgba(4, 6, 12, 0.97) 100%);
+      border-left: 1px solid rgba(255, 200, 120, 0.12);
+      box-shadow: -32px 0 100px rgba(0, 0, 0, 0.65);
+      transform: translateX(105%);
+      transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+      display: flex;
+      flex-direction: column;
+      padding: 28px 24px 36px;
+      backdrop-filter: blur(20px);
+    }
+    .drawer.open {
+      transform: translateX(0);
+      pointer-events: auto;
+    }
+
+    .drawer-close {
+      align-self: flex-end;
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      border: 1px solid var(--glass-edge);
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--text-soft);
+      cursor: pointer;
+      font-size: 22px;
+      line-height: 1;
+      margin-bottom: 6px;
+    }
+    .drawer-close:hover { color: var(--text); border-color: rgba(255, 200, 120, 0.35); }
+
+    .d-eyebrow {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 9px;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: var(--ember);
+    }
+    .d-name {
+      font-family: "Syne", sans-serif;
+      font-weight: 700;
+      font-size: 28px;
+      margin: 8px 0 4px;
+      letter-spacing: -0.02em;
+    }
+    .d-meta {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 10px;
+      color: var(--text-faint);
+      letter-spacing: 0.14em;
+    }
+    .d-lede {
+      margin-top: 16px;
+      font-size: 15px;
+      line-height: 1.55;
+      color: var(--text-soft);
+    }
+
+    .evo {
+      margin-top: 22px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 12px;
+      border-radius: 14px;
+      border: 1px solid var(--glass-edge);
+      background: rgba(255, 255, 255, 0.02);
+    }
+    .evo-step {
+      flex: 1;
+      text-align: center;
+      opacity: 0.25;
+      transition: opacity 0.25s;
+    }
+    .evo-step.reached { opacity: 0.6; }
+    .evo-step.active { opacity: 1; }
+    .evo-icon {
+      width: 36px;
+      height: 36px;
+      margin: 0 auto 4px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 10px;
+      font-weight: 600;
+      border: 2px solid rgba(255, 255, 255, 0.08);
+      color: var(--text-faint);
+    }
+    .evo-step.reached .evo-icon,
+    .evo-step.active .evo-icon {
+      border-color: rgba(255, 180, 100, 0.45);
+      color: var(--ember-hot);
+      box-shadow: 0 0 18px rgba(255, 150, 60, 0.25);
+    }
+    .evo-step-name {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 7px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--text-faint);
+    }
+    .evo-step.active .evo-step-name { color: var(--ember); }
+
+    .learnings {
+      margin-top: 18px;
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding-right: 4px;
+    }
+    .learn-row {
+      padding: 11px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--glass-edge);
+      background: rgba(255, 255, 255, 0.02);
+      transition: background 0.2s;
+    }
+    .learn-row:hover { background: rgba(255, 255, 255, 0.04); }
+    .learn-part {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 8px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: rgba(255, 180, 100, 0.55);
+    }
+    .learn-quote {
+      margin-top: 5px;
+      font-size: 14px;
+      line-height: 1.45;
+      font-style: italic;
+      color: var(--text);
+    }
+    .learn-when {
+      margin-top: 5px;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 8px;
+      color: var(--text-faint);
+      letter-spacing: 0.1em;
+    }
+
+    .d-xp {
+      height: 3px;
+      border-radius: 2px;
+      background: rgba(255,255,255,0.08);
+      margin: 8px 0 14px;
+      overflow: hidden;
+    }
+    .d-xp-bar {
+      height: 100%;
+      border-radius: 2px;
+      background: linear-gradient(90deg, var(--ember), var(--ember-hot));
+      transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .drawer-footer {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--glass-edge);
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .drawer-footer .btn { flex: 1; text-align: center; min-width: 80px; }
+
+    #pulse-flash {
+      pointer-events: none;
+      position: fixed;
+      inset: 0;
+      z-index: 15;
+      background: radial-gradient(circle at var(--px, 50%) var(--py, 50%), rgba(255, 220, 180, 0.15), transparent 45%);
+      opacity: 0;
+      transition: opacity 0.35s ease-out;
+    }
+    #pulse-flash.on { opacity: 1; transition: opacity 0.08s ease-in; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .btn-primary:hover { transform: none; }
+      .chip:hover { transform: none; }
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+  </style>
+</head>
+<body>
+  <div id="canvas-host"></div>
+  <div class="canvas-chrome" aria-hidden="true"></div>
+  <div class="grain" aria-hidden="true"></div>
+  <div class="vignette" aria-hidden="true"></div>
+  <div id="pulse-flash" aria-hidden="true"></div>
+
+  <div id="intro">
+    <div class="orbit-ring" aria-hidden="true"></div>
+    <div class="orbit-ring" aria-hidden="true"></div>
+    <div class="title-stack">
+      <p class="kicker">Daily Companion · Agent Hub</p>
+      <h1>Constellation<br />Forge</h1>
+      <p class="sub">Your agents as luminous bodies in orbit — forge links between memory, heat, and motion. Step in when you are ready.</p>
+      <button type="button" class="enter" id="intro-enter">Enter the forge</button>
+      <button type="button" class="skip" id="intro-skip">Skip intro</button>
+    </div>
+  </div>
+
+  <div class="ui-root">
+    <header class="masthead">
+      <div class="title-block">
+        <span class="eyebrow">Synthesis build · bloom + nebula</span>
+        <h1>Constellation Forge.</h1>
+        <p class="lede">Drag the sky. Scroll depth. Click a burning core — the drawer is your specimen ledger.</p>
+      </div>
+      <div class="masthead-actions">
+        <nav class="design-nav">
+          <a href="constellation-forge.html" class="design-nav-link active">Forge</a>
+          <a href="tidal-archive.html" class="design-nav-link">Archive</a>
+          <a href="foundry-glass.html" class="design-nav-link">Foundry</a>
+          <a href="vivarium.html" class="design-nav-link">Vivarium</a>
+          <a href="grove.html" class="design-nav-link">Grove</a>
+        </nav>
+        <div class="stat-pill" id="stat-pill"><strong>23</strong> learnings · <strong>1</strong> star awake</div>
+        <div class="cta-row">
+          <button type="button" class="btn btn-primary" id="cta-start">Ignite session</button>
+          <button type="button" class="btn btn-ghost" id="cta-new-agent">+ New agent</button>
+          <button type="button" class="btn btn-ghost" id="mode-drift">Drift</button>
+          <button type="button" class="btn btn-ghost active" id="mode-orbit">Orbit</button>
+        </div>
+        <p class="hint">Bloom highlights emissives · forge heart at center</p>
+      </div>
+    </header>
+
+    <footer class="dock">
+      <div class="legend" id="legend"></div>
+      <div id="agent-live" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+      <p class="hint" style="margin:0;">Escape closes detail · arrows switch agents · dashed spokes pulse with the heart.</p>
+    </footer>
+  </div>
+
+  <aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-hidden="true" aria-label="Agent specimen detail">
+    <button type="button" class="drawer-close" id="drawer-close" aria-label="Close">×</button>
+    <div id="drawer-body"></div>
+    <div class="drawer-footer">
+      <button type="button" class="btn btn-primary" id="drawer-run">Run this agent</button>
+      <button type="button" class="btn btn-ghost" id="drawer-feed">Feed skill</button>
+      <button type="button" class="btn btn-ghost" id="drawer-queue">Queue next</button>
+    </div>
+  </aside>
+
+  <script src="./state-manager.js"></script>
+  <script src="./three-extensions.js"></script>
+  <script src="./ui-modals.js"></script>
+
+  <!-- Import map: three.js addons import bare "three"; browsers need this mapping -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+  <script type="module">
+    import * as THREE from "three";
+    import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
+    import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
+    import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
+    import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
+    import { ShaderPass } from "three/addons/postprocessing/ShaderPass.js";
+    import { FXAAShader } from "three/addons/shaders/FXAAShader.js";
+
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    const SEED_AGENTS = [
+      {
+        id: "designer",
+        name: "Designer",
+        short: "designer",
+        color: 0xc8b4ff,
+        status: "idle",
+        stage: 2,
+        xp: 30,
+        lede: "Tightens layout rhythm and keeps the companion voice consistent across surfaces.",
+        learningsList: [
+          { part: "Spacing", quote: "Prefer optical centering over mathematical center for hero blocks.", when: "2 days ago" },
+          { part: "Tone", quote: "Avoid engagement-bait closers; end with a direct optional follow-up.", when: "4 days ago" },
+          { part: "Motion", quote: "Stagger hero reveals once; do not loop ambient motion on headings.", when: "1 week ago" },
+        ],
+      },
+      {
+        id: "creative",
+        name: "Creative director",
+        short: "creative-director",
+        color: 0xff9a4a,
+        status: "working",
+        stage: 3,
+        xp: 80,
+        lede: "Shapes narrative arcs for features and names that feel human, not template.",
+        learningsList: [
+          { part: "Naming", quote: "Trade generic feature names for verbs the user would say aloud.", when: "3 hours ago" },
+          { part: "Story", quote: "Lead with outcome, not mechanism, in onboarding copy.", when: "Yesterday" },
+          { part: "Metaphor", quote: "One strong metaphor beats three mixed ones in a single surface.", when: "2 days ago" },
+        ],
+      },
+      {
+        id: "frontend",
+        name: "Frontend designer",
+        short: "frontend-designer",
+        color: 0x62ffc4,
+        status: "idle",
+        stage: 3,
+        xp: 110,
+        lede: "Ships tactile UI: depth, light, and motion that respect reduced-motion users.",
+        learningsList: [
+          { part: "Depth", quote: "Layer glass with edge highlights, not flat translucent panels.", when: "14:02 today" },
+          { part: "Focus", quote: "Keyboard focus rings must survive dark glassmorphism stacks.", when: "Yesterday" },
+          { part: "Density", quote: "When in doubt, add air before adding another column.", when: "3 days ago" },
+        ],
+      },
+      {
+        id: "qa",
+        name: "QA tester",
+        short: "qa-tester",
+        color: 0xff8f82,
+        status: "idle",
+        stage: 1,
+        xp: 10,
+        lede: "Treats every flow like a skeptical first-time user with a stopwatch.",
+        learningsList: [
+          { part: "Flows", quote: "Verify empty, loading, and error states before declaring a feature done.", when: "Planted yesterday" },
+        ],
+      },
+    ];
+
+    const hub = new window.StateManager(SEED_AGENTS);
+    window._agentHub = hub; // expose to classic scripts (ui-modals.js)
+
+    const host = document.getElementById("canvas-host");
+    const legend = document.getElementById("legend");
+    const drawer = document.getElementById("drawer");
+    const drawerBody = document.getElementById("drawer-body");
+    const drawerClose = document.getElementById("drawer-close");
+    const intro = document.getElementById("intro");
+    const pulseFlash = document.getElementById("pulse-flash");
+
+    const agentLive = document.getElementById("agent-live");
+
+    hub.getAgents().forEach((a) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "chip";
+      b.dataset.agent = a.id;
+      b.textContent = (a.short || a.id || a.name).replace("-", " ");
+      b.setAttribute("aria-pressed", "false");
+      b.setAttribute("aria-label", `Select agent ${a.name}`);
+      b.addEventListener("click", () => selectAgent(a.id, true));
+      legend.appendChild(b);
+    });
+
+    function updateStatPill() {
+      const pill = document.getElementById("stat-pill");
+      if (pill) {
+        const total = hub.getTotalLearnings();
+        const active = hub.getActiveCount();
+        pill.innerHTML = `<strong>${total}</strong> learnings · <strong>${active}</strong> star${active !== 1 ? "s" : ""} awake`;
+      }
+    }
+    updateStatPill();
+
+    hub.on("learningAdded", ({ agentId, promoted, newStage }) => {
+      updateStatPill();
+      const a = hub.findAgent(agentId);
+      if (!a) return;
+
+      // Visual feedback on the 3D mesh
+      const ext = window._threeExt;
+      if (ext) {
+        const mesh = meshes.find((m) => m.userData.agentId === agentId);
+        if (mesh) {
+          ext.animateSkillAbsorb(mesh, prefersReducedMotion);
+          ext.addShardToMesh(mesh, group, THREE, a.color);
+          if (promoted) ext.updateStageVisuals(mesh, a, prefersReducedMotion);
+          ext.pulseFlashAt(mesh, camera, renderer.domElement, prefersReducedMotion);
+        }
+      }
+
+      // Re-render open drawer
+      if (selectedId === agentId && drawer.classList.contains("open")) {
+        renderDrawer(a);
+      }
+    });
+
+    hub.on("agentAdded", () => {
+      updateStatPill();
+    });
+
+    function dismissIntro() {
+      intro.classList.add("hidden");
+      intro.style.pointerEvents = "none";
+    }
+    document.getElementById("intro-enter").addEventListener("click", dismissIntro);
+    document.getElementById("intro-skip").addEventListener("click", dismissIntro);
+    if (prefersReducedMotion) setTimeout(dismissIntro, 400);
+
+    /* —— Scene —— */
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x030508);
+
+    const camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.08, 220);
+    camera.position.set(0, 0.85, 8.8);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: "high-performance" });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.15;
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    host.appendChild(renderer.domElement);
+
+    const composer = new EffectComposer(renderer);
+    composer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    const renderPass = new RenderPass(scene, camera);
+    composer.addPass(renderPass);
+
+    const bloomStrength = prefersReducedMotion ? 0.42 : 0.78;
+    const bloomRadius = prefersReducedMotion ? 0.28 : 0.42;
+    const bloomThreshold = 0.08;
+    const bloomPass = new UnrealBloomPass(
+      new THREE.Vector2(window.innerWidth, window.innerHeight),
+      bloomStrength,
+      bloomRadius,
+      bloomThreshold
+    );
+    composer.addPass(bloomPass);
+
+    const fxaaPass = new ShaderPass(FXAAShader);
+    fxaaPass.material.uniforms.resolution.value.set(1 / window.innerWidth, 1 / window.innerHeight);
+    composer.addPass(fxaaPass);
+
+    const outputPass = new OutputPass();
+    composer.addPass(outputPass);
+
+    /* Procedural nebula (slow canvas texture) */
+    const nebCanvas = document.createElement("canvas");
+    nebCanvas.width = 512;
+    nebCanvas.height = 512;
+    const nebCtx = nebCanvas.getContext("2d");
+    const nebulaTex = new THREE.CanvasTexture(nebCanvas);
+    nebulaTex.colorSpace = THREE.SRGBColorSpace;
+    const nebulaSphere = new THREE.Mesh(
+      new THREE.SphereGeometry(90, 48, 48),
+      new THREE.MeshBasicMaterial({ map: nebulaTex, side: THREE.BackSide, depthWrite: false })
+    );
+
+    let nebT = 0;
+    let nebPaintSkip = 0;
+    function paintNebula() {
+      const w = nebCanvas.width,
+        h = nebCanvas.height;
+      const g = nebCtx.createRadialGradient(w * 0.35, h * 0.25, 0, w * 0.5, h * 0.5, w * 0.65);
+      g.addColorStop(0, `hsla(${220 + Math.sin(nebT) * 15}, 45%, 12%, 1)`);
+      g.addColorStop(0.45, `hsla(${260 + Math.cos(nebT * 0.7) * 20}, 35%, 8%, 1)`);
+      g.addColorStop(1, "#020308");
+      nebCtx.fillStyle = g;
+      nebCtx.fillRect(0, 0, w, h);
+      nebCtx.globalCompositeOperation = "lighter";
+      for (let i = 0; i < 6; i++) {
+        const ox = w * (0.2 + 0.6 * Math.sin(nebT * 0.3 + i));
+        const oy = h * (0.2 + 0.5 * Math.cos(nebT * 0.25 + i * 1.1));
+        const rg = nebCtx.createRadialGradient(ox, oy, 0, ox, oy, 120 + i * 20);
+        rg.addColorStop(0, `rgba(255, 160, 80, ${0.04 + i * 0.012})`);
+        rg.addColorStop(0.5, `rgba(100, 200, 255, ${0.03})`);
+        rg.addColorStop(1, "transparent");
+        nebCtx.fillStyle = rg;
+        nebCtx.fillRect(0, 0, w, h);
+      }
+      nebCtx.globalCompositeOperation = "source-over";
+      nebulaTex.needsUpdate = true;
+    }
+
+    scene.add(nebulaSphere);
+    paintNebula();
+
+    const hemi = new THREE.HemisphereLight(0x6a8cff, 0x1a0a04, 0.28);
+    scene.add(hemi);
+
+    const key = new THREE.SpotLight(0xffe8cc, 3.5, 50, 0.42, 0.38, 1);
+    key.position.set(8, 12, 10);
+    key.target.position.set(0, 0, 0);
+    scene.add(key);
+    scene.add(key.target);
+
+    const rim = new THREE.PointLight(0x88ccff, 0.85, 40);
+    rim.position.set(-10, 4, -8);
+    scene.add(rim);
+
+    const group = new THREE.Group();
+    scene.add(group);
+
+    /* Central forge heart — very emissive for bloom */
+    const heartGeo = new THREE.IcosahedronGeometry(0.38, 2);
+    const heartMat = new THREE.MeshStandardMaterial({
+      color: 0xffaa66,
+      emissive: 0xff7722,
+      emissiveIntensity: 2.4,
+      metalness: 0.9,
+      roughness: 0.15,
+    });
+    const heart = new THREE.Mesh(heartGeo, heartMat);
+    heart.userData.phase = 0;
+    group.add(heart);
+
+    const heartHalo = new THREE.Mesh(
+      new THREE.SphereGeometry(0.55, 32, 32),
+      new THREE.MeshBasicMaterial({
+        color: 0xffaa44,
+        transparent: true,
+        opacity: 0.12,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+      })
+    );
+    group.add(heartHalo);
+
+    /* Outer cage */
+    const cage = new THREE.Mesh(
+      new THREE.IcosahedronGeometry(4.2, 0),
+      new THREE.MeshBasicMaterial({
+        color: 0xffcc88,
+        wireframe: true,
+        transparent: true,
+        opacity: 0.06,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+      })
+    );
+    group.add(cage);
+
+    const coreGeo = new THREE.IcosahedronGeometry(0.58, 2);
+    const ringGeo = new THREE.TorusGeometry(1.22, 0.022, 14, 160);
+
+    const meshes = [];
+    const agents = hub.getAgents();
+    const count = agents.length;
+    const radius = 2.95;
+
+    agents.forEach((a, i) => {
+      const ang = (i / count) * Math.PI * 2 + 0.25;
+      const x = Math.cos(ang) * radius;
+      const z = Math.sin(ang) * radius;
+      const y = Math.sin(i * 1.7) * 0.38;
+
+      const mat = new THREE.MeshPhysicalMaterial({
+        color: a.color,
+        metalness: 0.35,
+        roughness: 0.12,
+        transmission: 0.55,
+        thickness: 1.6,
+        ior: 1.54,
+        emissive: new THREE.Color(a.color),
+        emissiveIntensity: a.status === "working" ? 0.85 : 0.38,
+        clearcoat: 1,
+        clearcoatRoughness: 0.08,
+      });
+
+      const mesh = new THREE.Mesh(coreGeo, mat);
+      mesh.position.set(x, y, z);
+      mesh.userData.agentId = a.id;
+      mesh.userData.baseY = y;
+      mesh.userData.phase = i * 1.37;
+      mesh.userData.baseEmissive = a.status === "working" ? 0.85 : 0.38;
+      group.add(mesh);
+      meshes.push(mesh);
+
+      const ringMat = new THREE.MeshBasicMaterial({
+        color: a.color,
+        transparent: true,
+        opacity: a.status === "working" ? 0.65 : 0.28,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+      });
+      const ring = new THREE.Mesh(ringGeo, ringMat);
+      ring.position.copy(mesh.position);
+      ring.rotation.x = Math.PI / 2.25;
+      ring.userData.spin = 0.42 + i * 0.09;
+      group.add(ring);
+      mesh.userData.ring = ring;
+
+      const inner = new THREE.PointLight(a.color, a.status === "working" ? 2.2 : 0.9, 6.5, 2);
+      inner.position.copy(mesh.position);
+      group.add(inner);
+      mesh.userData.innerLight = inner;
+
+      /* Shard moons */
+      for (let s = 0; s < 3; s++) {
+        const shard = new THREE.Mesh(
+          new THREE.TetrahedronGeometry(0.08 + s * 0.02, 0),
+          new THREE.MeshStandardMaterial({
+            color: a.color,
+            emissive: a.color,
+            emissiveIntensity: 0.6,
+            metalness: 0.6,
+            roughness: 0.3,
+          })
+        );
+        const ra = 0.95 + s * 0.12;
+        shard.position.set(x + Math.cos(s * 2.1) * ra * 0.25, y + 0.35 + s * 0.1, z + Math.sin(s * 1.7) * ra * 0.25);
+        shard.userData.orbit = { cx: x, cy: y, cz: z, r: ra, speed: 0.4 + s * 0.15, off: s * 2 };
+        group.add(shard);
+        mesh.userData.shards = mesh.userData.shards || [];
+        mesh.userData.shards.push(shard);
+      }
+    });
+
+    /* Hub lines: center ↔ each agent */
+    const spokeCount = count;
+    const spokePos = new Float32Array(spokeCount * 2 * 3);
+    const spokeGeo = new THREE.BufferGeometry();
+    spokeGeo.setAttribute("position", new THREE.BufferAttribute(spokePos, 3));
+    const spokeMat = new THREE.LineDashedMaterial({
+      color: 0xffe8cc,
+      transparent: true,
+      opacity: 0.72,
+      dashSize: 0.2,
+      gapSize: 0.12,
+      scale: 1,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    });
+    const spokes = new THREE.LineSegments(spokeGeo, spokeMat);
+    group.add(spokes);
+
+    /* Constellation ring between agents */
+    const loopPos = new Float32Array(count * 3);
+    const loopGeo = new THREE.BufferGeometry();
+    loopGeo.setAttribute("position", new THREE.BufferAttribute(loopPos, 3));
+    const loopMat = new THREE.LineBasicMaterial({
+      color: 0x88aaff,
+      transparent: true,
+      opacity: 0.22,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    });
+    const loopLine = new THREE.LineLoop(loopGeo, loopMat);
+    group.add(loopLine);
+
+    /* Starfield */
+    const starGeo = new THREE.BufferGeometry();
+    const starCount = prefersReducedMotion ? 500 : 3200;
+    const sp = new Float32Array(starCount * 3);
+    const sc = new Float32Array(starCount * 3);
+    for (let i = 0; i < starCount; i++) {
+      sp[i * 3] = (Math.random() - 0.5) * 120;
+      sp[i * 3 + 1] = (Math.random() - 0.5) * 80;
+      sp[i * 3 + 2] = (Math.random() - 0.5) * 120 - 15;
+      sc[i * 3] = 0.5 + Math.random() * 0.5;
+      sc[i * 3 + 1] = 0.55 + Math.random() * 0.45;
+      sc[i * 3 + 2] = 0.65 + Math.random() * 0.35;
+    }
+    starGeo.setAttribute("position", new THREE.BufferAttribute(sp, 3));
+    starGeo.setAttribute("color", new THREE.BufferAttribute(sc, 3));
+    const stars = new THREE.Points(
+      starGeo,
+      new THREE.PointsMaterial({
+        size: prefersReducedMotion ? 0.035 : 0.055,
+        vertexColors: true,
+        transparent: true,
+        opacity: 0.85,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+        sizeAttenuation: true,
+      })
+    );
+    scene.add(stars);
+
+    let mode = "orbit";
+    document.getElementById("mode-drift").addEventListener("click", () => setMode("drift"));
+    document.getElementById("mode-orbit").addEventListener("click", () => setMode("orbit"));
+
+    function setMode(m) {
+      mode = m;
+      document.getElementById("mode-drift").classList.toggle("active", m === "drift");
+      document.getElementById("mode-orbit").classList.toggle("active", m === "orbit");
+    }
+
+    const raycaster = new THREE.Raycaster();
+    const pointer = new THREE.Vector2();
+    let selectedId = "frontend";
+    let hoveredId = null;
+    let pointerDirty = true;
+
+    let isDrag = false;
+    let px = 0,
+      py = 0,
+      rx = 0,
+      ry = 0;
+    window.addEventListener("pointerdown", (e) => {
+      isDrag = false;
+      px = e.clientX;
+      py = e.clientY;
+      pointerDirty = true;
+    });
+    window.addEventListener("pointermove", (e) => {
+      pointerDirty = true;
+      if (e.buttons === 1) {
+        if (Math.hypot(e.clientX - px, e.clientY - py) > 4) isDrag = true;
+        rx += e.movementX * 0.005;
+        ry = THREE.MathUtils.clamp(ry + e.movementY * 0.004, -0.55, 0.72);
+      }
+      pointer.x = (e.clientX / window.innerWidth) * 2 - 1;
+      pointer.y = -(e.clientY / window.innerHeight) * 2 + 1;
+
+      pulseFlash.style.setProperty("--px", `${(e.clientX / window.innerWidth) * 100}%`);
+      pulseFlash.style.setProperty("--py", `${(e.clientY / window.innerHeight) * 100}%`);
+    });
+
+    window.addEventListener(
+      "click",
+      (e) => {
+        if (isDrag) return;
+        raycaster.setFromCamera(pointer, camera);
+        const hits = raycaster.intersectObjects(meshes, false);
+        if (hits.length) {
+          const id = hits[0].object.userData.agentId;
+          selectAgent(id, true);
+          pointerDirty = true;
+          pulseFlash.classList.add("on");
+          requestAnimationFrame(() => {
+            pulseFlash.classList.remove("on");
+          });
+        }
+      },
+      true
+    );
+
+    window.addEventListener("wheel", (e) => {
+      camera.position.z = THREE.MathUtils.clamp(camera.position.z + e.deltaY * 0.009, 4.2, 15);
+    });
+
+    function selectAgent(id, openDrawer) {
+      selectedId = id;
+      meshes.forEach((m) => {
+        const active = m.userData.agentId === id;
+        const agent = hub.findAgent(m.userData.agentId);
+        m.material.emissiveIntensity = active ? agent.status === "working" ? 1.25 : 0.75 : agent.status === "working" ? 0.85 : 0.32;
+        if (m.userData.ring) {
+          const baseOp = agent && agent.status === "working" ? 0.58 : 0.26;
+          m.userData.ring.material.opacity = active ? 0.95 : baseOp;
+        }
+      });
+      document.querySelectorAll(".chip").forEach((c) => {
+        const on = c.dataset.agent === id;
+        c.classList.toggle("on", on);
+        c.setAttribute("aria-pressed", on ? "true" : "false");
+      });
+      const sel = hub.findAgent(id);
+      if (agentLive && sel) {
+        agentLive.textContent = `Selected ${sel.name}, ${sel.status}, ${sel.learnings.length} learnings.`;
+      }
+      if (openDrawer) {
+        const a = hub.findAgent(id);
+        if (a) renderDrawer(a);
+      }
+    }
+
+    function timeAgo(ts) {
+      if (!ts) return "seed memory";
+      return window.StateManager.timeAgo(ts);
+    }
+
+    function renderDrawer(a) {
+      const stages = ["Seed", "Sprout", "Bloom", "Fruit"];
+      const st = Math.min(a.stage, stages.length - 1);
+      const evo = `<div class="evo">${stages
+        .map((name, idx) => {
+          const cls = idx < st ? "evo-step reached" : idx === st ? "evo-step active" : "evo-step";
+          return `<div class="${cls}"><div class="evo-icon">${idx + 1}</div><div class="evo-step-name">${name}</div></div>`;
+        })
+        .join("")}</div>`;
+
+      const learnCount = a.learnings.length;
+      const learns = a.learnings
+        .slice()
+        .reverse()
+        .map(
+          (l) => `<div class="learn-row">
+          <div class="learn-part">${l.part}</div>
+          <div class="learn-quote">&ldquo;${l.quote}&rdquo;</div>
+          <div class="learn-when">${timeAgo(l.timestamp)}</div>
+        </div>`
+        )
+        .join("");
+
+      const xpPct = Math.min(100, Math.round((a.xp / 150) * 100));
+      drawerBody.innerHTML = `
+        <div class="d-eyebrow">Specimen &middot; ${a.status}</div>
+        <h2 class="d-name">${a.name}</h2>
+        <div class="d-meta">${learnCount} learning${learnCount !== 1 ? "s" : ""} &middot; forge stage ${Math.min(a.stage, 3) + 1} of 4</div>
+        <div class="d-xp" title="${a.xp} XP"><div class="d-xp-bar" style="width:${xpPct}%"></div></div>
+        <p class="d-lede">${a.lede}</p>
+        ${evo}
+        <div class="learnings">${learns || '<div class="learn-row" style="opacity:0.4">No learnings yet — feed this agent a skill.</div>'}</div>
+      `;
+      drawer.classList.add("open");
+      drawer.setAttribute("aria-hidden", "false");
+      drawer.setAttribute("aria-label", `${a.name}, ${a.status}, specimen detail`);
+      drawerClose.focus();
+    }
+
+    drawerClose.addEventListener("click", () => {
+      drawer.classList.remove("open");
+      drawer.setAttribute("aria-hidden", "true");
+      drawer.setAttribute("aria-label", "Agent specimen detail");
+      const chip = document.querySelector(`.chip[data-agent="${selectedId}"]`);
+      if (chip) chip.focus();
+    });
+
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && drawer.classList.contains("open")) {
+        e.preventDefault();
+        drawerClose.click();
+      }
+      if (!drawer.classList.contains("open") && (e.key === "ArrowRight" || e.key === "ArrowLeft")) {
+        const order = hub.getAgents().map((x) => x.id);
+        const i = order.indexOf(selectedId);
+        if (i < 0) return;
+        const next = e.key === "ArrowRight" ? order[(i + 1) % order.length] : order[(i - 1 + order.length) % order.length];
+        selectAgent(next, false);
+      }
+    });
+
+    document.getElementById("cta-start").addEventListener("click", () => {
+      const all = hub.getAgents();
+      const w = all.find((x) => x.status === "working") || all[1];
+      selectAgent(w.id, true);
+    });
+
+    document.getElementById("drawer-run").addEventListener("click", () => drawerClose.click());
+
+    document.getElementById("drawer-feed").addEventListener("click", () => {
+      if (window.AgentModals) window.AgentModals.openFeedModal(selectedId);
+    });
+
+    document.getElementById("cta-new-agent").addEventListener("click", () => {
+      if (window.AgentModals) window.AgentModals.openCreateModal();
+    });
+
+    document.getElementById("drawer-queue").addEventListener("click", () => {
+      const all = hub.getAgents();
+      const i = all.findIndex((x) => x.id === selectedId);
+      selectAgent(all[(i + 1) % all.length].id, true);
+    });
+
+    const clock = new THREE.Clock();
+    let t0 = 0;
+    const vHeart = new THREE.Vector3();
+    const vAgent = new THREE.Vector3();
+
+    function tick() {
+      requestAnimationFrame(tick);
+      const t = clock.getElapsedTime();
+      const dt = Math.min(0.05, t - t0);
+      t0 = t;
+
+      nebT += prefersReducedMotion ? 0.002 : 0.008;
+      if (prefersReducedMotion) {
+        paintNebula();
+      } else if (++nebPaintSkip >= 3) {
+        nebPaintSkip = 0;
+        paintNebula();
+      }
+
+      const auto = !prefersReducedMotion && mode === "orbit";
+      if (auto) rx += 0.065 * dt;
+
+      group.rotation.y = rx;
+      group.rotation.x = ry * 0.38;
+
+      /* Heart pulse */
+      const pulse = 1 + Math.sin(t * 2.4) * (prefersReducedMotion ? 0.02 : 0.07);
+      heart.scale.setScalar(pulse);
+      const hr = prefersReducedMotion ? 0.05 : 0.31;
+      heart.rotation.x = t * hr;
+      heart.rotation.y = t * (prefersReducedMotion ? 0.04 : 0.22);
+      heartHalo.scale.setScalar(pulse * 1.35);
+      heartHalo.material.opacity = (prefersReducedMotion ? 0.1 : 0.1 + Math.sin(t * 3) * 0.04);
+
+      cage.rotation.x = t * (prefersReducedMotion ? 0.008 : 0.03);
+      cage.rotation.y = t * (prefersReducedMotion ? 0.012 : 0.05);
+
+      if (pointerDirty) {
+        raycaster.setFromCamera(pointer, camera);
+        const hoverHits = raycaster.intersectObjects(meshes, false);
+        hoveredId = hoverHits.length ? hoverHits[0].object.userData.agentId : null;
+        pointerDirty = false;
+      }
+
+      meshes.forEach((m) => {
+        const agent = hub.findAgent(m.userData.agentId);
+        const bob = prefersReducedMotion ? 0 : Math.sin(t * 1.15 + m.userData.phase) * 0.075;
+        m.position.y = m.userData.baseY + bob;
+        const workingPulse = agent && agent.status === "working" ? 1 + Math.sin(t * 3.3) * 0.045 : 1;
+        const sel = m.userData.agentId === selectedId ? 1.14 : 1;
+        const hv = m.userData.agentId === hoveredId ? 1.06 : 1;
+        const absorb = m.userData.absorbScale || 1;
+        const base = m.userData.baseScale || 1;
+        m.scale.setScalar(sel * hv * workingPulse * absorb * base);
+
+        const emBase = m.userData.agentId === selectedId ? agent.status === "working" ? 1.2 : 0.72 : m.userData.baseEmissive;
+        const emHover = m.userData.agentId === hoveredId ? 0.22 : 0;
+        m.material.emissiveIntensity = emBase + emHover;
+
+        if (m.userData.ring) {
+          const ring = m.userData.ring;
+          ring.position.copy(m.position);
+          ring.rotation.z += ring.userData.spin * dt;
+        }
+        if (m.userData.innerLight) {
+          m.userData.innerLight.position.copy(m.position);
+          m.userData.innerLight.intensity =
+            (agent && agent.status === "working" ? 2.2 : 0.85) + (prefersReducedMotion ? 0 : Math.sin(t * 2 + m.userData.phase) * 0.35);
+        }
+
+        if (m.userData.shards) {
+          m.userData.shards.forEach((sh, si) => {
+            const o = sh.userData.orbit;
+            const ang = t * o.speed + o.off;
+            sh.position.set(o.cx + Math.cos(ang) * o.r * 0.32, o.cy + 0.42 + Math.sin(ang * 1.3) * 0.12, o.cz + Math.sin(ang) * o.r * 0.32);
+            sh.rotation.x = ang;
+            sh.rotation.y = ang * 0.7;
+          });
+        }
+      });
+
+      /* Update line buffers */
+      heart.getWorldPosition(vHeart);
+      for (let i = 0; i < spokeCount; i++) {
+        meshes[i].getWorldPosition(vAgent);
+        const j = i * 6;
+        spokePos[j] = vHeart.x;
+        spokePos[j + 1] = vHeart.y;
+        spokePos[j + 2] = vHeart.z;
+        spokePos[j + 3] = vAgent.x;
+        spokePos[j + 4] = vAgent.y;
+        spokePos[j + 5] = vAgent.z;
+      }
+      spokeGeo.attributes.position.needsUpdate = true;
+      try {
+        spokes.computeLineDistances();
+      } catch (_) {
+        /* ignore */
+      }
+
+      for (let i = 0; i < count; i++) {
+        meshes[i].getWorldPosition(vAgent);
+        loopPos[i * 3] = vAgent.x;
+        loopPos[i * 3 + 1] = vAgent.y;
+        loopPos[i * 3 + 2] = vAgent.z;
+      }
+      loopGeo.attributes.position.needsUpdate = true;
+
+      spokeMat.dashScale = 1 + Math.sin(t * 2.9) * 0.35;
+      spokeMat.opacity = 0.52 + Math.sin(t * 1.5) * 0.18;
+      loopMat.opacity = 0.16 + Math.sin(t * 1.1) * 0.06;
+
+      stars.rotation.y += prefersReducedMotion ? 0 : 0.01 * dt;
+
+      if (!prefersReducedMotion && mode === "drift") {
+        group.position.x = Math.sin(t * 0.2) * 0.42;
+        group.position.y = Math.cos(t * 0.16) * 0.14;
+      } else {
+        group.position.x = THREE.MathUtils.lerp(group.position.x, 0, 0.05);
+        group.position.y = THREE.MathUtils.lerp(group.position.y, 0, 0.05);
+      }
+
+      const targetX = pointer.x * 0.55;
+      const targetY = pointer.y * 0.28;
+      camera.position.x += (targetX - camera.position.x) * 0.035;
+      camera.position.y += (0.85 + targetY - camera.position.y) * 0.035;
+      camera.lookAt(0, 0, 0);
+
+      composer.render();
+    }
+    tick();
+
+    window.addEventListener("resize", () => {
+      const w = window.innerWidth,
+        h = window.innerHeight;
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+      renderer.setSize(w, h);
+      composer.setSize(w, h);
+      if (typeof bloomPass.setSize === "function") bloomPass.setSize(w, h);
+      fxaaPass.material.uniforms.resolution.value.set(1 / w, 1 / h);
+    });
+
+    selectAgent("frontend", false);
+  </script>
+</body>
+</html>

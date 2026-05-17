@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VIVARIUM — Agent Habitat</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@700&family=Lora:ital,wght@0,400;0,500;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ── TOKENS ──────────────────────────────────────────────────────────────── */
+:root {
+  --bg: #080f08;
+  --surface: #111c11;
+  --accent: #7eff9a;
+  --accent-dim: rgba(126,255,154,0.22);
+  --accent-glow: rgba(126,255,154,0.08);
+  --text: #f0ebe0;
+  --text-dim: rgba(240,235,224,0.55);
+  --text-mute: rgba(240,235,224,0.30);
+  --border: rgba(126,255,154,0.10);
+  --border-mid: rgba(126,255,154,0.22);
+  --ff-serif: 'EB Garamond', Georgia, serif;
+  --ff-body: 'Lora', Georgia, serif;
+  --ff-mono: 'JetBrains Mono', 'Courier New', monospace;
+  --z-canvas: 0; --z-labels: 10; --z-masthead: 50;
+  --z-backdrop: 100; --z-drawer: 110; --z-overlay: 200; --z-modal: 300;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased; }
+
+/* ── CANVAS ────────────────────────────────────────────────────────────── */
+#viv-canvas { position: fixed; inset: 0; width: 100%; height: 100%; z-index: var(--z-canvas); display: block; }
+
+/* ── MASTHEAD ──────────────────────────────────────────────────────────── */
+.masthead {
+  position: fixed; inset-block-start: 0; inset-inline: 0; z-index: var(--z-masthead);
+  height: 56px; padding: 0 24px;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  background: rgba(8,15,8,0.74); backdrop-filter: blur(12px) saturate(1.4);
+  -webkit-backdrop-filter: blur(12px) saturate(1.4);
+  border-bottom: 1px solid var(--border);
+}
+.masthead__left { display: flex; flex-direction: column; gap: 1px; flex-shrink: 0; }
+.masthead__eyebrow { font-family: var(--ff-mono); font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(126,255,154,0.50); }
+.masthead__wordmark { font-family: var(--ff-serif); font-weight: 700; font-size: 20px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text); line-height: 1; }
+.masthead__right { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+.design-nav { display: flex; align-items: center; gap: 18px; }
+.design-nav a { font-family: var(--ff-mono); font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-dim); text-decoration: none; transition: color 0.18s; }
+.design-nav a:hover { color: var(--text); }
+.design-nav a.active { color: var(--accent); }
+.stat-pill {
+  display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px;
+  background: var(--accent-glow); border: 1px solid var(--accent-dim); border-radius: 2px;
+  font-family: var(--ff-mono); font-size: 9px; letter-spacing: 0.10em; text-transform: uppercase; color: var(--accent); white-space: nowrap;
+}
+.stat-pill::before { content: ''; display: block; width: 5px; height: 5px; border-radius: 50%; background: var(--accent); }
+.btn-viv {
+  height: 32px; padding: 0 12px; background: transparent; border: 1px solid rgba(240,235,224,0.14);
+  border-radius: 2px; cursor: pointer; font-family: var(--ff-mono); font-size: 9px;
+  letter-spacing: 0.10em; text-transform: uppercase; color: var(--text-dim);
+  transition: border-color 0.18s, color 0.18s; white-space: nowrap;
+}
+.btn-viv:hover { border-color: var(--accent-dim); color: var(--text); }
+.btn-viv.primary { border-color: var(--accent-dim); color: var(--accent); }
+.btn-viv.primary:hover { background: var(--accent-glow); }
+.masthead__lede { font-family: var(--ff-body); font-size: 12px; font-style: italic; color: var(--text-mute); line-height: 1.4; max-width: 340px; display: none; }
+.masthead__hint {
+  position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
+  font-family: var(--ff-mono); font-size: 9px; letter-spacing: 0.10em;
+  color: var(--text-mute); text-transform: uppercase; pointer-events: none; z-index: var(--z-masthead);
+}
+
+/* ── CREATURE LABELS ───────────────────────────────────────────────────── */
+#vivarium-labels { position: fixed; inset: 0; z-index: var(--z-labels); pointer-events: none; overflow: hidden; }
+.creature-label {
+  position: absolute; top: 0; left: 0; will-change: transform, opacity;
+  font-family: var(--ff-mono); font-size: 9px; letter-spacing: 0.10em; text-transform: uppercase;
+  color: rgba(240,235,224,0.80); white-space: nowrap;
+  padding: 3px 7px; background: rgba(8,15,8,0.72); border: 1px solid rgba(126,255,154,0.18);
+  border-radius: 1px; pointer-events: none;
+}
+
+/* ── DRAWER ────────────────────────────────────────────────────────────── */
+.drawer-backdrop { position: fixed; inset: 0; z-index: var(--z-backdrop); background: rgba(0,0,0,0); pointer-events: none; visibility: hidden; }
+.drawer {
+  position: fixed; inset-block: 0; inset-inline-end: 0; z-index: var(--z-drawer);
+  width: 380px; max-width: 100vw; overflow: hidden;
+  background: var(--surface); border-left: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  transform: translateX(100%); will-change: transform;
+}
+.drawer__band { position: relative; height: 120px; flex-shrink: 0; background: var(--agent-color, var(--accent)); }
+.drawer__band::after {
+  content: ''; position: absolute; inset: 0;
+  background: rgba(8,15,8,0.40); backdrop-filter: blur(6px) saturate(0.7);
+  -webkit-backdrop-filter: blur(6px) saturate(0.7);
+}
+.drawer__creature-name {
+  position: absolute; inset: 0; z-index: 1;
+  display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 3px;
+  font-family: var(--ff-serif); font-weight: 700; font-size: 30px; line-height: 1;
+  letter-spacing: 0.02em; color: var(--text); text-shadow: 0 1px 8px rgba(0,0,0,0.55);
+}
+.drawer__creature-name small {
+  font-family: var(--ff-mono); font-size: 9px; letter-spacing: 0.16em;
+  text-transform: uppercase; color: rgba(240,235,224,0.50); font-weight: 400;
+}
+.drawer__stage-badge {
+  position: absolute; bottom: -11px; left: 50%; transform: translateX(-50%); z-index: 2;
+  padding: 3px 10px; background: var(--surface); border: 1px solid var(--border-mid); border-radius: 2px;
+  font-family: var(--ff-mono); font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); white-space: nowrap;
+}
+.close-drawer {
+  position: absolute; top: 10px; right: 10px; z-index: 3;
+  background: rgba(8,15,8,0.55); border: 1px solid var(--border); border-radius: 2px;
+  width: 26px; height: 26px; cursor: pointer; color: var(--text-dim); font-size: 16px;
+  line-height: 26px; text-align: center; transition: color 0.15s;
+}
+.close-drawer:hover { color: var(--text); }
+.drawer__body {
+  flex: 1; overflow-y: auto; overscroll-behavior: contain; padding: 32px 24px 16px;
+  scrollbar-width: thin; scrollbar-color: var(--accent-dim) transparent;
+}
+.drawer__body::-webkit-scrollbar { width: 3px; }
+.drawer__body::-webkit-scrollbar-thumb { background: var(--accent-dim); border-radius: 0; }
+.drawer__section { font-family: var(--ff-mono); font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-mute); margin-bottom: 8px; margin-top: 16px; }
+.drawer__section:first-child { margin-top: 0; }
+.drawer__lede { font-family: var(--ff-body); font-size: 13px; line-height: 1.55; color: var(--text-dim); font-style: italic; margin-bottom: 12px; }
+.stat-label { display: flex; justify-content: space-between; font-family: var(--ff-mono); font-size: 9px; letter-spacing: 0.10em; text-transform: uppercase; color: var(--text-mute); margin-bottom: 6px; }
+.stat-label span:last-child { color: rgba(240,235,224,0.70); font-weight: 500; }
+.bar-track { height: 3px; background: rgba(240,235,224,0.07); margin-bottom: 16px; overflow: hidden; }
+.bar-fill { height: 100%; background: var(--accent); transition: width 0.6s cubic-bezier(0.22,1,0.36,1); }
+.bar-fill.xp { box-shadow: 0 0 7px rgba(126,255,154,0.55); }
+.learning-list { list-style: none; display: flex; flex-direction: column; gap: 7px; }
+.learning-item { font-family: var(--ff-body); font-size: 13px; line-height: 1.55; color: rgba(240,235,224,0.70); padding: 7px 10px; background: rgba(240,235,224,0.03); border-left: 2px solid var(--accent-dim); }
+.learning-item .part { font-family: var(--ff-mono); font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); display: block; margin-bottom: 2px; }
+.drawer__footer { flex-shrink: 0; padding: 12px 24px 20px; border-top: 1px solid var(--border); background: var(--surface); }
+.drawer__feed-btn { width: 100%; height: 40px; background: transparent; border: 1px solid var(--accent-dim); border-radius: 2px; cursor: pointer; font-family: var(--ff-mono); font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); transition: background 0.18s, border-color 0.18s; }
+.drawer__feed-btn:hover { background: var(--accent-glow); border-color: rgba(126,255,154,0.50); }
+
+/* ── EVOLVED OVERLAY ───────────────────────────────────────────────────── */
+.evolved-overlay {
+  position: fixed; inset: 0; z-index: var(--z-overlay);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+  opacity: 0; pointer-events: none; visibility: hidden; background: rgba(0,0,0,0.82);
+}
+.evolved-overlay::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(ellipse 55% 45% at 50% 50%, rgba(126,255,154,0.05) 0%, transparent 70%);
+}
+.evolved-overlay__name { font-family: var(--ff-serif); font-weight: 700; font-size: clamp(44px, 7vw, 68px); line-height: 1; letter-spacing: 0.01em; color: var(--text); text-align: center; }
+.evolved-overlay__tag { font-family: var(--ff-mono); font-size: 12px; letter-spacing: 0.30em; text-transform: uppercase; color: var(--accent); text-align: center; }
+.evolved-overlay__stage { font-family: var(--ff-mono); font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-mute); margin-top: 4px; text-align: center; max-width: 360px; line-height: 1.6; }
+
+/* ── MOBILE ────────────────────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .design-nav { display: none; }
+  .drawer { inset-block-start: auto; inset-block-end: 0; inset-inline: 0; width: 100%; height: 60vh; border-left: none; border-top: 1px solid var(--border); border-radius: 12px 12px 0 0; transform: translateY(100%); }
+}
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
+</style>
+</head>
+<body>
+
+<canvas id="viv-canvas"></canvas>
+<div id="vivarium-labels" aria-hidden="true"></div>
+
+<header class="masthead">
+  <div class="masthead__left">
+    <span class="masthead__eyebrow">Bioluminescent Station No. 7 · Est. Colombo, 2024</span>
+    <span class="masthead__wordmark">Vivarium</span>
+  </div>
+  <div class="masthead__right">
+    <nav class="design-nav" aria-label="Design themes">
+      <a href="constellation-forge.html">Forge</a>
+      <a href="tidal-archive.html">Archive</a>
+      <a href="foundry-glass.html">Foundry</a>
+      <a href="vivarium.html" class="active" aria-current="page">Vivarium</a>
+      <a href="grove.html">Grove</a>
+    </nav>
+    <div class="stat-pill" id="stat-pill">0 specimens · 0 field notes</div>
+    <button class="btn-viv primary" id="btn-observe">Begin Observation</button>
+    <button class="btn-viv" id="btn-add-agent">+ Introduce Specimen</button>
+  </div>
+</header>
+<p class="masthead__hint" aria-hidden="true">Click a specimen to open its ledger · Drag to pan · Creatures grow when fed</p>
+
+<div class="drawer-backdrop" id="drawer-backdrop" aria-hidden="true"></div>
+<aside class="drawer" id="agent-drawer" role="complementary" aria-label="Creature detail" aria-hidden="true">
+  <div class="drawer__band" id="drawer-band">
+    <div class="drawer__creature-name" id="drawer-creature-name"><span id="drawer-cn-text">—</span><small id="drawer-agent-label"></small></div>
+    <div class="drawer__stage-badge" id="drawer-stage-badge">Quiescent</div>
+    <button class="close-drawer" id="btn-close-drawer" aria-label="Close">×</button>
+  </div>
+  <div class="drawer__body">
+    <div class="drawer__section">Specimen Record</div>
+    <p class="drawer__lede" id="drawer-lede"></p>
+    <div class="drawer__section">Developmental Stage</div>
+    <div class="stat-label"><span>Experience</span><span id="xp-label">0 / 10 XP</span></div>
+    <div class="bar-track"><div class="bar-fill xp" id="xp-bar" style="width:0%"></div></div>
+    <div class="stat-label"><span>Reliability</span><span id="rel-label">50%</span></div>
+    <div class="bar-track"><div class="bar-fill" id="rel-bar" style="width:50%"></div></div>
+    <div class="drawer__section">Field Notes</div>
+    <ul class="learning-list" id="learning-list">
+      <li class="learning-item" style="color:var(--text-mute);font-style:italic">No observations recorded yet.</li>
+    </ul>
+  </div>
+  <div class="drawer__footer">
+    <button class="drawer__feed-btn" id="btn-feed-skill">Add Observation</button>
+  </div>
+</aside>
+
+<div class="evolved-overlay" id="evolved-overlay" aria-live="assertive" aria-atomic="true">
+  <div class="evolved-overlay__name" id="evo-name">—</div>
+  <div class="evolved-overlay__tag">Classification updated.</div>
+  <div class="evolved-overlay__stage" id="evo-stage">—</div>
+</div>
+
+<script src="state-manager.js"></script>
+<script src="ui-modals.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.min.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"}}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+
+/* ── CONSTANTS ─────────────────────────────────────────────────────────── */
+const STAGE_NAMES  = ['Quiescent','Emergent','Expressed','Established'];
+const STAGE_XP_MAX = [10, 40, 100, 150];
+const CREATURE_NAMES = [
+  ['Flumble','Wicklow','Soffin','Lumble'],
+  ['Aevon','Vispra','Fliver','Caelum'],
+  ['Seelwix','Zophrin','Curlix','Spirael'],
+  ['Grocket','Brackum','Thornwick','Cragget']
+];
+const SEED_AGENTS = [
+  { id:'designer',  name:'Designer',          color:'#c8b4ff', stage:2, xp:30,  status:'idle',    lede:'Tightens layout rhythm and keeps the companion voice consistent across surfaces.', specialization:['design','typography'], reliability:0.75, learnings:[], executionHistory:[] },
+  { id:'creative',  name:'Creative Director', color:'#ff9a4a', stage:3, xp:80,  status:'working', lede:'Shapes narrative arcs for features and names that feel human, not template.', specialization:['writing','naming'],  reliability:0.88, learnings:[], executionHistory:[] },
+  { id:'frontend',  name:'Frontend Designer', color:'#62ffc4', stage:3, xp:110, status:'idle',    lede:'Ships tactile UI: depth, light, and motion that respect reduced-motion users.', specialization:['design','coding'],   reliability:0.91, learnings:[], executionHistory:[] },
+  { id:'qa',        name:'QA Tester',         color:'#ff8f82', stage:1, xp:10,  status:'idle',    lede:'Treats every flow like a skeptical first-time user with a stopwatch.', specialization:['testing'],            reliability:0.60, learnings:[], executionHistory:[] },
+];
+const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const hub = window.StateManager ? new window.StateManager(SEED_AGENTS) : null;
+
+/* ── HELPERS ───────────────────────────────────────────────────────────── */
+function hashStr(s, seed = 0) {
+  let h = seed | 0;
+  for (let i = 0; i < s.length; i++) h = (Math.imul(31, h) + s.charCodeAt(i)) | 0;
+  return Math.abs(h);
+}
+function creatureType(id) { return hashStr(id, 7) % 4; }
+function creatureName(id) { return CREATURE_NAMES[creatureType(id)][hashStr(id, 13) % 4]; }
+function hexColor(hex) {
+  if (typeof hex === 'number') return new THREE.Color(hex);
+  const n = parseInt(String(hex).replace('#',''), 16);
+  return new THREE.Color(isNaN(n) ? 0x88ccff : n);
+}
+
+/* ── RENDERER / SCENE ──────────────────────────────────────────────────── */
+const canvas   = document.getElementById('viv-canvas');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.setClearColor(0x080f08);
+
+const scene = new THREE.Scene();
+scene.fog   = new THREE.FogExp2(0x0a140a, 0.034);
+
+const camera = new THREE.PerspectiveCamera(48, innerWidth / innerHeight, 0.1, 100);
+camera.position.set(0, 4.5, 11);
+camera.lookAt(0, 0.5, 0);
+let camTargetX = 0;
+
+/* ── LIGHTS ─────────────────────────────────────────────────────────────── */
+scene.add(new THREE.HemisphereLight(0xfff4e0, 0x1a2e0a, 0.55));
+const sun = new THREE.DirectionalLight(0xc8d8ff, 0.32);
+sun.position.set(5, 10, 4);
+sun.castShadow = true;
+sun.shadow.mapSize.set(1024, 1024);
+Object.assign(sun.shadow.camera, { near:0.5, far:40, left:-12, right:12, top:8, bottom:-8 });
+sun.shadow.bias = -0.001;
+scene.add(sun);
+
+/* ── GROUND ─────────────────────────────────────────────────────────────── */
+const GVERT = `varying vec3 vP;void main(){vP=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`;
+const GFRAG = `varying vec3 vP;
+float h2(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+float n2(vec2 p){vec2 i=floor(p);vec2 f=fract(p);f=f*f*(3.0-2.0*f);
+  return mix(mix(h2(i),h2(i+vec2(1,0)),f.x),mix(h2(i+vec2(0,1)),h2(i+vec2(1,1)),f.x),f.y);}
+void main(){
+  float n=n2(vP.xz*1.6)*0.5+n2(vP.xz*3.4)*0.3+n2(vP.xz*7.0)*0.2;
+  gl_FragColor=vec4(mix(vec3(0.038,0.092,0.030),vec3(0.072,0.158,0.052),n),1.0);}`;
+const ground = new THREE.Mesh(
+  new THREE.PlaneGeometry(30,20),
+  new THREE.ShaderMaterial({ vertexShader:GVERT, fragmentShader:GFRAG })
+);
+ground.rotation.x = -Math.PI/2;
+ground.receiveShadow = true;
+scene.add(ground);
+
+/* ── FIREFLIES ──────────────────────────────────────────────────────────── */
+const FF = 60;
+const ffPos = new Float32Array(FF*3);
+const ffPh  = new Float32Array(FF);
+for (let i=0;i<FF;i++){
+  ffPos[i*3]=   (Math.random()-.5)*24;
+  ffPos[i*3+1]= Math.random()*3+0.3;
+  ffPos[i*3+2]= (Math.random()-.5)*14;
+  ffPh[i]= Math.random()*Math.PI*2;
+}
+const ffGeo = new THREE.BufferGeometry();
+ffGeo.setAttribute('position', new THREE.BufferAttribute(ffPos,3));
+const ffMat = new THREE.PointsMaterial({ color:0x9eff7a, size:0.06, transparent:true, opacity:0.7 });
+scene.add(new THREE.Points(ffGeo, ffMat));
+
+/* ── BACKGROUND TREES ──────────────────────────────────────────────────── */
+[-9,-5,0,5,9].forEach((x,i)=>{
+  const h = 2.5+Math.sin(i*2.3)*0.8;
+  const z = -6-Math.abs(Math.sin(i))*2;
+  const tmat = new THREE.MeshBasicMaterial({color:0x040a04});
+  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.09,h,5),tmat);
+  trunk.position.set(x,h/2,z); scene.add(trunk);
+  const fol = new THREE.Mesh(new THREE.ConeGeometry(0.7+Math.sin(i)*0.2,1.8,6),tmat);
+  fol.position.set(x,h+0.7,z); scene.add(fol);
+});
+
+/* ── CREATURE BUILDER ───────────────────────────────────────────────────── */
+function buildCreature(agent) {
+  const color = hexColor(agent.color);
+  const stage = Math.max(0,Math.min(3,agent.stage??0));
+  const type  = creatureType(agent.id);
+  const g = new THREE.Group();
+  g.userData = { agentId:agent.id, stage, type, phase:hashStr(agent.id)*0.001%(Math.PI*2), irisObjects:[] };
+
+  // Shadow
+  const shMat = new THREE.MeshBasicMaterial({color:0,transparent:true,opacity:0.28,blending:THREE.MultiplyBlending,depthWrite:false});
+  const sh = new THREE.Mesh(new THREE.CircleGeometry(0.42,14),shMat);
+  sh.rotation.x=-Math.PI/2; sh.position.y=0.012; g.add(sh);
+
+  if (stage===0) {
+    const emat = new THREE.MeshStandardMaterial({color,roughness:0.55,metalness:0.08,emissive:color,emissiveIntensity:0.08});
+    const egg = new THREE.Mesh(new THREE.SphereGeometry(0.35,18,14),emat);
+    egg.scale.y=1.28; egg.position.y=0.44; egg.castShadow=true;
+    g.add(egg); g.userData.egg=egg;
+    for(let s=0;s<5;s++){
+      const a=s*1.26;
+      const sp=new THREE.Mesh(new THREE.SphereGeometry(0.025,6,5),new THREE.MeshBasicMaterial({color:new THREE.Color(color).multiplyScalar(0.45)}));
+      sp.position.set(Math.cos(a)*0.24,0.40+Math.sin(a)*0.12,Math.sin(a)*0.16);
+      g.add(sp);
+    }
+    return g;
+  }
+
+  // Stage props
+  const SP = [null,
+    {bR:0.20,bH:0.30,hR:0.36,hY:0.78,eS:1.40,lR:0.055},
+    {bR:0.25,bH:0.52,hR:0.30,hY:0.96,eS:1.15,lR:0.070},
+    {bR:0.32,bH:0.72,hR:0.25,hY:1.18,eS:0.95,lR:0.085}
+  ][stage];
+
+  // Body
+  const bmat = new THREE.MeshStandardMaterial({color,roughness:0.52,metalness:0.04,emissive:color,emissiveIntensity:stage>=3?0.14:0.04});
+  const body = new THREE.Mesh(new THREE.CapsuleGeometry(SP.bR,SP.bH,8,16),bmat);
+  body.position.y=SP.bH/2+SP.bR+0.03; body.castShadow=true;
+  g.add(body); g.userData.bodyMesh=body; g.userData.bodyMat=bmat;
+
+  // Head
+  const hg = new THREE.Group();
+  hg.position.y=body.position.y+SP.bH/2+SP.bR+SP.hR*0.82;
+  g.add(hg); g.userData.headGroup=hg;
+  hg.add(new THREE.Mesh(new THREE.SphereGeometry(SP.hR,22,16),new THREE.MeshStandardMaterial({color,roughness:0.48,metalness:0.04})));
+
+  // Eyes
+  const eOX=SP.hR*0.52, eOZ=SP.hR*0.84, eOY=SP.hR*0.10;
+  const scR=SP.hR*0.30*SP.eS, irR=scR*0.65, puR=irR*0.50;
+  [-1,1].forEach(side=>{
+    const eg=new THREE.Group();
+    eg.position.set(side*eOX,eOY,eOZ);
+    eg.add(new THREE.Mesh(new THREE.SphereGeometry(scR,12,10),new THREE.MeshStandardMaterial({color:0xf2ede8,roughness:0.25})));
+    const imat=new THREE.MeshStandardMaterial({color,emissive:color,roughness:0.18,emissiveIntensity:stage>=2?0.75:0.28});
+    const ir=new THREE.Mesh(new THREE.SphereGeometry(irR,10,8),imat);
+    ir.position.z=scR*0.55; eg.add(ir);
+    g.userData.irisObjects.push(imat);
+    const pu=new THREE.Mesh(new THREE.SphereGeometry(puR,8,6),new THREE.MeshBasicMaterial({color:0x0a0a0a}));
+    pu.position.z=scR*0.55+irR*0.55; eg.add(pu);
+    hg.add(eg);
+  });
+
+  // Nose
+  const nm=new THREE.MeshStandardMaterial({color:new THREE.Color(color).multiplyScalar(0.55),roughness:0.7});
+  const nose=new THREE.Mesh(new THREE.SphereGeometry(SP.hR*0.09,8,6),nm);
+  nose.position.set(0,-SP.hR*0.10,SP.hR*0.96); hg.add(nose);
+
+  // Ears
+  addEars(hg, type, SP.hR, color);
+
+  // Limbs
+  const lmat=new THREE.MeshStandardMaterial({color,roughness:0.60});
+  [[0.9,-1],[0.9,1],[-0.9,-1],[-0.9,1]].forEach(([xm,zm])=>{
+    const limb=new THREE.Mesh(new THREE.CapsuleGeometry(SP.lR,SP.lR*1.6,4,8),lmat);
+    limb.position.set(xm*(SP.bR*0.85),SP.lR*0.8+SP.lR,zm*(SP.bR*0.72));
+    limb.rotation.z=xm>0?-0.15:0.15; g.add(limb);
+  });
+
+  // Tail
+  addTail(g, type, SP, color, stage);
+
+  // Power features
+  if (stage>=2) addPowerFeature(g, type, SP, color, stage);
+
+  // Per-creature light
+  const ptl=new THREE.PointLight(color,0.35+stage*0.4,3.5+stage*0.5);
+  ptl.position.set(0,SP.hY*0.8,0); g.add(ptl);
+  g.userData.pointLight=ptl;
+  return g;
+}
+
+function addEars(hg, type, hr, color) {
+  const c=new THREE.Color(color);
+  const m=new THREE.MeshStandardMaterial({color:c,roughness:0.55});
+  if (type===0) {
+    [-1,1].forEach(s=>{const e=new THREE.Mesh(new THREE.SphereGeometry(hr*0.28,10,8),m);e.position.set(s*hr*0.78,hr*0.72,-hr*0.12);hg.add(e);});
+  } else if (type===1) {
+    [-1,1].forEach(s=>{
+      const e=new THREE.Mesh(new THREE.ConeGeometry(hr*0.15,hr*0.58,6),m);
+      e.position.set(s*hr*0.68,hr*0.85,-hr*0.10);e.rotation.z=s*-0.22;hg.add(e);
+      const inn=new THREE.Mesh(new THREE.ConeGeometry(hr*0.08,hr*0.38,6),new THREE.MeshBasicMaterial({color:c.clone().multiplyScalar(0.4)}));
+      inn.position.copy(e.position);inn.rotation.copy(e.rotation);hg.add(inn);
+    });
+  } else if (type===2) {
+    [-1,1].forEach(s=>{const e=new THREE.Mesh(new THREE.CapsuleGeometry(hr*0.10,hr*0.55,4,8),m);e.position.set(s*hr*0.55,hr*0.90,hr*0.02);e.rotation.z=s*-0.30;e.rotation.x=-0.15;hg.add(e);});
+  } else {
+    [-1,1].forEach(s=>{const e=new THREE.Mesh(new THREE.BoxGeometry(hr*0.14,hr*0.32,hr*0.10),m);e.position.set(s*hr*0.72,hr*0.70,-hr*0.08);e.rotation.z=s*-0.18;hg.add(e);});
+  }
+}
+
+function addTail(g, type, S, color, stage) {
+  const c=new THREE.Color(color);
+  const tm=new THREE.MeshStandardMaterial({color:c,roughness:0.55,emissive:type===2&&stage>=2?c:new THREE.Color(0),emissiveIntensity:type===2&&stage>=2?0.45:0});
+  if (type===0) {
+    const t=new THREE.Mesh(new THREE.SphereGeometry(S.bR*0.36,8,7),tm);t.position.set(0,S.bH/2+S.bR*0.3,-(S.bR+0.04));g.add(t);
+  } else if (type===1) {
+    [-1,1].forEach(s=>{const w=new THREE.Mesh(new THREE.SphereGeometry(S.bR*0.28,8,6),new THREE.MeshStandardMaterial({color:c,roughness:0.4}));w.scale.set(1,0.6,0.4);w.position.set(s*(S.bR+0.04),S.bH/2+S.bR*0.55,-S.bR*0.2);g.add(w);});
+  } else if (type===2) {
+    const pts=[];for(let i=0;i<=12;i++){const a=i/12*Math.PI*2.2,r=0.15+i*0.012;pts.push(new THREE.Vector3(Math.cos(a)*r,i*0.035,-(S.bR+0.05)-Math.sin(a)*r*0.4));}
+    const t=new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),16,0.042,6),tm);t.position.set(0,S.bR*0.1,0);g.add(t);
+  } else {
+    const t=new THREE.Mesh(new THREE.CapsuleGeometry(S.bR*0.14,S.bR*0.22,4,6),tm);t.position.set(0,S.bH/2+S.bR*0.1,-(S.bR+0.02));t.rotation.x=0.4;g.add(t);
+  }
+}
+
+function addPowerFeature(g, type, S, color, stage) {
+  const c=new THREE.Color(color);
+  const gm=new THREE.MeshStandardMaterial({color:c,emissive:c,emissiveIntensity:0.60,roughness:0.2,metalness:0.3});
+  const hY=S.bH/2+S.bR+S.hR*0.82; // approx head Y
+  if (type===0) {
+    const n=stage>=3?7:4;
+    for(let i=0;i<n;i++){const a=i/n*Math.PI*2;const orb=new THREE.Mesh(new THREE.SphereGeometry(0.055,8,6),gm);orb.position.set(Math.cos(a)*S.hR*1.20,hY+S.hR+Math.sin(a*0.7)*0.05,Math.sin(a)*S.hR*1.20);g.add(orb);}
+  } else if (type===1) {
+    [-1,1].forEach(s=>{
+      const ws=stage>=3?0.50:0.30;
+      const w=new THREE.Mesh(new THREE.PlaneGeometry(ws,ws*0.7),new THREE.MeshStandardMaterial({color:c,emissive:c,emissiveIntensity:0.35,side:THREE.DoubleSide,transparent:true,opacity:0.65,roughness:0.3}));
+      w.position.set(s*(S.bR+ws*0.55),S.bH/2+S.bR*0.7,0);w.rotation.y=s*-0.5;w.rotation.z=s*0.3;g.add(w);
+    });
+  } else if (type===3) {
+    const n=stage>=3?5:3;
+    for(let i=0;i<n;i++){const pl=new THREE.Mesh(new THREE.BoxGeometry(0.06,0.12+i*0.04,S.bR*0.60),gm);pl.position.set(0,S.bH*0.35+i*0.10,-(S.bR*0.3+i*0.02));pl.rotation.x=-0.12-i*0.04;g.add(pl);}
+  }
+}
+
+/* ── CREATURE COLLECTION ────────────────────────────────────────────────── */
+const creatureObjects = new Map();
+
+function layoutX(idx, total) {
+  if (total<=1) return 0;
+  return (idx/(total-1)-0.5)*Math.max(total*2.2,5);
+}
+
+function addAgentToScene(agent) {
+  if (creatureObjects.has(agent.id)) return;
+  const group = buildCreature(agent);
+  const newTotal = creatureObjects.size+1;
+  let i=0;
+  creatureObjects.forEach(obj=>{
+    gsap.to(obj.group.position,{x:layoutX(i,newTotal),duration:0.6,ease:'power2.out'});
+    i++;
+  });
+  const nx=layoutX(creatureObjects.size, newTotal);
+  const nz=Math.sin(creatureObjects.size*1.7)*0.55;
+  group.position.set(nx,0,nz);
+  scene.add(group);
+
+  // Label
+  const label=document.createElement('div');
+  label.className='creature-label';
+  label.textContent=creatureName(agent.id);
+  label.dataset.agentId=agent.id;
+  label.style.opacity=(!agent.learnings||agent.learnings.length===0)?'0.40':'1';
+  document.getElementById('vivarium-labels').appendChild(label);
+
+  creatureObjects.set(agent.id,{group,agent,label});
+  updateStatPill();
+}
+
+/* ── DRAWER ─────────────────────────────────────────────────────────────── */
+let openAgentId=null;
+const drawer=document.getElementById('agent-drawer');
+const backdrop=document.getElementById('drawer-backdrop');
+const isMobile=()=>window.matchMedia('(max-width:600px)').matches;
+
+function openDrawer(agentId) {
+  const obj=creatureObjects.get(agentId);
+  if (!obj) return;
+  openAgentId=agentId;
+  const {agent}=obj;
+  const cname=creatureName(agentId);
+
+  document.getElementById('drawer-band').style.setProperty('--agent-color', agent.color??'#7eff9a');
+  document.getElementById('drawer-cn-text').textContent=cname;
+  document.getElementById('drawer-agent-label').textContent=agent.name;
+  document.getElementById('drawer-stage-badge').textContent=STAGE_NAMES[Math.min(agent.stage??0,3)];
+  document.getElementById('drawer-lede').textContent=agent.lede||'';
+
+  const xp=agent.xp??0, stage=agent.stage??0;
+  const xpMax=STAGE_XP_MAX[Math.min(stage,3)]??150;
+  document.getElementById('xp-label').textContent=`${xp} / ${xpMax} XP`;
+  document.getElementById('xp-bar').style.width=Math.min(100,Math.round(xp/xpMax*100))+'%';
+  const rp=Math.round((agent.reliability??0.5)*100);
+  document.getElementById('rel-label').textContent=rp+'%';
+  document.getElementById('rel-bar').style.width=rp+'%';
+
+  const list=document.getElementById('learning-list');
+  list.innerHTML='';
+  const ls=agent.learnings??[];
+  if (!ls.length) {
+    const li=document.createElement('li');li.className='learning-item';
+    li.style.cssText='color:var(--text-mute);font-style:italic';li.textContent='No observations recorded yet.';list.appendChild(li);
+  } else {
+    [...ls].reverse().forEach(l=>{
+      const li=document.createElement('li');li.className='learning-item';
+      const ps=document.createElement('span');ps.className='part';ps.textContent=l.part||'General';
+      li.appendChild(ps);li.appendChild(document.createTextNode(l.quote||''));
+      list.appendChild(li);
+    });
+  }
+
+  drawer.setAttribute('aria-hidden','false');
+  backdrop.style.visibility='visible';backdrop.style.pointerEvents='auto';
+  if (reducedMotion){drawer.style.transform=isMobile()?'translateY(0%)':'translateX(0%)';backdrop.style.background='rgba(0,0,0,0.55)';return;}
+  const ax=isMobile()?'y':'x';
+  gsap.set(drawer,{[ax]:'100%'});
+  gsap.to(backdrop,{backgroundColor:'rgba(0,0,0,0.55)',duration:0.25});
+  gsap.to(drawer,{[ax]:'0%',duration:0.35,ease:'power2.out'});
+}
+
+function closeDrawer() {
+  openAgentId=null;
+  drawer.setAttribute('aria-hidden','true');
+  if (reducedMotion){drawer.style.transform=isMobile()?'translateY(100%)':'translateX(100%)';backdrop.style.visibility='hidden';backdrop.style.pointerEvents='none';return;}
+  const ax=isMobile()?'y':'x';
+  gsap.to(drawer,{[ax]:'100%',duration:0.28,ease:'power2.in'});
+  gsap.to(backdrop,{backgroundColor:'rgba(0,0,0,0)',duration:0.22,onComplete:()=>{backdrop.style.visibility='hidden';backdrop.style.pointerEvents='none';}});
+}
+
+/* ── EVOLVED OVERLAY ────────────────────────────────────────────────────── */
+function showEvolvedOverlay(agentId, newStage) {
+  const ov=document.getElementById('evolved-overlay');
+  document.getElementById('evo-name').textContent=creatureName(agentId);
+  document.getElementById('evo-stage').textContent=newStage>=3
+    ?'Classification confirmed. I have been waiting for this.'
+    :'A change in morphology. Note the date.';
+  ov.style.visibility='visible';
+  if (reducedMotion){ov.style.opacity='1';setTimeout(()=>{ov.style.opacity='0';setTimeout(()=>ov.style.visibility='hidden',400);},1800);return;}
+  const nEl=document.getElementById('evo-name'),tEl=ov.querySelector('.evolved-overlay__tag'),sEl=document.getElementById('evo-stage');
+  gsap.set([nEl,tEl,sEl],{y:14,opacity:0});
+  gsap.timeline()
+    .to(ov,{autoAlpha:1,duration:0.30})
+    .to(nEl,{y:0,opacity:1,duration:0.42,ease:'power3.out'},'-=0.08')
+    .to(tEl,{y:0,opacity:1,duration:0.30,ease:'power2.out'},'-=0.22')
+    .to(sEl,{y:0,opacity:1,duration:0.24,ease:'power2.out'},'-=0.16')
+    .to({},{duration:1.4})
+    .to(ov,{autoAlpha:0,duration:0.38,ease:'power2.in'});
+}
+
+/* ── STAT PILL ──────────────────────────────────────────────────────────── */
+function updateStatPill() {
+  const agents=hub?hub.getAgents():[...creatureObjects.values()].map(o=>o.agent);
+  const tl=agents.reduce((s,a)=>s+(a.learnings?.length??0),0);
+  const pill=document.getElementById('stat-pill');
+  pill.textContent=`${agents.length} specimen${agents.length!==1?'s':''} · ${tl} field note${tl!==1?'s':''}`;
+  if (!reducedMotion){gsap.killTweensOf(pill);gsap.timeline().to(pill,{scale:1.08,duration:0.14,ease:'power2.out'}).to(pill,{scale:1,duration:0.18,ease:'power2.in'});}
+}
+
+/* ── ANIMATION LOOP ─────────────────────────────────────────────────────── */
+const clock=new THREE.Clock();
+
+function animateCreature(obj, t) {
+  const {group,agent}=obj;
+  const {stage,phase,bodyMesh,bodyMat,headGroup,egg}=group.userData;
+  const sleeping=!agent.learnings||agent.learnings.length===0;
+
+  if (stage===0&&egg) {
+    if (!reducedMotion){egg.rotation.z=Math.sin(t*0.8+phase)*0.042;egg.position.y=0.44+Math.abs(Math.sin(t*0.35+phase))*0.012;}
+    return;
+  }
+  if (!bodyMesh||!headGroup) return;
+
+  const breath=1+Math.sin(t*1.1+phase)*(sleeping?0.004:0.008);
+  bodyMesh.scale.x=breath; bodyMesh.scale.z=breath;
+
+  if (!sleeping&&!reducedMotion) {
+    if (stage===1) group.position.y=Math.abs(Math.sin(t*1.4+phase))*0.045;
+    const look=Math.sin(t*0.22+phase*1.3)*0.30;
+    headGroup.rotation.y+=(look-headGroup.rotation.y)*0.04;
+    if (stage>=3) headGroup.rotation.x=Math.sin(t*0.55+phase)*0.04;
+  }
+
+  if (agent.status==='working'&&bodyMat) {
+    bodyMat.emissiveIntensity=0.55+Math.sin(t*2.2+phase)*0.20;
+    if (group.userData.pointLight) group.userData.pointLight.intensity=0.8+Math.sin(t*2.2)*0.30;
+  }
+}
+
+function animate() {
+  requestAnimationFrame(animate);
+  const T=clock.getElapsedTime();
+  camera.position.x+=(camTargetX-camera.position.x)*0.06;
+  creatureObjects.forEach(obj=>animateCreature(obj,T));
+  // Firefly tick
+  const p=ffGeo.attributes.position;
+  for(let i=0;i<FF;i++){
+    p.array[i*3]  +=Math.sin(T*0.4+ffPh[i])*0.003;
+    p.array[i*3+1]+=Math.cos(T*0.3+ffPh[i]*1.3)*0.002;
+    p.array[i*3+2]+=Math.sin(T*0.25+ffPh[i]*0.7)*0.003;
+    if(p.array[i*3+1]>4.0)p.array[i*3+1]=0.3;
+    if(p.array[i*3+1]<0.2)p.array[i*3+1]=3.5;
+  }
+  p.needsUpdate=true;
+  ffMat.opacity=0.45+Math.sin(T*1.3)*0.25;
+  // Labels
+  creatureObjects.forEach(({group,label})=>{
+    const v=group.position.clone(); v.y+=0.15; v.project(camera);
+    const sx=(v.x*0.5+0.5)*innerWidth, sy=(-v.y*0.5+0.5)*innerHeight+30;
+    label.style.transform=`translate(calc(${sx}px - 50%),${sy}px)`;
+    label.style.display=v.z<1?'block':'none';
+  });
+  renderer.render(scene,camera);
+}
+
+/* ── INTERACTION ────────────────────────────────────────────────────────── */
+const ray=new THREE.Raycaster();
+const ptr=new THREE.Vector2();
+let md=null,dragging=false,dragSX=0;
+
+canvas.addEventListener('pointerdown',e=>{md={x:e.clientX,y:e.clientY};dragSX=camTargetX;dragging=false;});
+canvas.addEventListener('pointermove',e=>{
+  if(!md)return;
+  if(Math.abs(e.clientX-md.x)>4){dragging=true;camTargetX=Math.max(-8,Math.min(8,dragSX-(e.clientX-md.x)*0.018));}
+});
+canvas.addEventListener('pointerup',e=>{
+  if(!dragging&&md){
+    ptr.x=(e.clientX/innerWidth)*2-1; ptr.y=-(e.clientY/innerHeight)*2+1;
+    ray.setFromCamera(ptr,camera);
+    const meshes=[];creatureObjects.forEach(({group})=>group.traverse(c=>{if(c.isMesh)meshes.push(c);}));
+    const hits=ray.intersectObjects(meshes);
+    if(hits.length){let n=hits[0].object;while(n&&!n.userData.agentId)n=n.parent;if(n?.userData.agentId)openDrawer(n.userData.agentId);}
+    else closeDrawer();
+  }
+  md=null;dragging=false;
+});
+canvas.addEventListener('wheel',e=>{camera.position.z=Math.max(6,Math.min(16,camera.position.z+e.deltaY*0.008));},{passive:true});
+
+document.getElementById('btn-close-drawer').addEventListener('click',closeDrawer);
+document.getElementById('drawer-backdrop').addEventListener('click',closeDrawer);
+document.getElementById('btn-feed-skill').addEventListener('click',()=>{if(openAgentId&&window.openFeedModal)openFeedModal(openAgentId);});
+document.getElementById('btn-add-agent').addEventListener('click',()=>{if(window.openCreateModal)openCreateModal();});
+document.getElementById('btn-observe').addEventListener('click',()=>{
+  const agents=hub?hub.getAgents():[...creatureObjects.values()].map(o=>o.agent);
+  const t=agents.find(a=>a.status==='working')||agents[0];
+  if(t)openDrawer(t.id);
+});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeDrawer();});
+
+/* ── STATE EVENTS ───────────────────────────────────────────────────────── */
+if (hub) {
+  hub.on('learningAdded',({agentId,newStage,prevStage,promoted})=>{
+    const freshAgents=hub.getAgents();
+    const fa=freshAgents.find(a=>a.id===agentId);
+    const obj=creatureObjects.get(agentId);
+    if(!obj)return;
+    if(fa)obj.agent=fa;
+    const {group,label}=obj;
+    const sleeping=!fa?.learnings||fa.learnings.length===0;
+    gsap.to(label,{opacity:sleeping?0.4:1.0,duration:0.55});
+
+    if(!reducedMotion&&group.userData.stage>0){
+      const by=group.position.y;
+      gsap.timeline().to(group.position,{y:by+0.25,duration:0.18,ease:'power2.out'}).to(group.position,{y:by,duration:0.20,ease:'bounce.out'}).to(group.position,{y:by+0.12,duration:0.14,ease:'power2.out'}).to(group.position,{y:by,duration:0.16,ease:'bounce.out'});
+    }
+    if(group.userData.irisObjects?.length&&!reducedMotion){
+      const w=new THREE.Color(1,1,1),or=hexColor(obj.agent.color),pr={r:or.r,g:or.g,b:or.b};
+      gsap.timeline()
+        .to(pr,{r:w.r,g:w.g,b:w.b,duration:0.10,ease:'power2.out',onUpdate:()=>group.userData.irisObjects.forEach(m=>m.color.setRGB(pr.r,pr.g,pr.b))})
+        .to(pr,{r:or.r,g:or.g,b:or.b,duration:0.40,ease:'power2.in',delay:0.06,onUpdate:()=>group.userData.irisObjects.forEach(m=>m.color.setRGB(pr.r,pr.g,pr.b))});
+    }
+    if(promoted){
+      setTimeout(()=>{
+        const fresh=hub.getAgents().find(a=>a.id===agentId);
+        if(!fresh)return;
+        scene.remove(group); if(label.parentNode)label.parentNode.removeChild(label); creatureObjects.delete(agentId);
+        addAgentToScene(fresh);
+        const newObj=creatureObjects.get(agentId);
+        if(newObj&&!reducedMotion)gsap.from(newObj.group.scale,{x:0.01,y:0.01,z:0.01,duration:0.6,ease:'back.out(2)'});
+        showEvolvedOverlay(agentId,newStage);
+        if(openAgentId===agentId)setTimeout(()=>openDrawer(agentId),1900);
+      },550);
+    }
+    if(openAgentId===agentId)setTimeout(()=>openDrawer(agentId),60);
+    updateStatPill();
+  });
+
+  hub.on('agentAdded',({agent})=>{
+    addAgentToScene(agent);
+    const obj=creatureObjects.get(agent.id);
+    if(obj&&!reducedMotion)gsap.from(obj.group.scale,{x:0.01,y:0.01,z:0.01,duration:0.45,ease:'back.out(2)'});
+  });
+}
+
+/* ── INIT ───────────────────────────────────────────────────────────────── */
+window.addEventListener('resize',()=>{
+  camera.aspect=innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth,innerHeight);
+});
+
+const initAgents=hub?hub.getAgents():SEED_AGENTS;
+initAgents.forEach(addAgentToScene);
+updateStatPill();
+animate();
+</script>
+</body>
+</html>

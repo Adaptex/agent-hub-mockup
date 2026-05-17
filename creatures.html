@@ -1,0 +1,852 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Familiars — Agent Hub</title>
+<style>
+  :root {
+    --bg: #121010;
+    --surface: #1a1714;
+    --surface-hover: #221f1a;
+    --border: rgba(200, 151, 82, 0.14);
+    --paper: #f0e8d8;
+    --ink-mute: #7a7261;
+    --gold: #c89752;
+    --gold-dim: rgba(200, 151, 82, 0.45);
+    --fox: #e87040;
+    --fox-light: #f4b880;
+    --fox-glow: #fff3d0;
+    --bird: #e3a030;
+    --bird-warm: #d45030;
+    --bird-glow: #fff3c0;
+    --owl: #6878a8;
+    --owl-light: #b0b8d0;
+    --owl-glow: #e0d8f0;
+    --bug: #4a9068;
+    --bug-light: #7ac098;
+    --bug-glow: #d4e8c0;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    font-family: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+    background: var(--bg);
+    color: var(--paper);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Header */
+  .top {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 18px 40px;
+    border-bottom: 1px solid var(--border);
+  }
+  .brand { font-size: 12px; letter-spacing: 0.28em; text-transform: uppercase; color: var(--gold); }
+  .tag { font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--gold-dim); }
+
+  /* Hero */
+  .hero { text-align: center; padding: 44px 24px 12px; }
+  .hero h1 {
+    font-size: 54px; font-weight: 400; line-height: 1;
+    background: linear-gradient(180deg, var(--paper) 30%, var(--gold) 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .hero .sub {
+    margin-top: 12px; font-size: 13px; letter-spacing: 0.24em;
+    text-transform: uppercase; color: var(--gold); opacity: 0.7;
+  }
+
+  /* Stats bar */
+  .stats-bar {
+    display: flex; justify-content: center; gap: 48px;
+    padding: 20px;
+    margin: 0 auto;
+  }
+  .stat { text-align: center; }
+  .stat-val {
+    display: block; font-size: 28px; font-weight: 400; color: var(--paper);
+    line-height: 1;
+  }
+  .stat-label {
+    font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase;
+    color: var(--gold-dim); margin-top: 4px;
+  }
+
+  /* Grid */
+  .grid {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 18px; max-width: 1300px; margin: 10px auto 0; padding: 0 28px;
+  }
+
+  /* Habitat card */
+  .habitat {
+    position: relative;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.35s ease, box-shadow 0.35s ease, border-color 0.35s ease;
+    background: var(--surface);
+  }
+  .habitat:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 24px 60px rgba(0,0,0,0.5);
+    border-color: rgba(200, 151, 82, 0.3);
+  }
+
+  /* Ambient glow per creature */
+  .habitat-glow {
+    position: absolute; inset: 0; pointer-events: none; opacity: 0.45;
+    transition: opacity 0.35s;
+  }
+  .habitat:hover .habitat-glow { opacity: 0.7; }
+  [data-agent="frontend-designer"] .habitat-glow {
+    background: radial-gradient(ellipse at 50% 65%, rgba(232,112,64,0.22) 0%, transparent 65%);
+  }
+  [data-agent="creative-director"] .habitat-glow {
+    background: radial-gradient(ellipse at 50% 65%, rgba(227,160,48,0.22) 0%, transparent 65%);
+  }
+  [data-agent="code-reviewer"] .habitat-glow {
+    background: radial-gradient(ellipse at 50% 65%, rgba(104,120,168,0.2) 0%, transparent 65%);
+  }
+  [data-agent="qa-tester"] .habitat-glow {
+    background: radial-gradient(ellipse at 50% 65%, rgba(74,144,104,0.16) 0%, transparent 65%);
+  }
+
+  /* Level badge */
+  .level-badge {
+    position: absolute; top: 14px; right: 14px;
+    width: 38px; height: 38px; border-radius: 50%;
+    border: 2px solid var(--gold);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 600; color: var(--gold);
+    background: rgba(18, 16, 16, 0.85); z-index: 2;
+  }
+
+  /* Status */
+  .status {
+    position: absolute; top: 16px; left: 16px;
+    display: flex; align-items: center; gap: 6px;
+    font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--gold-dim); z-index: 2;
+  }
+  .status-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: rgba(200,151,82,0.35);
+  }
+  .habitat.working .status-dot {
+    background: #e87040;
+    box-shadow: 0 0 10px rgba(232,112,64,0.7);
+    animation: pulse 1.6s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100% { opacity: 0.5; } 50% { opacity: 1; } }
+
+  /* Creature area */
+  .creature-area {
+    height: 270px;
+    display: flex; align-items: center; justify-content: center;
+    position: relative; padding-top: 36px;
+  }
+  .creature-svg { width: 190px; height: 190px; }
+
+  /* Info panel */
+  .habitat-info {
+    padding: 14px 18px 18px;
+    border-top: 1px solid var(--border);
+    background: rgba(0,0,0,0.25);
+  }
+  .creature-name { font-size: 19px; font-weight: 400; }
+  .creature-stage {
+    font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase;
+    color: var(--gold); margin-top: 2px;
+  }
+
+  /* XP bar */
+  .xp-wrap { margin-top: 12px; }
+  .xp-bar {
+    height: 5px; background: rgba(200,151,82,0.08);
+    border-radius: 3px; overflow: hidden;
+  }
+  .xp-fill {
+    height: 100%; border-radius: 3px;
+    background: linear-gradient(90deg, var(--gold-dim), var(--gold));
+    transition: width 1.2s ease;
+  }
+  [data-agent="frontend-designer"] .xp-fill { background: linear-gradient(90deg, #c05030, var(--fox)); }
+  [data-agent="creative-director"] .xp-fill { background: linear-gradient(90deg, var(--bird-warm), var(--bird)); }
+  [data-agent="code-reviewer"] .xp-fill { background: linear-gradient(90deg, #4a5a88, var(--owl-light)); }
+  [data-agent="qa-tester"] .xp-fill { background: linear-gradient(90deg, #3a7050, var(--bug-light)); }
+  .xp-label {
+    margin-top: 5px; display: flex; justify-content: space-between;
+    font-size: 9px; letter-spacing: 0.1em; color: var(--ink-mute);
+  }
+
+  /* Evolution dots */
+  .evo-dots {
+    display: flex; align-items: center; justify-content: center;
+    gap: 0; margin-top: 10px;
+  }
+  .evo-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    border: 1.5px solid rgba(200,151,82,0.3); background: transparent;
+  }
+  .evo-dot.done { background: var(--gold); border-color: var(--gold); }
+  .evo-dot.now {
+    background: var(--gold); border-color: var(--gold);
+    box-shadow: 0 0 8px rgba(200,151,82,0.5);
+  }
+  .evo-line { width: 14px; height: 1px; background: rgba(200,151,82,0.2); }
+  .evo-line.done { background: var(--gold); }
+
+  /* ============ CREATURE ANIMATIONS ============ */
+
+  /* Breathing */
+  @keyframes breathe {
+    0%, 100% { transform: scaleY(1) translateY(0); }
+    50%      { transform: scaleY(1.035) translateY(-1.5px); }
+  }
+  .c-body { animation: breathe 3.6s ease-in-out infinite; transform-origin: 50% 92%; }
+  .c-body-slow { animation: breathe 4.8s ease-in-out infinite; transform-origin: 50% 92%; }
+
+  /* Floating bob */
+  @keyframes bob {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(-6px); }
+  }
+  .c-float { animation: bob 4.2s ease-in-out infinite; }
+
+  /* Fox tail */
+  @keyframes tail-wag {
+    0%, 100% { transform: rotate(-7deg); }
+    50%      { transform: rotate(10deg); }
+  }
+  .fox-tails { animation: tail-wag 2.8s ease-in-out infinite; transform-origin: 20% 88%; }
+
+  /* Bird wings */
+  @keyframes flap-r {
+    0%, 100% { transform: rotate(0deg) scaleX(1); }
+    30%      { transform: rotate(-6deg) scaleX(0.88); }
+    70%      { transform: rotate(4deg) scaleX(1.06); }
+  }
+  @keyframes flap-l {
+    0%, 100% { transform: rotate(0deg) scaleX(1); }
+    30%      { transform: rotate(6deg) scaleX(0.88); }
+    70%      { transform: rotate(-4deg) scaleX(1.06); }
+  }
+  .wing-r { animation: flap-r 2.6s ease-in-out infinite; transform-origin: 0% 50%; }
+  .wing-l { animation: flap-l 2.6s ease-in-out infinite; transform-origin: 100% 50%; }
+
+  /* Owl head turn */
+  @keyframes head-turn {
+    0%, 40%, 100% { transform: rotate(0deg); }
+    50%           { transform: rotate(6deg); }
+    60%           { transform: rotate(6deg); }
+    70%           { transform: rotate(-4deg); }
+    80%           { transform: rotate(-4deg); }
+    90%           { transform: rotate(0deg); }
+  }
+  .owl-head { animation: head-turn 8s ease-in-out infinite; transform-origin: 50% 80%; }
+
+  /* Bug antenna */
+  @keyframes twitch {
+    0%, 75%, 100% { transform: rotate(0deg); }
+    80%  { transform: rotate(-12deg); }
+    85%  { transform: rotate(8deg); }
+    90%  { transform: rotate(-5deg); }
+    95%  { transform: rotate(0deg); }
+  }
+  .antenna-l { animation: twitch 5s ease-in-out infinite; transform-origin: 100% 100%; }
+  .antenna-r { animation: twitch 5s ease-in-out infinite 0.6s; transform-origin: 0% 100%; }
+
+  /* Blink */
+  .eyes { transform-origin: center; }
+  .eyes.blink { animation: do-blink 0.14s ease-in-out; }
+  @keyframes do-blink {
+    0%, 100% { transform: scaleY(1); }
+    50%      { transform: scaleY(0.04); }
+  }
+
+  /* Sparkle */
+  @keyframes spark {
+    0%, 100% { opacity: 0; transform: scale(0) rotate(0deg); }
+    50%      { opacity: 1; transform: scale(1) rotate(180deg); }
+  }
+  .spark {
+    animation: spark 2.8s ease-in-out infinite;
+    transform-origin: center;
+  }
+
+  /* Glow pulse on aura */
+  @keyframes aura-pulse {
+    0%, 100% { opacity: 0.2; r: 65; }
+    50%      { opacity: 0.45; r: 72; }
+  }
+
+  /* Tail tip flame flicker */
+  @keyframes flame-flicker {
+    0%, 100% { opacity: 0.6; transform: scale(1); }
+    25%  { opacity: 0.9; transform: scale(1.15); }
+    50%  { opacity: 0.5; transform: scale(0.9); }
+    75%  { opacity: 0.85; transform: scale(1.1); }
+  }
+  .flame-tip { animation: flame-flicker 1.8s ease-in-out infinite; transform-origin: center; }
+
+  /* Bird plume flicker */
+  @keyframes plume-glow {
+    0%, 100% { opacity: 0.6; }
+    50%      { opacity: 1; }
+  }
+
+  /* ============ DETAIL OVERLAY ============ */
+
+  .overlay {
+    position: fixed; inset: 0;
+    background: rgba(10, 8, 6, 0.94);
+    backdrop-filter: blur(10px);
+    display: none; z-index: 100;
+    overflow-y: auto;
+  }
+  .overlay.open { display: block; }
+  .overlay-inner {
+    max-width: 960px; margin: 0 auto;
+    padding: 56px 40px 80px;
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 56px; align-items: start;
+  }
+  .detail-left {
+    position: relative;
+    display: flex; align-items: center; justify-content: center;
+    min-height: 420px;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: var(--surface);
+  }
+  .detail-left svg { width: 280px; height: 280px; }
+  .detail-right { padding-top: 16px; }
+  .d-eyebrow {
+    font-size: 10px; letter-spacing: 0.3em; text-transform: uppercase; color: var(--gold);
+  }
+  .d-name { font-size: 38px; font-weight: 400; margin: 8px 0 4px; line-height: 1.1; }
+  .d-meta { font-size: 12px; color: var(--ink-mute); letter-spacing: 0.14em; }
+  .d-lede { margin-top: 18px; font-size: 15px; line-height: 1.55; opacity: 0.8; }
+
+  /* Evolution timeline */
+  .evo-timeline {
+    margin-top: 24px; display: flex; align-items: center; gap: 8px;
+    padding: 16px; background: rgba(200,151,82,0.04);
+    border-radius: 10px; border: 1px solid var(--border);
+  }
+  .evo-step { text-align: center; flex: 1; opacity: 0.25; }
+  .evo-step.reached { opacity: 0.6; }
+  .evo-step.active { opacity: 1; }
+  .evo-icon {
+    width: 44px; height: 44px; margin: 0 auto;
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 600; color: var(--gold-dim);
+    border: 2px solid rgba(200,151,82,0.2);
+    background: rgba(200,151,82,0.04);
+  }
+  .evo-step.reached .evo-icon { border-color: var(--gold); color: var(--gold); }
+  .evo-step.active .evo-icon {
+    border-color: var(--gold); color: var(--gold);
+    box-shadow: 0 0 14px rgba(200,151,82,0.35);
+    background: rgba(200,151,82,0.1);
+  }
+  .evo-step-name {
+    margin-top: 5px; font-size: 9px; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--gold-dim);
+  }
+  .evo-step.active .evo-step-name,
+  .evo-step.reached .evo-step-name { color: var(--gold); }
+  .evo-arrow { color: rgba(200,151,82,0.2); font-size: 14px; }
+  .evo-step.reached + .evo-arrow { color: var(--gold); }
+
+  /* Learnings list */
+  .learnings { margin-top: 22px; display: flex; flex-direction: column; gap: 8px; }
+  .learn-row {
+    padding: 12px 16px; background: rgba(200,151,82,0.03);
+    border: 1px solid var(--border); border-radius: 8px;
+    transition: background 0.2s;
+  }
+  .learn-row:hover { background: rgba(200,151,82,0.08); }
+  .learn-part {
+    font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold);
+  }
+  .learn-quote {
+    margin-top: 4px; font-size: 13px; line-height: 1.45;
+    font-style: italic; opacity: 0.8;
+  }
+  .learn-when {
+    margin-top: 5px; font-size: 9px; color: var(--ink-mute); letter-spacing: 0.12em;
+  }
+
+  /* Close button */
+  .close-x {
+    position: fixed; top: 22px; right: 26px;
+    background: none; border: 1px solid var(--border);
+    color: var(--gold); width: 38px; height: 38px;
+    border-radius: 50%; cursor: pointer; font-size: 18px;
+    z-index: 110; transition: background 0.2s;
+  }
+  .close-x:hover { background: rgba(200,151,82,0.12); }
+
+  .footer {
+    text-align: center; padding: 36px;
+    font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--gold-dim);
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="brand">Daily Companion · Agent Hub</div>
+  <div class="tag">Familiars · Concept 06</div>
+</header>
+
+<section class="hero">
+  <h1>Familiars</h1>
+  <p class="sub">Train your agents · Watch them evolve</p>
+</section>
+
+<div class="stats-bar">
+  <div class="stat"><span class="stat-val">21</span><span class="stat-label">Total Learnings</span></div>
+  <div class="stat"><span class="stat-val">7</span><span class="stat-label">Evolutions</span></div>
+  <div class="stat"><span class="stat-val">4</span><span class="stat-label">Familiars</span></div>
+</div>
+
+<main class="grid">
+
+  <!-- ======== EMBER — Kitsune (Stage 4) ======== -->
+  <div class="habitat" data-agent="frontend-designer" onclick="openDetail('frontend-designer')">
+    <div class="habitat-glow"></div>
+    <div class="level-badge">Lv4</div>
+    <div class="status"><span class="status-dot"></span>idle</div>
+    <div class="creature-area">
+      <div class="c-float">
+        <svg class="creature-svg" viewBox="0 0 200 200" overflow="visible">
+          <defs>
+            <radialGradient id="fox-aura-g"><stop offset="0%" stop-color="#e87040" stop-opacity="0.18"/><stop offset="100%" stop-color="#e87040" stop-opacity="0"/></radialGradient>
+          </defs>
+          <circle cx="100" cy="115" r="68" fill="url(#fox-aura-g)">
+            <animate attributeName="r" values="65;72;65" dur="4s" repeatCount="indefinite"/>
+            <animate attributeName="opacity" values="0.2;0.45;0.2" dur="4s" repeatCount="indefinite"/>
+          </circle>
+          <g class="c-body">
+            <!-- Tails -->
+            <g class="fox-tails">
+              <path d="M 128 136 Q 158 120 164 88 Q 160 114 142 130" fill="#d96535" opacity="0.85"/>
+              <path d="M 130 130 Q 166 105 174 68 Q 168 100 144 124" fill="#e87040"/>
+              <path d="M 124 140 Q 148 132 154 108 Q 150 126 132 136" fill="#e87040" opacity="0.9"/>
+              <circle cx="164" cy="88" r="5" fill="#fff3d0" class="flame-tip" style="animation-delay:0s"/>
+              <circle cx="174" cy="68" r="5" fill="#fff3d0" class="flame-tip" style="animation-delay:0.4s"/>
+              <circle cx="154" cy="108" r="4" fill="#fff3d0" class="flame-tip" style="animation-delay:0.8s"/>
+            </g>
+            <!-- Body -->
+            <ellipse cx="100" cy="132" rx="33" ry="22" fill="#e87040"/>
+            <ellipse cx="100" cy="130" rx="18" ry="14" fill="#f4b880"/>
+            <!-- Head -->
+            <circle cx="100" cy="96" r="27" fill="#e87040"/>
+            <!-- Ears -->
+            <polygon points="78,78 85,48 93,74" fill="#e87040"/>
+            <polygon points="107,74 115,48 122,78" fill="#e87040"/>
+            <polygon points="82,76 85,55 90,74" fill="#f4b880" opacity="0.7"/>
+            <polygon points="110,74 115,55 118,76" fill="#f4b880" opacity="0.7"/>
+            <!-- Eyes -->
+            <g class="eyes" data-creature="fox">
+              <ellipse cx="89" cy="94" rx="5" ry="6" fill="#1a1210"/>
+              <ellipse cx="111" cy="94" rx="5" ry="6" fill="#1a1210"/>
+              <circle cx="91" cy="92" r="2.2" fill="#fff"/>
+              <circle cx="113" cy="92" r="2.2" fill="#fff"/>
+              <circle cx="87.5" cy="96" r="1" fill="#fff" opacity="0.4"/>
+              <circle cx="109.5" cy="96" r="1" fill="#fff" opacity="0.4"/>
+            </g>
+            <!-- Nose + mouth -->
+            <ellipse cx="100" cy="103" rx="3" ry="2" fill="#8a3020"/>
+            <path d="M 96 106 Q 100 109 104 106" fill="none" stroke="#c06040" stroke-width="0.8"/>
+            <!-- Legs -->
+            <rect x="80" y="150" width="9" height="11" rx="4" fill="#c55030"/>
+            <rect x="111" y="150" width="9" height="11" rx="4" fill="#c55030"/>
+            <!-- Flame markings -->
+            <path d="M 73 128 Q 70 120 75 116 Q 73 124 76 128Z" fill="#fff3d0" opacity="0.4"/>
+            <path d="M 127 128 Q 130 120 125 116 Q 127 124 124 128Z" fill="#fff3d0" opacity="0.4"/>
+          </g>
+          <!-- Sparkles -->
+          <circle cx="58" cy="72" r="2" fill="#fff3d0" class="spark" style="animation-delay:0s"/>
+          <circle cx="148" cy="85" r="1.8" fill="#fff3d0" class="spark" style="animation-delay:1.2s"/>
+          <circle cx="72" cy="148" r="1.5" fill="#fff3d0" class="spark" style="animation-delay:2.4s"/>
+          <circle cx="138" cy="150" r="1.5" fill="#fff3d0" class="spark" style="animation-delay:0.6s"/>
+        </svg>
+      </div>
+    </div>
+    <div class="habitat-info">
+      <div class="creature-name">Ember</div>
+      <div class="creature-stage">Kitsune · 11 learnings</div>
+      <div class="xp-wrap">
+        <div class="xp-bar"><div class="xp-fill" style="width:73%"></div></div>
+        <div class="xp-label"><span>11 / 15</span><span>next evolution</span></div>
+      </div>
+      <div class="evo-dots">
+        <span class="evo-dot done"></span><span class="evo-line done"></span>
+        <span class="evo-dot done"></span><span class="evo-line done"></span>
+        <span class="evo-dot done"></span><span class="evo-line done"></span>
+        <span class="evo-dot now"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======== SOL — Fledgling (Stage 3) ======== -->
+  <div class="habitat working" data-agent="creative-director" onclick="openDetail('creative-director')">
+    <div class="habitat-glow"></div>
+    <div class="level-badge">Lv3</div>
+    <div class="status"><span class="status-dot"></span>working</div>
+    <div class="creature-area">
+      <div class="c-float" style="animation-delay:1.1s">
+        <svg class="creature-svg" viewBox="0 0 200 200" overflow="visible">
+          <g class="c-body" style="animation-duration:3s">
+            <!-- Tail feathers -->
+            <path d="M 82 155 Q 52 172 38 190" fill="none" stroke="#d45030" stroke-width="3" stroke-linecap="round" opacity="0.75"/>
+            <path d="M 88 158 Q 62 178 52 198" fill="none" stroke="#e3a030" stroke-width="2.5" stroke-linecap="round" opacity="0.6"/>
+            <path d="M 94 158 Q 74 182 68 200" fill="none" stroke="#d45030" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
+            <!-- Body -->
+            <ellipse cx="100" cy="132" rx="28" ry="30" fill="#e3a030"/>
+            <ellipse cx="100" cy="136" rx="17" ry="17" fill="#f4c860"/>
+            <!-- Wings -->
+            <g class="wing-l">
+              <path d="M 72 120 Q 48 108 34 124 Q 52 116 72 128" fill="#d45030"/>
+              <path d="M 72 124 Q 52 114 42 128 Q 56 120 72 130" fill="#c04020" opacity="0.5"/>
+            </g>
+            <g class="wing-r">
+              <path d="M 128 120 Q 152 108 166 124 Q 148 116 128 128" fill="#d45030"/>
+              <path d="M 128 124 Q 148 114 158 128 Q 144 120 128 130" fill="#c04020" opacity="0.5"/>
+            </g>
+            <!-- Head -->
+            <circle cx="100" cy="90" r="23" fill="#e3a030"/>
+            <!-- Plume -->
+            <path d="M 100 67 Q 94 48 100 34 Q 106 48 100 67" fill="#d45030"/>
+            <path d="M 95 70 Q 86 52 92 38 Q 96 52 95 70" fill="#e3a030" opacity="0.8"/>
+            <circle cx="100" cy="34" r="3.5" fill="#fff3c0" opacity="0.8">
+              <animate attributeName="opacity" values="0.5;1;0.5" dur="2.2s" repeatCount="indefinite"/>
+            </circle>
+            <!-- Eyes -->
+            <g class="eyes" data-creature="bird">
+              <circle cx="90" cy="88" r="4.5" fill="#1a1210"/>
+              <circle cx="110" cy="88" r="4.5" fill="#1a1210"/>
+              <circle cx="91.5" cy="86.5" r="1.8" fill="#fff"/>
+              <circle cx="111.5" cy="86.5" r="1.8" fill="#fff"/>
+            </g>
+            <!-- Beak -->
+            <polygon points="96,96 104,96 100,103" fill="#c07028"/>
+            <!-- Feet -->
+            <g fill="none" stroke="#c07028" stroke-width="2" stroke-linecap="round">
+              <line x1="90" y1="160" x2="90" y2="170"/>
+              <line x1="86" y1="170" x2="94" y2="170"/>
+              <line x1="110" y1="160" x2="110" y2="170"/>
+              <line x1="106" y1="170" x2="114" y2="170"/>
+            </g>
+          </g>
+        </svg>
+      </div>
+    </div>
+    <div class="habitat-info">
+      <div class="creature-name">Sol</div>
+      <div class="creature-stage">Fledgling · 6 learnings</div>
+      <div class="xp-wrap">
+        <div class="xp-bar"><div class="xp-fill" style="width:60%"></div></div>
+        <div class="xp-label"><span>6 / 10</span><span>next evolution</span></div>
+      </div>
+      <div class="evo-dots">
+        <span class="evo-dot done"></span><span class="evo-line done"></span>
+        <span class="evo-dot done"></span><span class="evo-line done"></span>
+        <span class="evo-dot now"></span><span class="evo-line"></span>
+        <span class="evo-dot"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======== NYX — Owlet (Stage 2) ======== -->
+  <div class="habitat" data-agent="code-reviewer" onclick="openDetail('code-reviewer')">
+    <div class="habitat-glow"></div>
+    <div class="level-badge">Lv2</div>
+    <div class="status"><span class="status-dot"></span>idle</div>
+    <div class="creature-area">
+      <div class="c-float" style="animation-delay:2.2s">
+        <svg class="creature-svg" viewBox="0 0 200 200" overflow="visible">
+          <g class="c-body-slow">
+            <!-- Body -->
+            <ellipse cx="100" cy="134" rx="28" ry="32" fill="#6878a8"/>
+            <ellipse cx="100" cy="140" rx="16" ry="18" fill="#8898c0"/>
+            <!-- Chest V marks -->
+            <path d="M 91 132 L 100 138 L 109 132" fill="none" stroke="#5868a0" stroke-width="1" opacity="0.45"/>
+            <path d="M 93 140 L 100 145 L 107 140" fill="none" stroke="#5868a0" stroke-width="1" opacity="0.35"/>
+            <!-- Wings tucked -->
+            <path d="M 72 118 Q 64 134 67 154 Q 70 138 76 122" fill="#5868a0"/>
+            <path d="M 128 118 Q 136 134 133 154 Q 130 138 124 122" fill="#5868a0"/>
+            <!-- Head -->
+            <g class="owl-head">
+              <circle cx="100" cy="92" r="27" fill="#6878a8"/>
+              <!-- Ear tufts -->
+              <polygon points="77,76 72,58 87,72" fill="#5868a0"/>
+              <polygon points="113,72 128,58 123,76" fill="#5868a0"/>
+              <!-- Facial disc -->
+              <ellipse cx="100" cy="94" rx="23" ry="21" fill="#8090b8"/>
+              <!-- Eyes — BIG -->
+              <g class="eyes" data-creature="owl">
+                <circle cx="88" cy="90" r="9" fill="#e0d8f0"/>
+                <circle cx="112" cy="90" r="9" fill="#e0d8f0"/>
+                <circle cx="88" cy="90" r="5.5" fill="#1a1830"/>
+                <circle cx="112" cy="90" r="5.5" fill="#1a1830"/>
+                <circle cx="90" cy="88" r="2.5" fill="#fff"/>
+                <circle cx="114" cy="88" r="2.5" fill="#fff"/>
+                <circle cx="86.5" cy="92" r="1" fill="#fff" opacity="0.35"/>
+                <circle cx="110.5" cy="92" r="1" fill="#fff" opacity="0.35"/>
+              </g>
+              <!-- Beak -->
+              <polygon points="97,100 103,100 100,106" fill="#b0a070"/>
+            </g>
+            <!-- Feet -->
+            <ellipse cx="90" cy="166" rx="9" ry="4" fill="#b0a070"/>
+            <ellipse cx="110" cy="166" rx="9" ry="4" fill="#b0a070"/>
+          </g>
+        </svg>
+      </div>
+    </div>
+    <div class="habitat-info">
+      <div class="creature-name">Nyx</div>
+      <div class="creature-stage">Owlet · 3 learnings</div>
+      <div class="xp-wrap">
+        <div class="xp-bar"><div class="xp-fill" style="width:60%"></div></div>
+        <div class="xp-label"><span>3 / 5</span><span>next evolution</span></div>
+      </div>
+      <div class="evo-dots">
+        <span class="evo-dot done"></span><span class="evo-line done"></span>
+        <span class="evo-dot now"></span><span class="evo-line"></span>
+        <span class="evo-dot"></span><span class="evo-line"></span>
+        <span class="evo-dot"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======== ATLAS — Larva (Stage 1) ======== -->
+  <div class="habitat" data-agent="qa-tester" onclick="openDetail('qa-tester')">
+    <div class="habitat-glow"></div>
+    <div class="level-badge">Lv1</div>
+    <div class="status"><span class="status-dot"></span>idle</div>
+    <div class="creature-area">
+      <div class="c-float" style="animation-delay:3.3s">
+        <svg class="creature-svg" viewBox="0 0 200 200" overflow="visible">
+          <g class="c-body" style="animation-duration:4.2s">
+            <!-- Body — tiny round bug -->
+            <ellipse cx="100" cy="132" rx="17" ry="13" fill="#4a9068"/>
+            <ellipse cx="100" cy="128" rx="15" ry="11" fill="#5aa078"/>
+            <!-- Shell hint -->
+            <path d="M 85 128 Q 100 120 115 128" fill="none" stroke="#3a7858" stroke-width="1" opacity="0.5"/>
+            <!-- Head -->
+            <circle cx="100" cy="112" r="13" fill="#4a9068"/>
+            <!-- Antennae -->
+            <g class="antenna-l">
+              <path d="M 92 103 Q 83 88 78 82" fill="none" stroke="#3a7858" stroke-width="1.5" stroke-linecap="round"/>
+              <circle cx="78" cy="82" r="2.5" fill="#d4e8c0" opacity="0.8"/>
+            </g>
+            <g class="antenna-r">
+              <path d="M 108 103 Q 117 88 122 82" fill="none" stroke="#3a7858" stroke-width="1.5" stroke-linecap="round"/>
+              <circle cx="122" cy="82" r="2.5" fill="#d4e8c0" opacity="0.8"/>
+            </g>
+            <!-- Eyes -->
+            <g class="eyes" data-creature="bug">
+              <circle cx="94" cy="110" r="4" fill="#1a1210"/>
+              <circle cx="106" cy="110" r="4" fill="#1a1210"/>
+              <circle cx="95.5" cy="109" r="1.5" fill="#fff"/>
+              <circle cx="107.5" cy="109" r="1.5" fill="#fff"/>
+            </g>
+            <!-- Tiny legs -->
+            <g fill="none" stroke="#3a7858" stroke-width="1.5" stroke-linecap="round">
+              <line x1="87" y1="130" x2="78" y2="138"/>
+              <line x1="85" y1="135" x2="76" y2="144"/>
+              <line x1="113" y1="130" x2="122" y2="138"/>
+              <line x1="115" y1="135" x2="124" y2="144"/>
+            </g>
+          </g>
+        </svg>
+      </div>
+    </div>
+    <div class="habitat-info">
+      <div class="creature-name">Atlas</div>
+      <div class="creature-stage">Larva · 1 learning</div>
+      <div class="xp-wrap">
+        <div class="xp-bar"><div class="xp-fill" style="width:33%"></div></div>
+        <div class="xp-label"><span>1 / 3</span><span>next evolution</span></div>
+      </div>
+      <div class="evo-dots">
+        <span class="evo-dot now"></span><span class="evo-line"></span>
+        <span class="evo-dot"></span><span class="evo-line"></span>
+        <span class="evo-dot"></span><span class="evo-line"></span>
+        <span class="evo-dot"></span>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<div class="footer">Click a familiar to see its evolution and learnings</div>
+
+<!-- Detail overlay -->
+<div class="overlay" id="overlay">
+  <button class="close-x" onclick="closeDetail()">&#215;</button>
+  <div class="overlay-inner">
+    <div class="detail-left" id="d-creature"></div>
+    <div class="detail-right">
+      <div class="d-eyebrow" id="d-eyebrow"></div>
+      <h2 class="d-name" id="d-name"></h2>
+      <div class="d-meta" id="d-meta"></div>
+      <p class="d-lede" id="d-lede"></p>
+      <div class="evo-timeline" id="d-evo"></div>
+      <div class="learnings" id="d-learn"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const agents = {
+  "frontend-designer": {
+    name: "Ember",
+    stage: "Kitsune",
+    level: 4,
+    learnings: 11,
+    nextAt: 15,
+    eyebrow: "Familiar 01 — Fox",
+    lede: "A three-tailed fox of flame and instinct. Each tail grew from a breakthrough in visual judgment. The markings glow brighter when Ember is confident in a call.",
+    stages: ["Kit", "Pup", "Fox", "Kitsune"],
+    currentStage: 3,
+    parts: [
+      { label: "Third tail", quote: "Spacing must breathe. The hero card was cramped at 16px gap — moved to 32px and the hierarchy clicked.", when: "2026-05-11" },
+      { label: "Flame markings", quote: "Reserve --accent (#b8410e) for one element per card. More than one and the eye loses the anchor.", when: "2026-05-09" },
+      { label: "Second tail", quote: "Headlines look better in Iowan Old Style at the page-title weight, not the body weight.", when: "2026-05-08" },
+      { label: "Ear tufts", quote: "Don't reach for shadows to add depth. Use stronger contrast on foreground type instead.", when: "2026-05-05" },
+      { label: "First tail", quote: "Morning Edition aesthetic: warm, editorial, deliberate. Every card should feel like it was typeset.", when: "2026-05-03" }
+    ]
+  },
+  "creative-director": {
+    name: "Sol",
+    stage: "Fledgling",
+    level: 3,
+    learnings: 6,
+    nextAt: 10,
+    eyebrow: "Familiar 02 — Phoenix",
+    lede: "A young sun-bird growing into its plumage. The head crest ignited when Sol found the project's voice. Currently working — wings spread, reaching for the next insight.",
+    stages: ["Chick", "Fledgling", "Phoenix", "Solaris"],
+    currentStage: 1,
+    parts: [
+      { label: "Head plume", quote: "'Morning Edition' beats 'Daily Briefing' — the second sounds corporate, the first sounds like something arriving at your door.", when: "2026-05-12" },
+      { label: "Tail feathers", quote: "Microcopy on disabled states should explain the gate. 'Voice arrives in phase 4' is better than 'Coming soon'.", when: "2026-05-10" },
+      { label: "Wing tips", quote: "Jarvis should never start a reply with 'Sure!' or 'Absolutely!' — a composed presence opens with content.", when: "2026-05-09" }
+    ]
+  },
+  "code-reviewer": {
+    name: "Nyx",
+    stage: "Owlet",
+    level: 2,
+    learnings: 3,
+    nextAt: 5,
+    eyebrow: "Familiar 03 — Owl",
+    lede: "A young owl with enormous eyes that miss nothing. Still small, still soft — but already sharp. The big eyes grew wider after catching its first real bug.",
+    stages: ["Hatchling", "Owlet", "Sentinel", "Grand Owl"],
+    currentStage: 1,
+    parts: [
+      { label: "Wide eyes", quote: "Watch for async server components rendering client-only hooks. The Jarvis card would have shipped broken without extraction.", when: "2026-05-10" },
+      { label: "Ear tufts", quote: "Approved the SportSlideshow refactor — fallback ratio change was the right call; flagged no regressions.", when: "2026-05-11" }
+    ]
+  },
+  "qa-tester": {
+    name: "Atlas",
+    stage: "Larva",
+    level: 1,
+    learnings: 1,
+    nextAt: 3,
+    eyebrow: "Familiar 04 — Scarab",
+    lede: "A tiny bug with everything ahead of it. One learning so far — but that single verification already proved its worth. The antennae glow faintly when Atlas senses something to check.",
+    stages: ["Larva", "Pupa", "Beetle", "Scarab"],
+    currentStage: 0,
+    parts: [
+      { label: "Antenna glow", quote: "RSS image fallback verified across BBC, Al Jazeera, The Verge. No more 'No image available' anywhere.", when: "2026-05-13" }
+    ]
+  }
+};
+
+// Random blinking
+function initBlinks(root) {
+  (root || document).querySelectorAll('.eyes').forEach(el => {
+    if (el._blinkInit) return;
+    el._blinkInit = true;
+    function blink() {
+      el.classList.add('blink');
+      setTimeout(() => el.classList.remove('blink'), 140);
+      setTimeout(blink, 2200 + Math.random() * 4500);
+    }
+    setTimeout(blink, Math.random() * 3000);
+  });
+}
+initBlinks();
+
+function openDetail(key) {
+  const a = agents[key];
+  if (!a) return;
+
+  document.getElementById('d-eyebrow').textContent = a.eyebrow;
+  document.getElementById('d-name').textContent = a.name + ' the ' + a.stage;
+  document.getElementById('d-meta').textContent = 'Level ' + a.level + '  ·  ' + a.learnings + ' learnings  ·  next at ' + a.nextAt;
+  document.getElementById('d-lede').textContent = a.lede;
+
+  // Evolution timeline
+  let evoHtml = '';
+  a.stages.forEach((s, i) => {
+    const cls = i < a.currentStage ? 'reached' : i === a.currentStage ? 'active' : '';
+    if (i > 0) evoHtml += '<span class="evo-arrow">&#8594;</span>';
+    evoHtml += '<div class="evo-step ' + cls + '">' +
+      '<div class="evo-icon">' + (i + 1) + '</div>' +
+      '<div class="evo-step-name">' + s + '</div></div>';
+  });
+  document.getElementById('d-evo').innerHTML = evoHtml;
+
+  // Learnings
+  document.getElementById('d-learn').innerHTML = a.parts.map(p =>
+    '<div class="learn-row">' +
+      '<div class="learn-part">' + p.label + '</div>' +
+      '<div class="learn-quote">"' + p.quote + '"</div>' +
+      '<div class="learn-when">' + p.when + '</div>' +
+    '</div>'
+  ).join('');
+
+  // Clone creature SVG into detail
+  const src = document.querySelector('[data-agent="' + key + '"] .creature-svg');
+  if (src) {
+    const clone = src.cloneNode(true);
+    clone.style.width = '280px';
+    clone.style.height = '280px';
+    const container = document.getElementById('d-creature');
+    container.innerHTML = '';
+    container.appendChild(clone);
+    initBlinks(container);
+  }
+
+  document.getElementById('overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeDetail() {
+  document.getElementById('overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+document.getElementById('overlay').addEventListener('click', e => {
+  if (e.target.id === 'overlay') closeDetail();
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeDetail();
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Tidal Archive — Agent Hub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+:root {
+  --surface-void:    #020509;
+  --surface-deep:    #060d18;
+  --surface-mid:     #0b1825;
+  --depth-photic:    #1a2a4a;
+  --depth-twilight:  #0d1a35;
+  --depth-midnight:  #050d1e;
+  --depth-hadal:     #020508;
+  --ink-primary:     #d8e8f5;
+  --ink-muted:       #7a9bb5;
+  --ink-faint:       #3a5570;
+  --rule-biolum:     #1e3a5a;
+  --rule-glow:       #2a5a8a;
+  --stage-seed:      #b8aed4;
+  --stage-sprout:    #c8e0f8;
+  --stage-bloom:     #00f5d4;
+  --stage-fruit:     #f5a623;
+  --accent-select:   #00d4ff;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 100%; height: 100%; overflow: hidden; background: var(--surface-void); color: var(--ink-primary); font-family: 'Inter', sans-serif; }
+
+#scene-canvas { position: fixed; inset: 0; z-index: 0; display: block; }
+
+/* Depth rail */
+#depth-rail {
+  position: fixed; left: 0; top: 0; bottom: 0; width: 48px; z-index: 10;
+  background: linear-gradient(to bottom, var(--depth-photic) 0%, var(--depth-twilight) 30%, var(--depth-midnight) 65%, var(--depth-hadal) 100%);
+  border-right: 1px solid var(--rule-biolum);
+  display: flex; flex-direction: column; padding-top: 56px; overflow: hidden;
+}
+.rail-tick { flex: 1; display: flex; align-items: center; justify-content: center; border-top: 1px solid rgba(255,255,255,0.05); }
+.rail-tick span { writing-mode: vertical-rl; transform: rotate(180deg); font-family: 'JetBrains Mono', monospace; font-size: 8px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-faint); user-select: none; }
+
+/* HUD */
+#hud-top {
+  position: fixed; top: 0; left: 48px; right: 0; height: 56px; z-index: 10;
+  display: flex; align-items: center; padding: 0 20px; gap: 20px;
+  background: color-mix(in srgb, var(--surface-mid) 72%, transparent);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--rule-biolum);
+}
+.hud-wordmark { font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 800; letter-spacing: 0.25em; text-transform: uppercase; flex-shrink: 0; }
+.hud-stats { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--ink-muted); text-transform: uppercase; letter-spacing: 0.06em; }
+.hud-spacer { flex: 1; }
+.hud-nav { display: flex; align-items: center; gap: 6px; }
+.hud-nav-link { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); text-decoration: none; padding: 4px 8px; border-radius: 4px; border: 1px solid transparent; transition: color 0.15s, border-color 0.15s; }
+.hud-nav-link:hover { color: var(--ink-muted); border-color: var(--rule-biolum); }
+.hud-nav-link.active { color: var(--stage-bloom); border-color: rgba(0,245,212,0.3); }
+.hud-btn { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; background: rgba(0,245,212,0.08); color: var(--stage-bloom); border: 1px solid rgba(0,245,212,0.25); border-radius: 4px; padding: 5px 12px; cursor: pointer; transition: background 0.15s; }
+.hud-btn:hover { background: rgba(0,245,212,0.16); }
+.hud-motion-btn { background: transparent; border: 1px solid var(--rule-biolum); color: var(--ink-faint); border-radius: 4px; padding: 5px 10px; cursor: pointer; font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; transition: color 0.15s; white-space: nowrap; }
+.hud-motion-btn:hover { color: var(--ink-muted); }
+
+/* Agent card */
+#agent-card {
+  position: fixed; right: 0; top: 56px; bottom: 0; width: 380px; z-index: 20;
+  background: var(--surface-deep); border-left: 1px solid var(--rule-biolum);
+  display: flex; flex-direction: column;
+  transform: translateX(100%); visibility: hidden;
+  transition: transform 0.28s cubic-bezier(0.22,1,0.36,1), visibility 0s linear 0.28s;
+}
+#agent-card.is-open { transform: translateX(0); visibility: visible; transition: transform 0.28s cubic-bezier(0.22,1,0.36,1), visibility 0s linear 0s; }
+
+.card-header { position: relative; padding: 20px 48px 16px 20px; border-bottom: 1px solid var(--rule-biolum); flex-shrink: 0; }
+.card-name { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+.card-stage { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--ink-muted); text-transform: uppercase; letter-spacing: 0.1em; }
+.card-close { position: absolute; top: 16px; right: 14px; background: transparent; border: none; color: var(--ink-faint); font-size: 20px; line-height: 1; cursor: pointer; padding: 4px 6px; transition: color 0.15s; }
+.card-close:hover { color: var(--ink-primary); }
+
+.card-body { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 20px; scrollbar-width: thin; scrollbar-color: var(--rule-biolum) transparent; }
+.card-vitals { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.card-pill { font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; padding: 3px 8px; border-radius: 20px; border: 1px solid; }
+.card-pill-idle { color: var(--ink-faint); border-color: var(--rule-biolum); }
+.card-pill-working { color: var(--stage-bloom); border-color: rgba(0,245,212,0.3); animation: work-blink 2s ease-in-out infinite; }
+@keyframes work-blink { 0%,100%{opacity:1} 50%{opacity:0.45} }
+.card-stat { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--ink-muted); }
+.card-lede { font-size: 14px; color: var(--ink-muted); line-height: 1.6; }
+
+.card-xp-header { display: flex; justify-content: space-between; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 6px; }
+.card-xp-track { height: 3px; background: var(--rule-biolum); border-radius: 2px; overflow: hidden; }
+.card-xp-fill { height: 100%; border-radius: 2px; transition: width 0.5s ease-out; }
+
+.card-section-label { font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 500; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.15em; margin-bottom: 10px; }
+.card-learnings { display: flex; flex-direction: column; gap: 12px; }
+.card-learning { border-left: 2px solid; padding: 6px 0 6px 12px; }
+.card-learning-meta { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--ink-faint); margin-bottom: 4px; }
+.card-learning-quote { font-size: 13px; color: var(--ink-primary); line-height: 1.5; }
+
+.card-footer { flex-shrink: 0; padding: 14px 20px; border-top: 1px solid var(--rule-biolum); display: flex; gap: 8px; }
+.card-footer-btn { flex: 1; padding: 9px 12px; border-radius: 6px; font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 600; cursor: pointer; transition: opacity 0.15s; border: none; }
+.card-footer-btn:hover { opacity: 0.82; }
+.card-btn-feed { background: rgba(0,245,212,0.1); color: var(--stage-bloom); border: 1px solid rgba(0,245,212,0.25) !important; }
+.card-btn-ghost { background: transparent; color: var(--ink-muted); border: 1px solid var(--rule-biolum) !important; }
+
+/* Feed overlay */
+#feed-overlay {
+  position: fixed; inset: 0; z-index: 30; pointer-events: none;
+  background: radial-gradient(circle at var(--ox,50%) var(--oy,50%), rgba(0,245,212,0.18) 0%, transparent 55%);
+  opacity: 0; transition: opacity 0.12s ease-out;
+}
+#feed-overlay.on { opacity: 1; }
+#feed-overlay.fade { opacity: 0; transition: opacity 0.5s ease-out; }
+
+@media (prefers-reduced-motion: reduce) {
+  #agent-card, #agent-card.is-open { transition: none; }
+  .card-pill-working { animation: none; opacity: 1; }
+  #feed-overlay, #feed-overlay.on, #feed-overlay.fade { opacity: 0 !important; transition: none; }
+  .card-xp-fill { transition: none; }
+}
+</style>
+</head>
+<body>
+
+<canvas id="scene-canvas"></canvas>
+
+<div id="depth-rail">
+  <div class="rail-tick"><span>Photic</span></div>
+  <div class="rail-tick"><span>Twilight</span></div>
+  <div class="rail-tick"><span>Midnight</span></div>
+  <div class="rail-tick"><span>Hadal</span></div>
+</div>
+
+<div id="hud-top">
+  <span class="hud-wordmark">Tidal Archive</span>
+  <span class="hud-stats" id="hud-stats">— agents · — active</span>
+  <div class="hud-spacer"></div>
+  <nav class="hud-nav">
+    <a href="constellation-forge.html" class="hud-nav-link">Forge</a>
+    <a href="tidal-archive.html" class="hud-nav-link active">Archive</a>
+    <a href="foundry-glass.html" class="hud-nav-link">Foundry</a>
+    <a href="vivarium.html" class="hud-nav-link">Vivarium</a>
+    <a href="grove.html" class="hud-nav-link">Grove</a>
+  </nav>
+  <button class="hud-btn" id="hud-new-agent">+ Agent</button>
+  <button class="hud-motion-btn" id="hud-motion-toggle" title="Toggle motion">Motion ●</button>
+</div>
+
+<div id="agent-card">
+  <div class="card-header">
+    <div class="card-name" id="card-name">—</div>
+    <div class="card-stage" id="card-stage">—</div>
+    <button class="card-close" id="card-close" aria-label="Close">×</button>
+  </div>
+  <div class="card-body">
+    <div class="card-vitals" id="card-vitals"></div>
+    <div class="card-lede" id="card-lede"></div>
+    <div>
+      <div class="card-xp-header"><span>XP to next stage</span><span id="card-xp-pct">0%</span></div>
+      <div class="card-xp-track"><div class="card-xp-fill" id="card-xp-fill" style="width:0%"></div></div>
+    </div>
+    <div>
+      <div class="card-section-label">Learnings</div>
+      <div class="card-learnings" id="card-learnings"></div>
+    </div>
+  </div>
+  <div class="card-footer">
+    <button class="card-footer-btn card-btn-feed" id="card-feed">Feed skill</button>
+    <button class="card-footer-btn card-btn-ghost" id="card-run">Run</button>
+  </div>
+</div>
+
+<div id="feed-overlay"></div>
+
+<script src="state-manager.js"></script>
+<script src="ui-modals.js"></script>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.min.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+
+// ── Seed data (mirrors agents.json; localStorage takes precedence via StateManager) ──
+const SEED_AGENTS = [
+  { id:"designer", name:"Designer", color:"#c8b4ff", status:"idle", stage:2, xp:30, lede:"Tightens layout rhythm and keeps the companion voice consistent across surfaces.", learnings:[{id:"learn-seed-designer-0",part:"Spacing",quote:"Prefer optical centering over mathematical center for hero blocks.",timestamp:0,context:"seed"},{id:"learn-seed-designer-1",part:"Tone",quote:"Avoid engagement-bait closers; end with a direct optional follow-up.",timestamp:0,context:"seed"},{id:"learn-seed-designer-2",part:"Motion",quote:"Stagger hero reveals once; do not loop ambient motion on headings.",timestamp:0,context:"seed"}], specialization:["design","typography"], reliability:0.75, executionHistory:[] },
+  { id:"creative", name:"Creative director", color:"#ff9a4a", status:"working", stage:3, xp:80, lede:"Shapes narrative arcs for features and names that feel human, not template.", learnings:[{id:"learn-seed-creative-0",part:"Naming",quote:"Trade generic feature names for verbs the user would say aloud.",timestamp:0,context:"seed"},{id:"learn-seed-creative-1",part:"Story",quote:"Lead with outcome, not mechanism, in onboarding copy.",timestamp:0,context:"seed"},{id:"learn-seed-creative-2",part:"Metaphor",quote:"One strong metaphor beats three mixed ones in a single surface.",timestamp:0,context:"seed"}], specialization:["writing","naming"], reliability:0.88, executionHistory:[] },
+  { id:"frontend", name:"Frontend designer", color:"#62ffc4", status:"idle", stage:3, xp:110, lede:"Ships tactile UI: depth, light, and motion that respect reduced-motion users.", learnings:[{id:"learn-seed-frontend-0",part:"Depth",quote:"Layer glass with edge highlights, not flat translucent panels.",timestamp:0,context:"seed"},{id:"learn-seed-frontend-1",part:"Focus",quote:"Keyboard focus rings must survive dark glassmorphism stacks.",timestamp:0,context:"seed"},{id:"learn-seed-frontend-2",part:"Density",quote:"When in doubt, add air before adding another column.",timestamp:0,context:"seed"}], specialization:["design","coding"], reliability:0.91, executionHistory:[] },
+  { id:"qa", name:"QA tester", color:"#ff8f82", status:"idle", stage:1, xp:10, lede:"Treats every flow like a skeptical first-time user with a stopwatch.", learnings:[{id:"learn-seed-qa-0",part:"Flows",quote:"Verify empty, loading, and error states before declaring a feature done.",timestamp:0,context:"seed"}], specialization:["testing"], reliability:0.60, executionHistory:[] },
+];
+
+const STAGE_NAMES      = ['Seed','Sprout','Bloom','Fruit'];
+const STAGE_Y_ANCHORS  = [210, 80, -70, -250];
+const XP_THRESHOLDS    = [0, 10, 40, 100, Infinity];
+
+// ── StateManager ───────────────────────────────────────────────────────────────
+const hub = new window.StateManager(SEED_AGENTS);
+window._agentHub = hub;
+
+let reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+let selectedId   = null;
+const agentObjs  = new Map(); // id → { group, body, ring, halo, ptLight, tentacles }
+
+// ── Renderer ───────────────────────────────────────────────────────────────────
+const canvas   = document.getElementById('scene-canvas');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x020509);
+scene.fog = new THREE.FogExp2(0x020509, 0.00055);
+
+const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 2000);
+camera.position.set(0, 100, 480);
+camera.lookAt(0, 20, 0);
+let camTargetY = 100;
+
+// ── Lights ─────────────────────────────────────────────────────────────────────
+scene.add(new THREE.AmbientLight(0x0a0f1a, 0.45));
+const sun = new THREE.DirectionalLight(0xb8d4ff, 0.55);
+sun.position.set(0, 400, 200);
+scene.add(sun);
+
+// ── Shaders ────────────────────────────────────────────────────────────────────
+const BODY_VERT = /* glsl */`
+  uniform float uTime;
+  uniform float uPulse;
+  varying vec3 vNormal;
+  varying vec3 vViewPos;
+  varying float vN;
+  float h3(vec3 p){p=fract(p*vec3(0.1031,0.103,0.0973));p+=dot(p,p.yxz+33.33);return fract((p.x+p.y)*p.z);}
+  float n3(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(mix(h3(i),h3(i+vec3(1,0,0)),f.x),mix(h3(i+vec3(0,1,0)),h3(i+vec3(1,1,0)),f.x),f.y),mix(mix(h3(i+vec3(0,0,1)),h3(i+vec3(1,0,1)),f.x),mix(h3(i+vec3(0,1,1)),h3(i+vec3(1,1,1)),f.x),f.y),f.z);}
+  void main(){
+    vNormal=normalMatrix*normal;
+    float n=n3(position*1.8+uTime*0.22);
+    vN=n;
+    vec3 disp=position+normal*(n*0.13+uPulse*0.26);
+    vec4 mv=modelViewMatrix*vec4(disp,1.0);
+    vViewPos=-mv.xyz;
+    gl_Position=projectionMatrix*mv;
+  }
+`;
+const BODY_FRAG = /* glsl */`
+  uniform vec3 uColor;
+  uniform float uPulse;
+  varying vec3 vNormal;
+  varying vec3 vViewPos;
+  varying float vN;
+  void main(){
+    vec3 n=normalize(vNormal);
+    vec3 v=normalize(vViewPos);
+    float fr=pow(1.0-abs(dot(n,v)),2.5);
+    float inn=pow(abs(dot(n,v)),2.2)*0.35;
+    vec3 col=mix(uColor*0.22,uColor*1.7,fr)+uColor*inn+uColor*uPulse*0.9;
+    col*=0.78+vN*0.44;
+    gl_FragColor=vec4(col,0.25+fr*0.6+uPulse*0.25);
+  }
+`;
+
+// ── Marine snow ────────────────────────────────────────────────────────────────
+(function buildSnow() {
+  const N   = 2000;
+  const pos = new Float32Array(N * 3);
+  const spd = new Float32Array(N);
+  for (let i = 0; i < N; i++) {
+    pos[i*3]   = (Math.random()-0.5)*800;
+    pos[i*3+1] = (Math.random()-0.5)*1200 + 100;
+    pos[i*3+2] = (Math.random()-0.5)*500;
+    spd[i]     = 0.28 + Math.random() * 0.45;
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  geo._spd = spd;
+  const mat = new THREE.PointsMaterial({ color:0xb8d4ff, size:1.8, sizeAttenuation:true, transparent:true, opacity:0.32, depthWrite:false });
+  const pts = new THREE.Points(geo, mat);
+  scene.add(pts);
+  window._snow = pts;
+})();
+
+// ── Helpers ────────────────────────────────────────────────────────────────────
+function agentColor(agent) {
+  const h = typeof agent.color === 'string' ? agent.color : '#' + (agent.color||0x88ccff).toString(16).padStart(6,'0');
+  return { three: new THREE.Color(h), hex: h };
+}
+
+// ── Build agent ────────────────────────────────────────────────────────────────
+function buildAgent(agent) {
+  const { three: col, hex } = agentColor(agent);
+  const st = Math.min(agent.stage, 3);
+  const r  = 16 + st * 3.5;
+  const group = new THREE.Group();
+
+  // Body with shader
+  const bodyGeo = new THREE.SphereGeometry(r, 36, 36);
+  const bodyMat = new THREE.ShaderMaterial({
+    uniforms: { uTime:{value:0}, uPulse:{value:0}, uColor:{value:col} },
+    vertexShader: BODY_VERT, fragmentShader: BODY_FRAG,
+    transparent: true, side: THREE.DoubleSide, depthWrite: false,
+  });
+  const body = new THREE.Mesh(bodyGeo, bodyMat);
+  group.add(body);
+
+  // Membrane iris ring
+  const ringGeo = new THREE.TorusGeometry(r+6, 1.4, 8, 64);
+  const ringMat = new THREE.MeshBasicMaterial({ color:col, transparent:true, opacity:0.38+st*0.1, depthWrite:false });
+  const ring = new THREE.Mesh(ringGeo, ringMat);
+  ring.rotation.x = Math.PI / 3 + Math.random() * 0.4;
+  group.add(ring);
+
+  // Wireframe halo
+  const haloMat = new THREE.MeshBasicMaterial({ color:col, wireframe:true, transparent:true, opacity:0.055, depthWrite:false });
+  const halo = new THREE.Mesh(new THREE.SphereGeometry(r+4, 10, 10), haloMat);
+  group.add(halo);
+
+  // Tentacles (Lines updated in tick)
+  const tentacles = [];
+  const tCount = 4 + st;
+  for (let t = 0; t < tCount; t++) {
+    const pts = Array.from({length:9}, () => new THREE.Vector3());
+    const geo = new THREE.BufferGeometry().setFromPoints(pts);
+    const line = new THREE.Line(geo, new THREE.LineBasicMaterial({ color:col, transparent:true, opacity:0.22+st*0.07 }));
+    group.add(line);
+    tentacles.push({ line, geo, pts, angle:(t/tCount)*Math.PI*2 });
+  }
+
+  // Biolum point light
+  const ptLight = new THREE.PointLight(col, 0.85, 90, 2);
+  group.add(ptLight);
+
+  // World position
+  const jx = (Math.random()-0.5)*110;
+  const jy = (Math.random()-0.5)*38;
+  group.position.set(jx, STAGE_Y_ANCHORS[st] + jy, (Math.random()-0.5)*30);
+
+  group.userData = {
+    agentId: agent.id,
+    baseX: jx,
+    baseY: STAGE_Y_ANCHORS[st] + jy,
+    off: Math.random()*Math.PI*2,
+    driftSpd: 0.55+Math.random()*0.35,
+    pPhase: Math.random()*Math.PI*2,
+    absorbPulse: 0,
+  };
+
+  scene.add(group);
+  return { group, body, ring, halo, ptLight, tentacles };
+}
+
+// Spawn all
+for (const a of hub.getAgents()) {
+  agentObjs.set(a.id, buildAgent(a));
+}
+updateHUD();
+
+// ── Raycaster ─────────────────────────────────────────────────────────────────
+const rc = new THREE.Raycaster();
+const mp = new THREE.Vector2();
+
+canvas.addEventListener('click', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  mp.set(((e.clientX-rect.left)/rect.width)*2-1, -((e.clientY-rect.top)/rect.height)*2+1);
+  rc.setFromCamera(mp, camera);
+  const bodies = [];
+  for (const [id, obj] of agentObjs) { obj.body.userData._id = id; bodies.push(obj.body); }
+  const hits = rc.intersectObjects(bodies);
+  if (hits.length) selectAgent(hits[0].object.userData._id);
+});
+
+// ── Card ──────────────────────────────────────────────────────────────────────
+function selectAgent(id) {
+  selectedId = id;
+  const a = hub.findAgent(id);
+  if (!a) return;
+  renderCard(a);
+  document.getElementById('agent-card').classList.add('is-open');
+}
+
+function closeCard() {
+  document.getElementById('agent-card').classList.remove('is-open');
+  selectedId = null;
+}
+
+document.getElementById('card-close').addEventListener('click', closeCard);
+document.getElementById('card-feed').addEventListener('click', () => {
+  if (selectedId && window.AgentModals) window.AgentModals.openFeedModal(selectedId);
+});
+document.getElementById('card-run').addEventListener('click', () => {
+  if (!selectedId) return;
+  const a = hub.findAgent(selectedId);
+  if (!a) return;
+  a.status = a.status === 'working' ? 'idle' : 'working';
+  renderCard(a);
+  updateHUD();
+});
+
+function renderCard(agent) {
+  const { hex } = agentColor(agent);
+  const st = Math.min(agent.stage, 3);
+  document.getElementById('card-name').textContent = agent.name;
+  document.getElementById('card-name').style.color = hex;
+  document.getElementById('card-stage').textContent = `Stage ${st} — ${STAGE_NAMES[st]}`;
+
+  const isWorking = agent.status === 'working';
+  const rel = Math.round((agent.reliability||0.5)*100);
+  const spec = (agent.specialization||[]).join(', ') || '—';
+  document.getElementById('card-vitals').innerHTML =
+    `<span class="card-pill ${isWorking?'card-pill-working':'card-pill-idle'}">${isWorking?'working':'idle'}</span>
+     <span class="card-stat">REL ${rel}%</span>
+     <span class="card-stat" style="color:var(--ink-faint);font-style:italic">${spec}</span>`;
+
+  document.getElementById('card-lede').textContent = agent.lede || '';
+
+  const floor = XP_THRESHOLDS[st];
+  const ceil  = st < 3 ? XP_THRESHOLDS[st+1] : XP_THRESHOLDS[st]+50;
+  const pct   = st >= 3 ? 100 : Math.min(100, Math.round(((agent.xp-floor)/(ceil-floor))*100));
+  document.getElementById('card-xp-pct').textContent = pct+'%';
+  const fill = document.getElementById('card-xp-fill');
+  fill.style.background = hex;
+  requestAnimationFrame(() => fill.style.width = pct+'%');
+
+  const ll = (agent.learnings||[]);
+  document.getElementById('card-learnings').innerHTML = !ll.length
+    ? `<div style="color:var(--ink-faint);font-size:13px">No learnings yet.</div>`
+    : [...ll].reverse().map(l =>
+        `<div class="card-learning" style="border-left-color:${hex}">
+           <div class="card-learning-meta">${l.part} · ${l.timestamp ? window.StateManager.timeAgo(l.timestamp) : 'seed memory'}</div>
+           <div class="card-learning-quote">${l.quote}</div>
+         </div>`
+      ).join('');
+}
+
+// ── HUD ────────────────────────────────────────────────────────────────────────
+function updateHUD() {
+  const agents = hub.getAgents();
+  const active = agents.filter(a=>a.status==='working').length;
+  document.getElementById('hud-stats').textContent = `${agents.length} agent${agents.length!==1?'s':''} · ${active} active`;
+}
+
+document.getElementById('hud-new-agent').addEventListener('click', () => {
+  if (window.AgentModals) window.AgentModals.openCreateModal();
+});
+document.getElementById('hud-motion-toggle').addEventListener('click', () => {
+  reduceMotion = !reduceMotion;
+  document.getElementById('hud-motion-toggle').textContent = reduceMotion ? 'Motion ○' : 'Motion ●';
+});
+
+// ── Hub events ────────────────────────────────────────────────────────────────
+hub.on('learningAdded', ({ agentId, promoted }) => {
+  updateHUD();
+  if (!reduceMotion) {
+    const obj = agentObjs.get(agentId);
+    if (obj) { triggerIris(obj); triggerBodyPulse(obj); triggerOverlay(obj.group); }
+  }
+  if (selectedId === agentId) { const a = hub.findAgent(agentId); if (a) renderCard(a); }
+  if (promoted) promoteAgent(agentId);
+});
+
+hub.on('agentAdded', ({ agent }) => {
+  agentObjs.set(agent.id, buildAgent(agent));
+  updateHUD();
+});
+
+// ── Visual feedback ────────────────────────────────────────────────────────────
+function triggerIris(obj) {
+  const ring = obj.ring;
+  const t0 = performance.now();
+  const dur = 1200;
+  (function step(now) {
+    const t = Math.min((now - t0) / dur, 1);
+    const s = t < 0.25 ? 1 + (t/0.25)*1.4 : t < 0.75 ? 2.4 : 2.4 - ((t-0.75)/0.25)*1.4;
+    ring.scale.set(s, s, 1);
+    if (t < 1) requestAnimationFrame(step);
+    else ring.scale.set(1,1,1);
+  })(t0);
+}
+
+function triggerBodyPulse(obj) {
+  const mat = obj.body.material;
+  const t0 = performance.now();
+  (function step(now) {
+    const t = Math.min((now - t0) / 800, 1);
+    mat.uniforms.uPulse.value = Math.sin(t * Math.PI);
+    if (t < 1) requestAnimationFrame(step);
+    else mat.uniforms.uPulse.value = 0;
+  })(t0);
+}
+
+function triggerOverlay(group) {
+  const p = group.position.clone().project(camera);
+  const el = document.getElementById('feed-overlay');
+  el.style.setProperty('--ox', ((p.x+1)/2*100).toFixed(1)+'%');
+  el.style.setProperty('--oy', ((1-p.y)/2*100).toFixed(1)+'%');
+  el.classList.remove('fade');
+  el.classList.add('on');
+  setTimeout(() => { el.classList.remove('on'); el.classList.add('fade'); }, 130);
+}
+
+function promoteAgent(agentId) {
+  const a   = hub.findAgent(agentId);
+  const obj = agentObjs.get(agentId);
+  if (!a || !obj) return;
+  const st   = Math.min(a.stage, 3);
+  const newY = STAGE_Y_ANCHORS[st] + (Math.random()-0.5)*38;
+  obj.group.userData.baseY = newY;
+  // Rebuild body + ring to match new radius
+  const r = 16 + st * 3.5;
+  obj.body.geometry.dispose();
+  obj.body.geometry = new THREE.SphereGeometry(r, 36, 36);
+  obj.ring.geometry.dispose();
+  obj.ring.geometry = new THREE.TorusGeometry(r+6, 1.4, 8, 64);
+}
+
+// ── Camera scroll ─────────────────────────────────────────────────────────────
+canvas.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  camTargetY -= e.deltaY * 0.45;
+  camTargetY = Math.max(-460, Math.min(280, camTargetY));
+}, { passive:false });
+
+// ── Tick ──────────────────────────────────────────────────────────────────────
+const clock = new THREE.Clock();
+let elapsed = 0;
+const _tv3 = new THREE.Vector3();
+
+function tick() {
+  requestAnimationFrame(tick);
+  const dt = clock.getDelta();
+  elapsed += dt;
+
+  // Camera lerp
+  camera.position.y += (camTargetY - camera.position.y) * 0.055;
+  camera.lookAt(0, camera.position.y - 55, 0);
+
+  // Marine snow
+  if (!reduceMotion) {
+    const snow = window._snow;
+    const pos  = snow.geometry.attributes.position;
+    const spd  = snow.geometry._spd;
+    for (let i = 0; i < pos.count; i++) {
+      const y = pos.getY(i) + spd[i] * dt * 9;
+      pos.setY(i, y > 460 ? -720 : y);
+    }
+    pos.needsUpdate = true;
+  }
+
+  // Agent loop
+  for (const [id, obj] of agentObjs) {
+    const { group, body, ring, ptLight, tentacles } = obj;
+    const ud = group.userData;
+    const agent = hub.findAgent(id);
+    if (!agent) continue;
+
+    // Drift
+    if (!reduceMotion) {
+      group.position.x = ud.baseX + Math.sin(elapsed*ud.driftSpd*0.65 + ud.off)     * 13;
+      group.position.y = ud.baseY + Math.sin(elapsed*ud.driftSpd*0.45 + ud.off+1.3) * 9;
+    }
+
+    // Shader time
+    body.material.uniforms.uTime.value = elapsed;
+
+    // Biolum pulse
+    if (!reduceMotion) {
+      const working = agent.status === 'working';
+      ptLight.intensity = (working ? 1.0 : 0.8) + Math.sin(elapsed*(working?5.2:1.55)+ud.pPhase) * (working?0.4:0.2);
+    }
+
+    // Tentacle wave
+    if (!reduceMotion) {
+      const len = 20 + Math.min(agent.stage,3)*4;
+      for (const { geo, pts, angle } of tentacles) {
+        for (let s = 0; s <= 8; s++) {
+          const frac  = s / 8;
+          const wave  = Math.sin(elapsed*1.9 + ud.off + s*0.75) * frac * 5.5;
+          pts[s].set(
+            Math.cos(angle)*frac*len + wave,
+            -frac*len*0.65,
+            Math.sin(angle)*frac*len*0.45 + wave*0.45
+          );
+        }
+        geo.setFromPoints(pts);
+      }
+    }
+
+    // Selection scale
+    const target = id === selectedId ? 1.14 : 1.0;
+    const cur    = group.scale.x;
+    if (Math.abs(cur - target) > 0.001) {
+      const ns = cur + (target - cur) * 0.1;
+      group.scale.setScalar(ns);
+    }
+  }
+
+  renderer.render(scene, camera);
+}
+tick();
+
+// ── Resize ─────────────────────────────────────────────────────────────────────
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+</script>
+</body>
+</html>
