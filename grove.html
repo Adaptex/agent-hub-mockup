@@ -140,9 +140,12 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg);
 .learning-list { list-style: none; display: flex; flex-direction: column; gap: 7px; }
 .learning-item { font-family: var(--ff-body); font-size: 13px; line-height: 1.55; color: rgba(44,36,35,0.72); padding: 7px 10px; background: rgba(44,36,35,0.04); border-left: 2px solid var(--accent-dim); }
 .learning-item .part { font-family: var(--ff-mono); font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); display: block; margin-bottom: 2px; }
+.learning-item .learn-when { display: block; font-family: var(--ff-mono); font-size: 8px; color: var(--text-mute); margin-top: 4px; }
+.learning-item .learn-row-actions { margin-top: 6px; }
 .drawer__footer { flex-shrink: 0; padding: var(--sp-3) var(--sp-6) 20px; border-top: 1px solid var(--border); background: var(--surface); }
 .drawer__feed-btn { width: 100%; height: 40px; background: transparent; border: 1px solid var(--accent-dim); border-radius: 2px; cursor: pointer; font-family: var(--ff-mono); font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); transition: background 0.18s, border-color 0.18s; }
 .drawer__feed-btn:hover { background: var(--accent-glow); border-color: rgba(92,138,60,0.50); }
+.drawer__copy-btn { margin-top: 8px; opacity: 0.9; }
 
 /* ── BLOOM OVERLAY ─────────────────────────────────────────────────────── */
 .bloom-overlay {
@@ -213,7 +216,8 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg);
     </ul>
   </div>
   <div class="drawer__footer">
-    <button class="drawer__feed-btn" id="btn-feed-skill">Tend This Specimen</button>
+    <button type="button" class="drawer__feed-btn" id="btn-feed-skill">Tend This Specimen</button>
+    <button type="button" class="drawer__feed-btn drawer__copy-btn" id="btn-copy-workspace">Copy for workspace</button>
   </div>
 </aside>
 
@@ -224,6 +228,7 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg);
 </div>
 
 <script src="state-manager.js"></script>
+<script src="drawer-shared.js"></script>
 <script src="ui-modals.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
 
@@ -251,6 +256,7 @@ const SEED_AGENTS = [
 ];
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const hub = window.StateManager ? new window.StateManager(SEED_AGENTS) : null;
+if (hub) window._agentHub = hub;
 
 /* ── HELPERS ───────────────────────────────────────────────────────────── */
 function hashStr(s, seed = 0) {
@@ -597,18 +603,16 @@ function openDrawer(agentId) {
   document.getElementById('rel-label').textContent = rp + '%';
   document.getElementById('rel-bar').style.width   = rp + '%';
 
-  const list = document.getElementById('learning-list');
-  list.innerHTML = '';
-  const ls = agent.learnings ?? [];
-  if (!ls.length) {
-    const li = document.createElement('li');
-    li.className = 'learning-item'; li.style.cssText = 'color:var(--text-mute);font-style:italic';
-    li.textContent = 'No field notes yet. Offer it something to work with.'; list.appendChild(li);
-  } else {
-    [...ls].reverse().forEach(l => {
-      const li = document.createElement('li'); li.className = 'learning-item';
-      const ps = document.createElement('span'); ps.className = 'part'; ps.textContent = l.part || 'General';
-      li.appendChild(ps); li.appendChild(document.createTextNode(l.quote || '')); list.appendChild(li);
+  if (window.AgentDrawerShared) {
+    window.AgentDrawerShared.renderLearnings(document.getElementById('learning-list'), agentId, {
+      hub,
+      emptyText: 'No field notes yet. Offer it something to work with.',
+      rowTag: 'li',
+      rowClass: 'learning-item',
+      partClass: 'part',
+      quoteClass: '',
+      whenClass: 'learn-when',
+      onChanged: () => openDrawer(agentId),
     });
   }
 
@@ -803,8 +807,12 @@ canvas.addEventListener('wheel', e => {
 
 document.getElementById('btn-close-drawer').addEventListener('click', closeDrawer);
 document.getElementById('drawer-backdrop').addEventListener('click', closeDrawer);
-document.getElementById('btn-feed-skill').addEventListener('click', () => { if (openAgentId && window.openFeedModal) openFeedModal(openAgentId); });
-document.getElementById('btn-add-agent').addEventListener('click', () => { if (window.openCreateModal) openCreateModal(); });
+document.getElementById('btn-feed-skill').addEventListener('click', () => { if (openAgentId && window.AgentModals) window.AgentModals.openFeedModal(openAgentId); });
+document.getElementById('btn-add-agent').addEventListener('click', () => { if (window.AgentModals) window.AgentModals.openCreateModal(); });
+document.getElementById('btn-copy-workspace').addEventListener('click', () => {
+  if (!openAgentId || !hub || !window.AgentDrawerShared) return;
+  window.AgentDrawerShared.copyForWorkspace(hub.findAgent(openAgentId));
+});
 document.getElementById('btn-enter').addEventListener('click', () => {
   const agents = hub ? hub.getAgents() : [...plantObjects.values()].map(o => o.agent);
   const t = agents.find(a => a.status === 'working') || agents[0];
@@ -859,7 +867,33 @@ if (hub) {
     addAgentToScene(agent);
     const obj = plantObjects.get(agent.id);
     if (obj && !reducedMotion) gsap.from(obj.group.scale, { x: 0.01, y: 0.01, z: 0.01, duration: 0.48, ease: 'back.out(2)' });
+    updateStatPill();
   });
+
+  function refreshAgentVisual(agentId) {
+    const fa = hub.findAgent(agentId);
+    const obj = plantObjects.get(agentId);
+    if (!fa || !obj) return;
+    obj.agent = fa;
+    const sleeping = !fa.learnings || fa.learnings.length === 0;
+    gsap.to(obj.label, { opacity: sleeping ? 0.45 : 1.0, duration: 0.4 });
+    if (openAgentId === agentId) openDrawer(agentId);
+    updateStatPill();
+  }
+
+  hub.on('learningRemoved', ({ agentId, demoted }) => {
+    if (demoted) {
+      const obj = plantObjects.get(agentId);
+      if (obj) {
+        scene.remove(obj.group);
+        if (obj.label.parentNode) obj.label.parentNode.removeChild(obj.label);
+        plantObjects.delete(agentId);
+        const fresh = hub.findAgent(agentId);
+        if (fresh) addAgentToScene(fresh);
+      }
+    } else refreshAgentVisual(agentId);
+  });
+  hub.on('learningUpdated', ({ agentId }) => refreshAgentVisual(agentId));
 }
 
 /* ── INIT ───────────────────────────────────────────────────────────────── */

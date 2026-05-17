@@ -90,6 +90,8 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--surf
 
 .card-xp-header { display: flex; justify-content: space-between; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 6px; }
 .card-xp-track { height: 3px; background: var(--rule-biolum); border-radius: 2px; overflow: hidden; }
+.card-rel-track { margin-top: 4px; }
+.card-rel-fill { background: rgba(120,200,255,0.55) !important; }
 .card-xp-fill { height: 100%; border-radius: 2px; transition: width 0.5s ease-out; }
 
 .card-section-label { font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 500; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.15em; margin-bottom: 10px; }
@@ -97,8 +99,11 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--surf
 .card-learning { border-left: 2px solid; padding: 6px 0 6px 12px; }
 .card-learning-meta { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--ink-faint); margin-bottom: 4px; }
 .card-learning-quote { font-size: 13px; color: var(--ink-primary); line-height: 1.5; }
+.card-learning .learn-when { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--ink-faint); margin-top: 4px; }
+.card-learning .learn-row-actions { margin-top: 8px; }
 
-.card-footer { flex-shrink: 0; padding: 14px 20px; border-top: 1px solid var(--rule-biolum); display: flex; gap: 8px; }
+.card-footer { flex-shrink: 0; padding: 14px 20px; border-top: 1px solid var(--rule-biolum); display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.card-phase0-hint { width: 100%; margin: 0 0 4px; font-size: 10px; color: var(--ink-faint); font-family: 'JetBrains Mono', monospace; letter-spacing: 0.06em; }
 .card-footer-btn { flex: 1; padding: 9px 12px; border-radius: 6px; font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 600; cursor: pointer; transition: opacity 0.15s; border: none; }
 .card-footer-btn:hover { opacity: 0.82; }
 .card-btn-feed { background: rgba(0,245,212,0.1); color: var(--stage-bloom); border: 1px solid rgba(0,245,212,0.25) !important; }
@@ -161,19 +166,26 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--surf
       <div class="card-xp-track"><div class="card-xp-fill" id="card-xp-fill" style="width:0%"></div></div>
     </div>
     <div>
+      <div class="card-xp-header"><span>Reliability</span><span id="card-rel-pct">50%</span></div>
+      <div class="card-xp-track card-rel-track"><div class="card-xp-fill card-rel-fill" id="card-rel-fill" style="width:50%"></div></div>
+    </div>
+    <div>
       <div class="card-section-label">Learnings</div>
       <div class="card-learnings" id="card-learnings"></div>
     </div>
   </div>
   <div class="card-footer">
+    <p class="card-phase0-hint">Phase 0 — toggle status only</p>
     <button class="card-footer-btn card-btn-feed" id="card-feed">Feed skill</button>
-    <button class="card-footer-btn card-btn-ghost" id="card-run">Run</button>
+    <button class="card-footer-btn card-btn-ghost" id="card-run" title="Toggle working / idle">Toggle status</button>
+    <button class="card-footer-btn card-btn-ghost" id="card-copy">Copy for workspace</button>
   </div>
 </div>
 
 <div id="feed-overlay"></div>
 
 <script src="state-manager.js"></script>
+<script src="drawer-shared.js"></script>
 <script src="ui-modals.js"></script>
 
 <script type="importmap">
@@ -393,11 +405,17 @@ document.getElementById('card-close').addEventListener('click', closeCard);
 document.getElementById('card-feed').addEventListener('click', () => {
   if (selectedId && window.AgentModals) window.AgentModals.openFeedModal(selectedId);
 });
+document.getElementById('card-copy').addEventListener('click', () => {
+  if (!selectedId || !window.AgentDrawerShared) return;
+  const a = hub.findAgent(selectedId);
+  if (a) window.AgentDrawerShared.copyForWorkspace(a);
+});
 document.getElementById('card-run').addEventListener('click', () => {
   if (!selectedId) return;
   const a = hub.findAgent(selectedId);
   if (!a) return;
   a.status = a.status === 'working' ? 'idle' : 'working';
+  hub.save();
   renderCard(a);
   updateHUD();
 });
@@ -427,15 +445,23 @@ function renderCard(agent) {
   fill.style.background = hex;
   requestAnimationFrame(() => fill.style.width = pct+'%');
 
-  const ll = (agent.learnings||[]);
-  document.getElementById('card-learnings').innerHTML = !ll.length
-    ? `<div style="color:var(--ink-faint);font-size:13px">No learnings yet.</div>`
-    : [...ll].reverse().map(l =>
-        `<div class="card-learning" style="border-left-color:${hex}">
-           <div class="card-learning-meta">${l.part} · ${l.timestamp ? window.StateManager.timeAgo(l.timestamp) : 'seed memory'}</div>
-           <div class="card-learning-quote">${l.quote}</div>
-         </div>`
-      ).join('');
+  document.getElementById('card-rel-pct').textContent = rel + '%';
+  const relFill = document.getElementById('card-rel-fill');
+  relFill.style.background = 'rgba(120,200,255,0.65)';
+  requestAnimationFrame(() => { relFill.style.width = rel + '%'; });
+
+  const learnEl = document.getElementById('card-learnings');
+  if (window.AgentDrawerShared) {
+    window.AgentDrawerShared.renderLearnings(learnEl, agent.id, {
+      hub,
+      emptyText: 'No learnings yet.',
+      rowClass: 'card-learning',
+      partClass: 'card-learning-meta',
+      quoteClass: 'card-learning-quote',
+      onChanged: () => { const a = hub.findAgent(agent.id); if (a) renderCard(a); },
+    });
+    learnEl.querySelectorAll('.card-learning').forEach((row) => { row.style.borderLeftColor = hex; });
+  }
 }
 
 // ── HUD ────────────────────────────────────────────────────────────────────────
@@ -467,6 +493,22 @@ hub.on('learningAdded', ({ agentId, promoted }) => {
 hub.on('agentAdded', ({ agent }) => {
   agentObjs.set(agent.id, buildAgent(agent));
   updateHUD();
+});
+
+hub.on('learningRemoved', ({ agentId }) => {
+  updateHUD();
+  promoteAgent(agentId);
+  if (selectedId === agentId) {
+    const a = hub.findAgent(agentId);
+    if (a) renderCard(a);
+  }
+});
+
+hub.on('learningUpdated', ({ agentId }) => {
+  if (selectedId === agentId) {
+    const a = hub.findAgent(agentId);
+    if (a) renderCard(a);
+  }
 });
 
 // ── Visual feedback ────────────────────────────────────────────────────────────

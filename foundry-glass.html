@@ -108,8 +108,11 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg-v
 .panel-learning { padding: 10px 12px; background: var(--bg-elevated); border-radius: 3px; border-left: 2px solid; }
 .panel-learning-meta { font-size: 10px; color: var(--text-faint); margin-bottom: 4px; letter-spacing: 0.04em; }
 .panel-learning-quote { font-family: 'DM Serif Display', Georgia, serif; font-style: italic; font-size: 13px; color: var(--text-primary); line-height: 1.5; }
+.panel-learning .learn-when { font-size: 10px; color: var(--text-faint); margin-top: 4px; }
+.panel-learning .learn-row-actions { margin-top: 8px; }
 
-.panel-actions { flex-shrink: 0; padding: 14px 20px; border-top: 1px solid var(--border-subtle); display: flex; gap: 8px; }
+.panel-actions { flex-shrink: 0; padding: 14px 20px; border-top: 1px solid var(--border-subtle); display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.panel-phase0-hint { width: 100%; margin: 0 0 4px; font-size: 10px; letter-spacing: 0.08em; color: var(--text-faint); font-family: var(--font-mono); }
 .panel-action-btn { flex: 1; padding: 9px; border-radius: 3px; font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; transition: opacity 0.15s; border: 1px solid var(--border-subtle); }
 .panel-action-btn:hover { opacity: 0.8; }
 .panel-btn-feed { background: rgba(255,140,0,0.1); color: var(--accent-amber); border-color: rgba(255,140,0,0.25) !important; }
@@ -191,8 +194,10 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg-v
     </div>
   </div>
   <div class="panel-actions">
+    <p class="panel-phase0-hint">Phase 0 — toggle status only, no execution</p>
     <button class="panel-action-btn panel-btn-feed" id="panel-feed">Feed skill</button>
-    <button class="panel-action-btn panel-btn-ghost" id="panel-run">Run</button>
+    <button class="panel-action-btn panel-btn-ghost" id="panel-run" title="Toggle working / idle">Toggle status</button>
+    <button class="panel-action-btn panel-btn-ghost" id="panel-copy">Copy for workspace</button>
   </div>
 </div>
 
@@ -203,6 +208,7 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg-v
 <div id="pour-overlay"></div>
 
 <script src="state-manager.js"></script>
+<script src="drawer-shared.js"></script>
 <script src="ui-modals.js"></script>
 
 <script type="importmap">
@@ -504,8 +510,14 @@ document.getElementById('panel-run').addEventListener('click', () => {
   const a = hub.findAgent(selectedId);
   if (!a) return;
   a.status = a.status === 'working' ? 'idle' : 'working';
+  hub.save();
   renderPanel(a);
   updateHeaderStats();
+});
+document.getElementById('panel-copy').addEventListener('click', () => {
+  if (!selectedId || !window.AgentDrawerShared) return;
+  const a = hub.findAgent(selectedId);
+  if (a) window.AgentDrawerShared.copyForWorkspace(a);
 });
 
 // ── Panel rendering ───────────────────────────────────────────────────────────
@@ -538,15 +550,18 @@ function renderPanel(agent) {
 
   document.getElementById('panel-lede').textContent = agent.lede || '';
 
-  const ll = agent.learnings || [];
-  document.getElementById('panel-learnings').innerHTML = !ll.length
-    ? `<div style="font-size:13px;color:var(--text-faint)">No refinements yet.</div>`
-    : [...ll].reverse().map(l =>
-        `<div class="panel-learning" style="border-left-color:${hex}">
-           <div class="panel-learning-meta">${l.part} · ${l.timestamp ? window.StateManager.timeAgo(l.timestamp) : 'founding note'}</div>
-           <div class="panel-learning-quote">${l.quote}</div>
-         </div>`
-      ).join('');
+  const learnEl = document.getElementById('panel-learnings');
+  if (window.AgentDrawerShared) {
+    window.AgentDrawerShared.renderLearnings(learnEl, agent.id, {
+      hub,
+      emptyText: 'No refinements yet.',
+      rowClass: 'panel-learning',
+      partClass: 'panel-learning-meta',
+      quoteClass: 'panel-learning-quote',
+      onChanged: () => { const a = hub.findAgent(agent.id); if (a) renderPanel(a); },
+    });
+    learnEl.querySelectorAll('.panel-learning').forEach((row) => { row.style.borderLeftColor = hex; });
+  }
 }
 
 // ── Rail ──────────────────────────────────────────────────────────────────────
@@ -600,6 +615,23 @@ hub.on('agentAdded', ({ agent }) => {
   repositionAll();
   updateRail();
   updateHeaderStats();
+});
+
+hub.on('learningRemoved', ({ agentId }) => {
+  updateHeaderStats();
+  updateRail();
+  promoteVessel(agentId);
+  if (selectedId === agentId) {
+    const a = hub.findAgent(agentId);
+    if (a) renderPanel(a);
+  }
+});
+
+hub.on('learningUpdated', ({ agentId }) => {
+  if (selectedId === agentId) {
+    const a = hub.findAgent(agentId);
+    if (a) renderPanel(a);
+  }
 });
 
 // ── Pour animation ────────────────────────────────────────────────────────────

@@ -151,6 +151,10 @@
       }
     }
 
+    save() {
+      this._save();
+    }
+
     _save() {
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(this._agents));
@@ -158,8 +162,37 @@
         console.warn('[StateManager] localStorage write failed:', e);
       }
     }
+
+    removeLearning(agentId, learningId) {
+      const agent = this.findAgent(agentId);
+      if (!agent) return null;
+      const idx = agent.learnings.findIndex((l) => l.id === learningId);
+      if (idx < 0) return null;
+      const removed = agent.learnings.splice(idx, 1)[0];
+      const prevStage = agent.stage;
+      agent.xp = Math.max(0, agent.xp - 10);
+      agent.stage = calcStage(agent.xp);
+      const demoted = agent.stage < prevStage;
+      this._save();
+      this.emit('learningRemoved', { agentId, learning: removed, prevStage, newStage: agent.stage, demoted });
+      return { learning: removed, prevStage, newStage: agent.stage, demoted };
+    }
+
+    updateLearning(agentId, learningId, { part, quote }) {
+      const agent = this.findAgent(agentId);
+      if (!agent) return null;
+      const learning = agent.learnings.find((l) => l.id === learningId);
+      if (!learning) return null;
+      if (part != null) learning.part = part;
+      if (quote != null) learning.quote = quote;
+      this._save();
+      this.emit('learningUpdated', { agentId, learning });
+      return learning;
+    }
   }
 
   StateManager.timeAgo = timeAgo;
+  StateManager.STAGE_THRESHOLDS = STAGE_THRESHOLDS;
+  StateManager.calcStage = calcStage;
   window.StateManager = StateManager;
 })();

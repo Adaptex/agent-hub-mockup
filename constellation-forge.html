@@ -514,6 +514,37 @@
       background: linear-gradient(90deg, var(--ember), var(--ember-hot));
       transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
     }
+    .d-stat-label {
+      display: flex;
+      justify-content: space-between;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 8px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--text-faint);
+      margin-top: 10px;
+    }
+    .d-rel {
+      height: 3px;
+      border-radius: 2px;
+      background: rgba(255,255,255,0.06);
+      margin: 6px 0 14px;
+      overflow: hidden;
+    }
+    .d-rel-bar {
+      height: 100%;
+      border-radius: 2px;
+      background: linear-gradient(90deg, rgba(120,180,255,0.5), rgba(180,220,255,0.85));
+      transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .phase0-hint {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 8px;
+      letter-spacing: 0.1em;
+      color: var(--text-faint);
+      width: 100%;
+      margin-bottom: 4px;
+    }
 
     .drawer-footer {
       margin-top: 16px;
@@ -610,13 +641,16 @@
     <button type="button" class="drawer-close" id="drawer-close" aria-label="Close">×</button>
     <div id="drawer-body"></div>
     <div class="drawer-footer">
-      <button type="button" class="btn btn-primary" id="drawer-run">Run this agent</button>
+      <p class="phase0-hint">Phase 0 mockup — no real agent execution</p>
+      <button type="button" class="btn btn-primary" id="drawer-run" title="Toggle working / idle status only">Toggle status</button>
       <button type="button" class="btn btn-ghost" id="drawer-feed">Feed skill</button>
-      <button type="button" class="btn btn-ghost" id="drawer-queue">Queue next</button>
+      <button type="button" class="btn btn-ghost" id="drawer-queue">Next agent</button>
+      <button type="button" class="btn btn-ghost" id="drawer-copy">Copy for workspace</button>
     </div>
   </aside>
 
   <script src="./state-manager.js"></script>
+  <script src="./drawer-shared.js"></script>
   <script src="./three-extensions.js"></script>
   <script src="./ui-modals.js"></script>
 
@@ -761,6 +795,24 @@
 
     hub.on("agentAdded", () => {
       updateStatPill();
+    });
+
+    hub.on("learningRemoved", ({ agentId }) => {
+      updateStatPill();
+      const ext = window._threeExt;
+      const a = hub.findAgent(agentId);
+      if (a && ext) {
+        const mesh = meshes.find((m) => m.userData.agentId === agentId);
+        if (mesh) ext.updateStageVisuals(mesh, a, prefersReducedMotion);
+      }
+      if (selectedId === agentId && drawer.classList.contains("open") && a) renderDrawer(a);
+    });
+
+    hub.on("learningUpdated", ({ agentId }) => {
+      if (selectedId === agentId && drawer.classList.contains("open")) {
+        const a = hub.findAgent(agentId);
+        if (a) renderDrawer(a);
+      }
     });
 
     function dismissIntro() {
@@ -1148,28 +1200,30 @@
         .join("")}</div>`;
 
       const learnCount = a.learnings.length;
-      const learns = a.learnings
-        .slice()
-        .reverse()
-        .map(
-          (l) => `<div class="learn-row">
-          <div class="learn-part">${l.part}</div>
-          <div class="learn-quote">&ldquo;${l.quote}&rdquo;</div>
-          <div class="learn-when">${timeAgo(l.timestamp)}</div>
-        </div>`
-        )
-        .join("");
+      const xpInfo = window.AgentDrawerShared
+        ? window.AgentDrawerShared.xpProgress(a)
+        : { pct: Math.min(100, Math.round((a.xp / 150) * 100)), xp: a.xp };
+      const relPct = Math.round((a.reliability ?? 0.5) * 100);
 
-      const xpPct = Math.min(100, Math.round((a.xp / 150) * 100));
       drawerBody.innerHTML = `
         <div class="d-eyebrow">Specimen &middot; ${a.status}</div>
         <h2 class="d-name">${a.name}</h2>
         <div class="d-meta">${learnCount} learning${learnCount !== 1 ? "s" : ""} &middot; forge stage ${Math.min(a.stage, 3) + 1} of 4</div>
-        <div class="d-xp" title="${a.xp} XP"><div class="d-xp-bar" style="width:${xpPct}%"></div></div>
+        <div class="d-stat-label"><span>Experience</span><span>${xpInfo.xp} XP</span></div>
+        <div class="d-xp" title="${a.xp} XP"><div class="d-xp-bar" style="width:${xpInfo.pct}%"></div></div>
+        <div class="d-stat-label"><span>Reliability</span><span>${relPct}%</span></div>
+        <div class="d-rel"><div class="d-rel-bar" style="width:${relPct}%"></div></div>
         <p class="d-lede">${a.lede}</p>
         ${evo}
-        <div class="learnings">${learns || '<div class="learn-row" style="opacity:0.4">No learnings yet — feed this agent a skill.</div>'}</div>
+        <div class="learnings" id="drawer-learnings"></div>
       `;
+      if (window.AgentDrawerShared) {
+        window.AgentDrawerShared.renderLearnings(
+          document.getElementById("drawer-learnings"),
+          a.id,
+          { hub, onChanged: () => { const fresh = hub.findAgent(a.id); if (fresh) renderDrawer(fresh); } }
+        );
+      }
       drawer.classList.add("open");
       drawer.setAttribute("aria-hidden", "false");
       drawer.setAttribute("aria-label", `${a.name}, ${a.status}, specimen detail`);
@@ -1204,7 +1258,22 @@
       selectAgent(w.id, true);
     });
 
-    document.getElementById("drawer-run").addEventListener("click", () => drawerClose.click());
+    document.getElementById("drawer-run").addEventListener("click", () => {
+      if (!selectedId) return;
+      const a = hub.findAgent(selectedId);
+      if (!a) return;
+      a.status = a.status === "working" ? "idle" : "working";
+      hub.save();
+      renderDrawer(a);
+      updateStatPill();
+      const chip = document.querySelector(`.chip[data-agent="${selectedId}"]`);
+      if (chip) chip.setAttribute("aria-pressed", a.status === "working" ? "true" : "false");
+    });
+
+    document.getElementById("drawer-copy").addEventListener("click", () => {
+      const a = hub.findAgent(selectedId);
+      if (a && window.AgentDrawerShared) window.AgentDrawerShared.copyForWorkspace(a);
+    });
 
     document.getElementById("drawer-feed").addEventListener("click", () => {
       if (window.AgentModals) window.AgentModals.openFeedModal(selectedId);
