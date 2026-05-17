@@ -6,7 +6,9 @@ Gamified AI-agent management UI — agents grow visually as you feed skills. Mul
 
 ## Live demo
 
-After Vercel deploy, open the production URL at `/` for the design hub, or jump directly:
+**Production:** [https://agent-hub-mockup.vercel.app](https://agent-hub-mockup.vercel.app)
+
+Open `/` for the design hub, or jump directly:
 
 | Design | Path |
 |--------|------|
