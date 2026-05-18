@@ -119,7 +119,7 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg);
 }
 .close-drawer:hover { color: var(--text); }
 .drawer__body {
-  flex: 1; overflow-y: auto; overscroll-behavior: contain; padding: 32px 24px 16px;
+  flex: 1; overflow-y: auto; overscroll-behavior: contain; padding: 32px 24px 16px; min-height: 0;
   scrollbar-width: thin; scrollbar-color: var(--accent-dim) transparent;
 }
 .drawer__body::-webkit-scrollbar { width: 3px; }
@@ -180,6 +180,7 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg);
       <a href="constellation-forge.html">Forge</a>
       <a href="tidal-archive.html">Archive</a>
       <a href="foundry-glass.html">Foundry</a>
+      <a href="lantern-garden-v2.html">Lantern</a>
       <a href="vivarium.html" class="active" aria-current="page">Vivarium</a>
       <a href="grove.html">Grove</a>
     </nav>
@@ -200,11 +201,14 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg);
   <div class="drawer__body">
     <div class="drawer__section">Specimen Record</div>
     <p class="drawer__lede" id="drawer-lede"></p>
+    <button type="button" class="drawer__feed-btn" id="btn-feed-inline">Add Observation</button>
     <div class="drawer__section">Developmental Stage</div>
     <div class="stat-label"><span>Experience</span><span id="xp-label">0 / 10 XP</span></div>
     <div class="bar-track"><div class="bar-fill xp" id="xp-bar" style="width:0%"></div></div>
     <div class="stat-label"><span>Reliability</span><span id="rel-label">50%</span></div>
     <div class="bar-track"><div class="bar-fill" id="rel-bar" style="width:50%"></div></div>
+    <div class="stat-label"><span>Strength</span><span id="str-label">0%</span></div>
+    <div class="bar-track"><div class="bar-fill" id="str-bar" style="width:0%"></div></div>
     <div class="drawer__section">Field Notes</div>
     <ul class="learning-list" id="learning-list">
       <li class="learning-item" style="color:var(--text-mute);font-style:italic">No observations recorded yet.</li>
@@ -233,9 +237,16 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg);
 
 <script type="module">
 import * as THREE from 'three';
+import { createVivariumRenderer } from './vivarium-scene.js';
+import { applyCreatureCharm, tickCreatureBlink } from './vivarium-creatures.js';
+import { spawnFeedMotes } from './vivarium-effects.js';
 
 /* ── CONSTANTS ─────────────────────────────────────────────────────────── */
-const STAGE_NAMES  = ['Quiescent','Emergent','Expressed','Established'];
+const STAGE_NAMES  = ['Still','Stirring','Awakened','Settled'];
+const EVO_STAGE_COPY = {
+  evolving: 'A shift in form. Note the hour.',
+  established: 'Form settled. Temperament clear.'
+};
 const STAGE_XP_MAX = [10, 40, 100, 150];
 const CREATURE_NAMES = [
   ['Flumble','Wicklow','Soffin','Lumble'],
@@ -283,6 +294,7 @@ const camera = new THREE.PerspectiveCamera(48, innerWidth / innerHeight, 0.1, 10
 camera.position.set(0, 4.5, 11);
 camera.lookAt(0, 0.5, 0);
 let camTargetX = 0;
+const vivariumRenderer = createVivariumRenderer(renderer, scene, camera, reducedMotion);
 
 /* ── LIGHTS ─────────────────────────────────────────────────────────────── */
 scene.add(new THREE.HemisphereLight(0xfff4e0, 0x1a2e0a, 0.55));
@@ -502,6 +514,7 @@ function addAgentToScene(agent) {
   const nz=Math.sin(creatureObjects.size*1.7)*0.55;
   group.position.set(nx,0,nz);
   scene.add(group);
+  applyCreatureCharm(group, Math.max(0, Math.min(3, agent.stage ?? 0)));
 
   // Label
   const label=document.createElement('div');
@@ -541,6 +554,9 @@ function openDrawer(agentId) {
   const rp=Math.round((agent.reliability??0.5)*100);
   document.getElementById('rel-label').textContent=rp+'%';
   document.getElementById('rel-bar').style.width=rp+'%';
+  const strength = hub && hub.getStrength ? hub.getStrength(agent) : 0;
+  document.getElementById('str-label').textContent = strength + '%';
+  document.getElementById('str-bar').style.width = strength + '%';
 
   if (window.AgentDrawerShared) {
     window.AgentDrawerShared.renderLearnings(document.getElementById('learning-list'), agentId, {
@@ -551,6 +567,8 @@ function openDrawer(agentId) {
       partClass: 'part',
       quoteClass: '',
       whenClass: 'learn-when',
+      stageNames: STAGE_NAMES,
+      showSummary: false,
       onChanged: () => openDrawer(agentId),
     });
   }
@@ -577,9 +595,9 @@ function closeDrawer() {
 function showEvolvedOverlay(agentId, newStage) {
   const ov=document.getElementById('evolved-overlay');
   document.getElementById('evo-name').textContent=creatureName(agentId);
-  document.getElementById('evo-stage').textContent=newStage>=3
-    ?'Classification confirmed. I have been waiting for this.'
-    :'A change in morphology. Note the date.';
+  document.getElementById('evo-stage').textContent = newStage >= 3
+    ? EVO_STAGE_COPY.established
+    : EVO_STAGE_COPY.evolving;
   ov.style.visibility='visible';
   if (reducedMotion){ov.style.opacity='1';setTimeout(()=>{ov.style.opacity='0';setTimeout(()=>ov.style.visibility='hidden',400);},1800);return;}
   const nEl=document.getElementById('evo-name'),tEl=ov.querySelector('.evolved-overlay__tag'),sEl=document.getElementById('evo-stage');
@@ -615,6 +633,7 @@ function animateCreature(obj, t) {
     return;
   }
   if (!bodyMesh||!headGroup) return;
+  tickCreatureBlink(group, t);
 
   const breath=1+Math.sin(t*1.1+phase)*(sleeping?0.004:0.008);
   bodyMesh.scale.x=breath; bodyMesh.scale.z=breath;
@@ -655,7 +674,7 @@ function animate() {
     label.style.transform=`translate(calc(${sx}px - 50%),${sy}px)`;
     label.style.display=v.z<1?'block':'none';
   });
-  renderer.render(scene,camera);
+  vivariumRenderer.renderFrame();
 }
 
 /* ── INTERACTION ────────────────────────────────────────────────────────── */
@@ -684,6 +703,7 @@ canvas.addEventListener('wheel',e=>{camera.position.z=Math.max(6,Math.min(16,cam
 document.getElementById('btn-close-drawer').addEventListener('click',closeDrawer);
 document.getElementById('drawer-backdrop').addEventListener('click',closeDrawer);
 document.getElementById('btn-feed-skill').addEventListener('click',()=>{if(openAgentId&&window.AgentModals)window.AgentModals.openFeedModal(openAgentId);});
+document.getElementById('btn-feed-inline').addEventListener('click',()=>{if(openAgentId&&window.AgentModals)window.AgentModals.openFeedModal(openAgentId);});
 document.getElementById('btn-add-agent').addEventListener('click',()=>{if(window.AgentModals)window.AgentModals.openCreateModal();});
 document.getElementById('btn-copy-workspace').addEventListener('click',()=>{
   if(!openAgentId||!hub||!window.AgentDrawerShared)return;
@@ -705,6 +725,13 @@ if (hub) {
     if(!obj)return;
     if(fa)obj.agent=fa;
     const {group,label}=obj;
+    spawnFeedMotes(
+      scene,
+      new THREE.Vector3(group.position.x, group.position.y + 1.2, group.position.z),
+      new THREE.Vector3(group.position.x, group.position.y + 0.9, group.position.z),
+      obj.agent.color,
+      reducedMotion
+    );
     const sleeping=!fa?.learnings||fa.learnings.length===0;
     gsap.to(label,{opacity:sleeping?0.4:1.0,duration:0.55});
 
@@ -772,6 +799,7 @@ window.addEventListener('resize',()=>{
   camera.aspect=innerWidth/innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(innerWidth,innerHeight);
+  vivariumRenderer.onResize(innerWidth, innerHeight);
 });
 
 const initAgents=hub?hub.getAgents():SEED_AGENTS;

@@ -14,6 +14,8 @@
   --surface: #ede8dc;
   --surface-lift: #e4ddd0;
   --accent: #5c8a3c;
+  --rose: #c84040;
+  --sun: #e3a030;
   --accent-dim: rgba(92,138,60,0.22);
   --accent-glow: rgba(92,138,60,0.08);
   --text: #2c2423;
@@ -124,7 +126,7 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg);
 }
 .close-drawer:hover { background: rgba(245,240,232,0.70); }
 .drawer__body {
-  flex: 1; overflow-y: auto; overscroll-behavior: contain; padding: 32px var(--sp-6) 16px;
+  flex: 1; overflow-y: auto; overscroll-behavior: contain; padding: 32px var(--sp-6) 16px; min-height: 0;
   scrollbar-width: thin; scrollbar-color: var(--accent-dim) transparent;
 }
 .drawer__body::-webkit-scrollbar { width: 3px; }
@@ -185,6 +187,7 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg);
       <a href="constellation-forge.html">Forge</a>
       <a href="tidal-archive.html">Archive</a>
       <a href="foundry-glass.html">Foundry</a>
+      <a href="lantern-garden-v2.html">Lantern</a>
       <a href="vivarium.html">Vivarium</a>
       <a href="grove.html" class="active" aria-current="page">Grove</a>
     </nav>
@@ -205,11 +208,14 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg);
   <div class="drawer__body">
     <div class="drawer__section">Specimen</div>
     <p class="drawer__lede" id="drawer-lede"></p>
+    <button type="button" class="drawer__feed-btn" id="btn-feed-inline">Tend This Specimen</button>
     <div class="drawer__section">Growth Stage</div>
     <div class="stat-label"><span>Experience</span><span id="xp-label">0 / 10 XP</span></div>
     <div class="bar-track"><div class="bar-fill xp" id="xp-bar" style="width:0%"></div></div>
     <div class="stat-label"><span>Reliability</span><span id="rel-label">50%</span></div>
     <div class="bar-track"><div class="bar-fill" id="rel-bar" style="width:50%"></div></div>
+    <div class="stat-label"><span>Strength</span><span id="str-label">0%</span></div>
+    <div class="bar-track"><div class="bar-fill" id="str-bar" style="width:0%"></div></div>
     <div class="drawer__section">Field Notes</div>
     <ul class="learning-list" id="learning-list">
       <li class="learning-item" style="color:var(--text-mute);font-style:italic">No field notes yet. Offer it something to work with.</li>
@@ -238,9 +244,12 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg);
 
 <script type="module">
 import * as THREE from 'three';
+import { createGroveRenderer } from './grove-scene.js';
+import { applyPlantArtDirection } from './grove-plants.js';
+import { spawnPollenBurst } from './grove-effects.js';
 
 /* ── CONSTANTS ─────────────────────────────────────────────────────────── */
-const STAGE_NAMES  = ['Dormant','Emergent','In Growth','Established'];
+const STAGE_NAMES  = ['Seeded','Rooting','Leafing','In Flower'];
 const STAGE_XP_MAX = [10, 40, 100, 150];
 const PLANT_NAMES  = [
   ['Petalvine','Rosaleth','Bloome','Velourosa'],
@@ -288,6 +297,7 @@ const camera = new THREE.PerspectiveCamera(44, innerWidth / innerHeight, 0.1, 10
 camera.position.set(0, 10, 8);
 camera.lookAt(0, 0, 0);
 let camTargetX = 0;
+const groveRenderer = createGroveRenderer(renderer, scene, camera, reducedMotion);
 
 /* ── LIGHTS ─────────────────────────────────────────────────────────────── */
 scene.add(new THREE.HemisphereLight(0xa8c8e8, 0x4a3828, 0.48));
@@ -394,9 +404,12 @@ function addLeaves(group, leafMat, type, stage) {
 function addFlowers(group, type, stage, color) {
   const flowerCount = stage >= 3 ? (type === 3 ? 3 : 2) : 1;
   const stemH = [0, 0.52, 0.88, 1.30][stage];
+  const stageColor = stage >= 3
+    ? color.clone().lerp(new THREE.Color(type % 2 === 0 ? 0xc84040 : 0xe3a030), 0.42)
+    : color;
   const petalMat = new THREE.MeshStandardMaterial({
-    color, roughness: 0.30, metalness: 0.04,
-    emissive: color, emissiveIntensity: stage >= 3 ? 0.28 : 0.08,
+    color: stageColor, roughness: 0.30, metalness: 0.04,
+    emissive: stageColor, emissiveIntensity: stage >= 3 ? 0.28 : 0.08,
     side: THREE.DoubleSide, transparent: true, opacity: 0.90
   });
   const stamenMat = new THREE.MeshStandardMaterial({ color: 0xffee88, emissive: new THREE.Color(0xffee88), emissiveIntensity: stage >= 3 ? 0.90 : 0.20, roughness: 0.25 });
@@ -477,6 +490,23 @@ function buildPlant(agent) {
   const shMat = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.16, blending: THREE.MultiplyBlending, depthWrite: false });
   const sh = new THREE.Mesh(new THREE.CircleGeometry(0.50, 14), shMat);
   sh.rotation.x = -Math.PI / 2; sh.position.y = 0.002; g.add(sh);
+
+  if (stage >= 2) {
+    const dome = new THREE.Mesh(
+      new THREE.SphereGeometry(0.52 + stage * 0.04, 26, 18, 0, Math.PI * 2, 0, Math.PI / 2),
+      new THREE.MeshPhysicalMaterial({
+        color: 0xffffff,
+        transmission: 0.92,
+        transparent: true,
+        opacity: 0.23,
+        roughness: 0.08,
+        thickness: 0.24,
+        metalness: 0.0,
+      })
+    );
+    dome.position.y = 0.46;
+    g.add(dome);
+  }
 
   if (stage === 0) {
     const seed = new THREE.Mesh(new THREE.SphereGeometry(0.022, 6, 5), new THREE.MeshStandardMaterial({ color: 0x3a2510, roughness: 0.92 }));
@@ -559,6 +589,7 @@ function addAgentToScene(agent) {
   group.position.set(nx, 0, nz);
   group.userData.baseY = 0;
   scene.add(group);
+  applyPlantArtDirection(group, Math.max(0, Math.min(3, agent.stage ?? 0)));
 
   // Label
   const label = document.createElement('div');
@@ -602,6 +633,9 @@ function openDrawer(agentId) {
   const rp = Math.round((agent.reliability ?? 0.5) * 100);
   document.getElementById('rel-label').textContent = rp + '%';
   document.getElementById('rel-bar').style.width   = rp + '%';
+  const strength = hub && hub.getStrength ? hub.getStrength(agent) : 0;
+  document.getElementById('str-label').textContent = strength + '%';
+  document.getElementById('str-bar').style.width   = strength + '%';
 
   if (window.AgentDrawerShared) {
     window.AgentDrawerShared.renderLearnings(document.getElementById('learning-list'), agentId, {
@@ -612,6 +646,8 @@ function openDrawer(agentId) {
       partClass: 'part',
       quoteClass: '',
       whenClass: 'learn-when',
+      stageNames: STAGE_NAMES,
+      showSummary: false,
       onChanged: () => openDrawer(agentId),
     });
   }
@@ -641,8 +677,8 @@ function showBloomOverlay(agentId, newStage, onDone) {
   const pn   = plantName(agentId);
   document.getElementById('bloom-name').textContent = pn;
   document.getElementById('bloom-stage').textContent = newStage >= 3
-    ? `${pn} is established. A full season of growth. This one has found its character — the garden is the better for it.`
-    : `${pn} has put out new growth. First shoots noted — the season is turning.`;
+    ? `${pn} is in flower now. Rooted, steady, unmistakably itself.`
+    : `${pn} has opened new growth. The season is turning.`;
   ov.style.visibility = 'visible';
   if (reducedMotion) {
     ov.style.opacity = '1';
@@ -739,7 +775,7 @@ function animate() {
     label.style.display   = v.z < 1 ? 'block' : 'none';
   });
 
-  renderer.render(scene, camera);
+  groveRenderer.renderFrame();
 }
 
 /* ── INTERACTION ────────────────────────────────────────────────────────── */
@@ -808,6 +844,7 @@ canvas.addEventListener('wheel', e => {
 document.getElementById('btn-close-drawer').addEventListener('click', closeDrawer);
 document.getElementById('drawer-backdrop').addEventListener('click', closeDrawer);
 document.getElementById('btn-feed-skill').addEventListener('click', () => { if (openAgentId && window.AgentModals) window.AgentModals.openFeedModal(openAgentId); });
+document.getElementById('btn-feed-inline').addEventListener('click', () => { if (openAgentId && window.AgentModals) window.AgentModals.openFeedModal(openAgentId); });
 document.getElementById('btn-add-agent').addEventListener('click', () => { if (window.AgentModals) window.AgentModals.openCreateModal(); });
 document.getElementById('btn-copy-workspace').addEventListener('click', () => {
   if (!openAgentId || !hub || !window.AgentDrawerShared) return;
@@ -829,6 +866,12 @@ if (hub) {
     if (!obj) return;
     if (fa) obj.agent = fa;
     const { group, label } = obj;
+    spawnPollenBurst(
+      scene,
+      new THREE.Vector3(group.position.x, group.position.y + 1.3, group.position.z),
+      obj.agent.color,
+      reducedMotion
+    );
 
     const sleeping = !fa?.learnings || fa.learnings.length === 0;
     gsap.to(label, { opacity: sleeping ? 0.45 : 1.0, duration: 0.55 });
@@ -901,6 +944,7 @@ window.addEventListener('resize', () => {
   camera.aspect = innerWidth / innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(innerWidth, innerHeight);
+  groveRenderer.onResize(innerWidth, innerHeight);
 });
 
 const initAgents = hub ? hub.getAgents() : SEED_AGENTS;

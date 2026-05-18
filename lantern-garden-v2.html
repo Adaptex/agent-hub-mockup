@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lantern Garden — Agent Hub</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,600;1,600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-top: #07050c;
+      --bg-mid: #120b18;
+      --bg-low: #21151a;
+      --text: #ece3d2;
+      --muted: rgba(236, 227, 210, 0.6);
+      --faint: rgba(236, 227, 210, 0.35);
+      --accent: #f3c677;
+      --rule: rgba(236, 227, 210, 0.12);
+      --surface: rgba(20, 12, 17, 0.88);
+      --pill: rgba(243, 198, 119, 0.13);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      color: var(--text);
+      font-family: Inter, system-ui, sans-serif;
+      background: radial-gradient(120% 90% at 50% 0%, var(--bg-mid), var(--bg-top) 55%, var(--bg-low));
+      overflow: hidden;
+    }
+    .masthead {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 64px;
+      padding: 0 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--rule);
+      background: rgba(9, 6, 12, 0.72);
+      backdrop-filter: blur(12px);
+      z-index: 10;
+    }
+    .title-group {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .eyebrow {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 9px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--faint);
+    }
+    .wordmark {
+      font-family: Spectral, serif;
+      font-size: 24px;
+      font-style: italic;
+      line-height: 1;
+    }
+    .top-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .design-nav {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .design-nav a {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 9px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--muted);
+      text-decoration: none;
+    }
+    .design-nav a.active { color: var(--accent); }
+    .stat-pill {
+      border: 1px solid var(--rule);
+      padding: 7px 10px;
+      border-radius: 999px;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 10px;
+      color: var(--muted);
+    }
+    .btn {
+      border: 1px solid rgba(243, 198, 119, 0.33);
+      background: transparent;
+      color: var(--accent);
+      border-radius: 999px;
+      padding: 8px 14px;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+    .btn:hover { background: rgba(243, 198, 119, 0.1); }
+    .scene {
+      position: fixed;
+      inset: 64px 0 0 0;
+      display: grid;
+      place-items: center;
+      padding: 20px;
+    }
+    .lane {
+      width: min(1200px, 96vw);
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 18px;
+      align-items: end;
+    }
+    .lantern-card {
+      position: relative;
+      min-height: 260px;
+      border: 1px solid var(--rule);
+      border-radius: 14px;
+      background: rgba(14, 9, 14, 0.78);
+      cursor: pointer;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+    .lantern-card:hover {
+      transform: translateY(-3px);
+      border-color: rgba(243, 198, 119, 0.4);
+    }
+    .lantern-halo {
+      position: absolute;
+      top: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 108px;
+      height: 108px;
+      border-radius: 50%;
+      filter: blur(6px);
+      opacity: 0.55;
+    }
+    .lantern-shape {
+      position: absolute;
+      top: 52px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 84px;
+      height: 98px;
+      border-radius: 42px;
+      border: 1px solid rgba(255,255,255,0.22);
+      background: linear-gradient(180deg, rgba(255,255,255,0.18), rgba(255,255,255,0.04));
+      box-shadow: inset 0 0 18px rgba(255,255,255,0.14);
+    }
+    .lantern-stage {
+      margin-top: auto;
+      margin-bottom: 8px;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 9px;
+      color: var(--faint);
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+    .lantern-name {
+      font-size: 16px;
+      font-weight: 600;
+      line-height: 1.2;
+      margin-bottom: 6px;
+    }
+    .lantern-meta {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 10px;
+      color: var(--muted);
+    }
+    .working .lantern-halo { animation: pulse 2.2s ease-in-out infinite; }
+    @keyframes pulse {
+      0%,100% { transform: translateX(-50%) scale(1); opacity: 0.4; }
+      50% { transform: translateX(-50%) scale(1.15); opacity: 0.75; }
+    }
+
+    .drawer-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      visibility: hidden;
+      opacity: 0;
+      transition: opacity 0.2s;
+      z-index: 20;
+    }
+    .drawer {
+      position: fixed;
+      top: 64px;
+      right: 0;
+      width: min(460px, 100vw);
+      height: calc(100vh - 64px);
+      background: var(--surface);
+      border-left: 1px solid var(--rule);
+      transform: translateX(102%);
+      transition: transform 0.25s ease;
+      z-index: 30;
+      display: flex;
+      flex-direction: column;
+      padding: 16px;
+      gap: 12px;
+      overflow: hidden;
+    }
+    .drawer.open { transform: translateX(0); }
+    .drawer-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+    .drawer-title {
+      font-size: 22px;
+      font-family: Spectral, serif;
+      font-style: italic;
+    }
+    .close {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 1px solid var(--rule);
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 20px;
+    }
+    .drawer-lede { color: var(--muted); line-height: 1.55; font-size: 14px; }
+    .drawer-list {
+      overflow: auto;
+      flex: 1;
+      min-height: 0;
+      padding-right: 4px;
+    }
+    .drawer-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      border-top: 1px solid var(--rule);
+      padding-top: 10px;
+    }
+    .drawer-actions .btn { border-radius: 8px; width: 100%; }
+    .hint {
+      position: fixed;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: "JetBrains Mono", monospace;
+      font-size: 10px;
+      color: var(--faint);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+  </style>
+</head>
+<body>
+  <header class="masthead">
+    <div class="title-group">
+      <div class="eyebrow">Night habitat · warm intelligence</div>
+      <div class="wordmark">Lantern Garden</div>
+    </div>
+    <div class="top-right">
+      <nav class="design-nav" aria-label="Design themes">
+        <a href="constellation-forge.html">Forge</a>
+        <a href="tidal-archive.html">Archive</a>
+        <a href="foundry-glass.html">Foundry</a>
+        <a href="lantern-garden-v2.html" class="active" aria-current="page">Lantern</a>
+        <a href="vivarium.html">Vivarium</a>
+        <a href="grove.html">Grove</a>
+      </nav>
+      <div class="stat-pill" id="stat-pill">0 lanterns · 0 learnings</div>
+      <button class="btn" id="btn-new">+ New lantern</button>
+    </div>
+  </header>
+
+  <main class="scene">
+    <section class="lane" id="lane"></section>
+  </main>
+
+  <div class="drawer-backdrop" id="drawer-backdrop"></div>
+  <aside class="drawer" id="drawer" aria-hidden="true">
+    <div class="drawer-head">
+      <div class="drawer-title" id="drawer-title">—</div>
+      <button class="close" id="btn-close" aria-label="Close">×</button>
+    </div>
+    <div class="drawer-lede" id="drawer-lede"></div>
+    <div class="drawer-list" id="drawer-list"></div>
+    <div class="drawer-actions">
+      <button class="btn" id="btn-feed">Feed skill</button>
+      <button class="btn" id="btn-copy">Copy for workspace</button>
+    </div>
+  </aside>
+
+  <div class="hint">Open a lantern to read its notes · feed it to deepen the light</div>
+
+  <script src="state-manager.js"></script>
+  <script src="drawer-shared.js"></script>
+  <script src="ui-modals.js"></script>
+  <script>
+    const STAGE_NAMES = ['Spark', 'Kindle', 'Steady Flame', 'Guiding Light'];
+    const STAGE_LABELS = ['Stage 0', 'Stage 1', 'Stage 2', 'Stage 3'];
+    const SEED_AGENTS = [
+      { id:'designer',  name:'Designer',          color:'#c8b4ff', stage:2, xp:30,  status:'idle',    lede:'Shapes visual rhythm and keeps the habitat coherent.', specialization:['design','typography'], reliability:0.75, learnings:[], executionHistory:[] },
+      { id:'creative',  name:'Creative Director', color:'#ff9a4a', stage:3, xp:80,  status:'working', lede:'Tunes tone and naming so the interface feels human.', specialization:['writing','naming'], reliability:0.88, learnings:[], executionHistory:[] },
+      { id:'frontend',  name:'Frontend Designer', color:'#62ffc4', stage:3, xp:110, status:'idle',    lede:'Builds tactile motion and responsive interactions.', specialization:['design','coding'], reliability:0.91, learnings:[], executionHistory:[] },
+      { id:'qa',        name:'QA Tester',         color:'#ff8f82', stage:1, xp:10,  status:'idle',    lede:'Pressure-tests flows from first-time user perspective.', specialization:['testing'], reliability:0.60, learnings:[], executionHistory:[] },
+    ];
+    const hub = window.StateManager ? new window.StateManager(SEED_AGENTS) : null;
+    if (hub) window._agentHub = hub;
+
+    const lane = document.getElementById('lane');
+    const drawer = document.getElementById('drawer');
+    const backdrop = document.getElementById('drawer-backdrop');
+    const statPill = document.getElementById('stat-pill');
+    let selectedId = null;
+
+    function stageName(agent) {
+      return STAGE_NAMES[Math.min(agent.stage || 0, 3)];
+    }
+
+    function renderLane() {
+      const agents = hub.getAgents();
+      lane.innerHTML = '';
+      agents.forEach((a) => {
+        const st = Math.min(a.stage || 0, 3);
+        const rel = Math.round((a.reliability || 0.5) * 100);
+        const learnings = (a.learnings || []).length;
+        const glow = 36 + st * 18 + learnings * 2;
+
+        const card = document.createElement('article');
+        card.className = a.status === 'working' ? 'lantern-card working' : 'lantern-card';
+        card.dataset.id = a.id;
+
+        const halo = document.createElement('div');
+        halo.className = 'lantern-halo';
+        halo.style.width = `${glow}px`;
+        halo.style.height = `${glow}px`;
+
+        const safeColor = /^#?[0-9a-fA-F]{6}$/.test(String(a.color || '')) ? String(a.color).replace('#', '') : 'f3c677';
+        halo.style.background = `radial-gradient(circle, #${safeColor} 0%, transparent 70%)`;
+
+        const shape = document.createElement('div');
+        shape.className = 'lantern-shape';
+        shape.style.boxShadow = `inset 0 0 22px #${safeColor}`;
+
+        const stageEl = document.createElement('div');
+        stageEl.className = 'lantern-stage';
+        stageEl.textContent = `${stageName(a)} · ${STAGE_LABELS[st]}`;
+
+        const nameEl = document.createElement('div');
+        nameEl.className = 'lantern-name';
+        nameEl.textContent = a.name || 'Unnamed';
+
+        const metaEl = document.createElement('div');
+        metaEl.className = 'lantern-meta';
+        metaEl.textContent = `${a.xp || 0} XP · ${rel}% reliability · ${learnings} learnings`;
+
+        card.appendChild(halo);
+        card.appendChild(shape);
+        card.appendChild(stageEl);
+        card.appendChild(nameEl);
+        card.appendChild(metaEl);
+        card.addEventListener('click', () => openDrawer(a.id));
+        lane.appendChild(card);
+      });
+      updateStatPill();
+    }
+
+    function updateStatPill() {
+      const agents = hub.getAgents();
+      const total = agents.reduce((sum, a) => sum + (a.learnings || []).length, 0);
+      statPill.textContent = `${agents.length} lanterns · ${total} learnings`;
+    }
+
+    function openDrawer(agentId) {
+      selectedId = agentId;
+      const agent = hub.findAgent(agentId);
+      if (!agent) return;
+      document.getElementById('drawer-title').textContent = agent.name;
+      document.getElementById('drawer-lede').textContent = agent.lede || '';
+      if (window.AgentDrawerShared) {
+        window.AgentDrawerShared.renderLearnings(document.getElementById('drawer-list'), agentId, {
+          hub,
+          stageNames: STAGE_NAMES,
+          onChanged: () => openDrawer(agentId),
+        });
+      }
+      drawer.classList.add('open');
+      drawer.setAttribute('aria-hidden', 'false');
+      backdrop.style.visibility = 'visible';
+      backdrop.style.opacity = '1';
+    }
+
+    function closeDrawer() {
+      drawer.classList.remove('open');
+      drawer.setAttribute('aria-hidden', 'true');
+      backdrop.style.opacity = '0';
+      backdrop.style.visibility = 'hidden';
+    }
+
+    document.getElementById('btn-close').addEventListener('click', closeDrawer);
+    backdrop.addEventListener('click', closeDrawer);
+    document.getElementById('btn-feed').addEventListener('click', () => {
+      if (selectedId && window.AgentModals) window.AgentModals.openFeedModal(selectedId);
+    });
+    document.getElementById('btn-new').addEventListener('click', () => {
+      if (window.AgentModals) window.AgentModals.openCreateModal();
+    });
+    document.getElementById('btn-copy').addEventListener('click', () => {
+      const a = hub.findAgent(selectedId);
+      if (a && window.AgentDrawerShared) window.AgentDrawerShared.copyForWorkspace(a);
+    });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDrawer(); });
+
+    hub.on('learningAdded', ({ agentId, promoted, newStage }) => {
+      renderLane();
+      if (selectedId === agentId) openDrawer(agentId);
+      if (promoted && window.AgentDrawerShared) {
+        const a = hub.findAgent(agentId);
+        if (a) window.AgentDrawerShared.showToast(`${a.name} reached ${STAGE_NAMES[Math.min(newStage, 3)]}.`);
+      }
+    });
+    hub.on('learningRemoved', ({ agentId }) => {
+      renderLane();
+      if (selectedId === agentId) openDrawer(agentId);
+    });
+    hub.on('learningUpdated', ({ agentId }) => {
+      renderLane();
+      if (selectedId === agentId) openDrawer(agentId);
+    });
+    hub.on('agentAdded', ({ agent }) => {
+      renderLane();
+      openDrawer(agent.id);
+    });
+
+    renderLane();
+  </script>
+</body>
+</html>

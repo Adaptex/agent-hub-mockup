@@ -64,6 +64,44 @@
         text-align: center;
       }
       .agent-toast.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+      .agent-growth-summary {
+        margin-bottom: 10px;
+        padding: 10px;
+        border-radius: 8px;
+        border: 1px solid rgba(128,128,128,0.28);
+        background: rgba(255,255,255,0.02);
+      }
+      .agent-growth-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 10px;
+        letter-spacing: 0.06em;
+        margin-bottom: 4px;
+      }
+      .agent-growth-row strong { font-weight: 600; }
+      .agent-growth-track {
+        height: 4px;
+        border-radius: 999px;
+        background: rgba(255,255,255,0.08);
+        margin-bottom: 8px;
+        overflow: hidden;
+      }
+      .agent-growth-track > div {
+        height: 100%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, rgba(255,170,110,0.65), rgba(255,225,140,0.9));
+      }
+      .agent-growth-track-strength > div {
+        background: linear-gradient(90deg, rgba(125,185,255,0.6), rgba(168,228,255,0.95));
+      }
+      .agent-growth-note {
+        margin-top: 4px;
+        font-size: 10px;
+        opacity: 0.7;
+        line-height: 1.4;
+      }
     `;
     document.head.appendChild(s);
   }
@@ -84,6 +122,30 @@
     const xp = agent.xp ?? 0;
     const pct = st >= 3 ? 100 : Math.min(100, Math.round(((xp - floor) / Math.max(1, ceil - floor)) * 100));
     return { pct, floor, ceil, xp };
+  }
+
+  function stageName(agent, names) {
+    const idx = Math.min(agent.stage ?? 0, 3);
+    const fallback = ['Seed', 'Sprout', 'Bloom', 'Fruit'];
+    return (Array.isArray(names) ? names : fallback)[idx] || fallback[idx];
+  }
+
+  function renderGrowthSummary(container, agent, h, names) {
+    const xp = xpProgress(agent);
+    const rel = Math.round((agent.reliability ?? 0.5) * 100);
+    const strength = h && typeof h.getStrength === 'function' ? h.getStrength(agent) : 0;
+    const panel = document.createElement('div');
+    panel.className = 'agent-growth-summary';
+    panel.innerHTML = `
+      <div class="agent-growth-row"><span>Stage</span><strong>${stageName(agent, names)}</strong></div>
+      <div class="agent-growth-row"><span>Experience</span><strong>${xp.xp} XP</strong></div>
+      <div class="agent-growth-track"><div style="width:${xp.pct}%"></div></div>
+      <div class="agent-growth-row"><span>Strength</span><strong>${strength}%</strong></div>
+      <div class="agent-growth-track agent-growth-track-strength"><div style="width:${strength}%"></div></div>
+      <div class="agent-growth-row"><span>Reliability</span><strong>${rel}%</strong></div>
+      <div class="agent-growth-note">Each observation adds 10 XP. Evolution thresholds: 10 / 40 / 100.</div>
+    `;
+    container.appendChild(panel);
   }
 
   function showToast(msg) {
@@ -162,6 +224,9 @@
 
     container.innerHTML = '';
     if (!agent) return;
+    if (opts?.showSummary !== false) {
+      renderGrowthSummary(container, agent, h, opts?.stageNames);
+    }
 
     const ls = agent.learnings || [];
     if (!ls.length) {
@@ -213,7 +278,6 @@
       removeBtn.textContent = 'Remove';
       removeBtn.addEventListener('click', () => {
         if (!h) return;
-        if (!confirm('Remove this skill? XP will decrease by 10.')) return;
         h.removeLearning(agentId, learning.id);
         if (onChanged) onChanged();
       });
@@ -283,6 +347,7 @@
     copyForWorkspace,
     showToast,
     xpProgress,
+    stageName,
     buildWorkspaceMarkdown,
   };
 })();

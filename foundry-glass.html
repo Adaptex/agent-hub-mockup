@@ -156,6 +156,7 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg-v
     <a href="constellation-forge.html" class="header-nav-link">Forge</a>
     <a href="tidal-archive.html" class="header-nav-link">Archive</a>
     <a href="foundry-glass.html" class="header-nav-link active">Foundry</a>
+    <a href="lantern-garden-v2.html" class="header-nav-link">Lantern</a>
     <a href="vivarium.html" class="header-nav-link">Vivarium</a>
     <a href="grove.html" class="header-nav-link">Grove</a>
   </nav>
@@ -532,6 +533,7 @@ function renderPanel(agent) {
   // Status row
   const isWorking = agent.status === 'working';
   const rel = Math.round((agent.reliability||0.5)*100);
+  const strength = hub.getStrength ? hub.getStrength(agent) : 0;
   const floor = XP_THRESHOLDS[st];
   const ceil  = st < 3 ? XP_THRESHOLDS[st+1] : XP_THRESHOLDS[st]+50;
   const xpPct = st >= 3 ? 100 : Math.min(100, Math.round(((agent.xp-floor)/(ceil-floor))*100));
@@ -539,6 +541,7 @@ function renderPanel(agent) {
     `<span class="panel-stage-chip">${STAGE_NAMES[st]}</span>
      <span class="panel-status-dot panel-status-${isWorking?'working':'idle'}"></span>
      <span style="font-size:11px;color:var(--text-faint)">${isWorking?'working':'idle'}</span>
+     <span class="panel-xp-val">STR ${strength}%</span>
      <span class="panel-xp-val">${agent.xp} XP · ${xpPct}% to next</span>`;
 
   // Clarity
@@ -558,6 +561,7 @@ function renderPanel(agent) {
       rowClass: 'panel-learning',
       partClass: 'panel-learning-meta',
       quoteClass: 'panel-learning-quote',
+      showSummary: false,
       onChanged: () => { const a = hub.findAgent(agent.id); if (a) renderPanel(a); },
     });
     learnEl.querySelectorAll('.panel-learning').forEach((row) => { row.style.borderLeftColor = hex; });

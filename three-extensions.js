@@ -58,6 +58,16 @@
     mesh.userData.shards.push(shard);
   }
 
+  function removeShardFromMesh(mesh, group) {
+    const shards = mesh.userData.shards || [];
+    if (!shards.length) return;
+    const shard = shards.pop();
+    if (!shard) return;
+    group.remove(shard);
+    if (shard.geometry) shard.geometry.dispose();
+    if (shard.material) shard.material.dispose();
+  }
+
   /* Update emissive intensity and ring opacity to reflect new stage */
   function updateStageVisuals(mesh, agent, prefersReducedMotion) {
     const stage = agent.stage || 0;
@@ -82,7 +92,7 @@
         if (!ring.userData.baseSpin) ring.userData.baseSpin = ring.userData.spin;
         ring.userData.spin = ring.userData.baseSpin * 3;
         setTimeout(() => {
-          if (ring.parentNode !== undefined) ring.userData.spin = ring.userData.baseSpin;
+          if (ring.parent) ring.userData.spin = ring.userData.baseSpin;
         }, 800);
       }
     }
@@ -107,6 +117,7 @@
   window._threeExt = {
     animateSkillAbsorb,
     addShardToMesh,
+    removeShardFromMesh,
     updateStageVisuals,
     pulseFlashAt,
     MAX_SHARDS,

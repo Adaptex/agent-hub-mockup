@@ -367,6 +367,7 @@
       flex-direction: column;
       padding: 28px 24px 36px;
       backdrop-filter: blur(20px);
+      overflow: hidden;
     }
     .drawer.open {
       transform: translateX(0);
@@ -553,8 +554,17 @@
       display: flex;
       gap: 8px;
       flex-wrap: wrap;
+      position: sticky;
+      bottom: 0;
+      background: rgba(8, 11, 17, 0.92);
     }
     .drawer-footer .btn { flex: 1; text-align: center; min-width: 80px; }
+    #drawer-body {
+      flex: 1;
+      min-height: 0;
+      overflow: auto;
+      padding-right: 4px;
+    }
 
     #pulse-flash {
       pointer-events: none;
@@ -616,6 +626,7 @@
           <a href="constellation-forge.html" class="design-nav-link active">Forge</a>
           <a href="tidal-archive.html" class="design-nav-link">Archive</a>
           <a href="foundry-glass.html" class="design-nav-link">Foundry</a>
+          <a href="lantern-garden-v2.html" class="design-nav-link">Lantern</a>
           <a href="vivarium.html" class="design-nav-link">Vivarium</a>
           <a href="grove.html" class="design-nav-link">Grove</a>
         </nav>
@@ -803,7 +814,16 @@
       const a = hub.findAgent(agentId);
       if (a && ext) {
         const mesh = meshes.find((m) => m.userData.agentId === agentId);
-        if (mesh) ext.updateStageVisuals(mesh, a, prefersReducedMotion);
+        if (mesh) {
+          ext.updateStageVisuals(mesh, a, prefersReducedMotion);
+          const targetShards = Math.min(
+            ext.MAX_SHARDS,
+            ext.BASE_SHARD_COUNT + (a.learnings?.length || 0)
+          );
+          while ((mesh.userData.shards?.length || 0) > targetShards) {
+            ext.removeShardFromMesh(mesh, group);
+          }
+        }
       }
       if (selectedId === agentId && drawer.classList.contains("open") && a) renderDrawer(a);
     });
@@ -1189,6 +1209,15 @@
       return window.StateManager.timeAgo(ts);
     }
 
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
     function renderDrawer(a) {
       const stages = ["Seed", "Sprout", "Bloom", "Fruit"];
       const st = Math.min(a.stage, stages.length - 1);
@@ -1200,20 +1229,23 @@
         .join("")}</div>`;
 
       const learnCount = a.learnings.length;
-      const xpInfo = window.AgentDrawerShared
-        ? window.AgentDrawerShared.xpProgress(a)
-        : { pct: Math.min(100, Math.round((a.xp / 150) * 100)), xp: a.xp };
+      const xpInfo = window.AgentDrawerShared.xpProgress(a);
       const relPct = Math.round((a.reliability ?? 0.5) * 100);
+      const strength = hub.getStrength ? hub.getStrength(a) : 0;
+      const safeStatus = escapeHtml(a.status);
+      const safeName = escapeHtml(a.name);
+      const safeLede = escapeHtml(a.lede);
 
       drawerBody.innerHTML = `
-        <div class="d-eyebrow">Specimen &middot; ${a.status}</div>
-        <h2 class="d-name">${a.name}</h2>
+        <div class="d-eyebrow">Specimen &middot; ${safeStatus}</div>
+        <h2 class="d-name">${safeName}</h2>
         <div class="d-meta">${learnCount} learning${learnCount !== 1 ? "s" : ""} &middot; forge stage ${Math.min(a.stage, 3) + 1} of 4</div>
         <div class="d-stat-label"><span>Experience</span><span>${xpInfo.xp} XP</span></div>
         <div class="d-xp" title="${a.xp} XP"><div class="d-xp-bar" style="width:${xpInfo.pct}%"></div></div>
+        <div class="d-stat-label"><span>Strength</span><span>${strength}%</span></div>
         <div class="d-stat-label"><span>Reliability</span><span>${relPct}%</span></div>
         <div class="d-rel"><div class="d-rel-bar" style="width:${relPct}%"></div></div>
-        <p class="d-lede">${a.lede}</p>
+        <p class="d-lede">${safeLede}</p>
         ${evo}
         <div class="learnings" id="drawer-learnings"></div>
       `;
@@ -1221,7 +1253,7 @@
         window.AgentDrawerShared.renderLearnings(
           document.getElementById("drawer-learnings"),
           a.id,
-          { hub, onChanged: () => { const fresh = hub.findAgent(a.id); if (fresh) renderDrawer(fresh); } }
+          { hub, showSummary: false, onChanged: () => { const fresh = hub.findAgent(a.id); if (fresh) renderDrawer(fresh); } }
         );
       }
       drawer.classList.add("open");

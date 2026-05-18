@@ -91,6 +91,7 @@
       agent.learnings.push(learning);
       const xpGain = 10;
       agent.xp += xpGain;
+      agent.reliability = Math.min(1, (agent.reliability ?? 0.5) + 0.02);
       const prevStage = agent.stage;
       agent.stage = calcStage(agent.xp);
       const promoted = agent.stage > prevStage;
@@ -129,6 +130,21 @@
 
     getActiveCount() {
       return this._agents.filter((a) => a.status === 'working').length;
+    }
+
+    getStrength(agentLike) {
+      const agent = typeof agentLike === 'string' ? this.findAgent(agentLike) : agentLike;
+      if (!agent) return 0;
+      const stageRaw = Number(agent.stage);
+      const st = Number.isFinite(stageRaw) ? Math.max(0, Math.min(stageRaw, 3)) : 0;
+      const base = [15, 35, 60, 85][st];
+      const breadth = Math.min((agent.learnings?.length ?? 0) * 3, 15);
+      const relRaw = Number(agent.reliability);
+      const relNorm = Number.isFinite(relRaw) ? Math.max(0, Math.min(1, relRaw)) : 0.5;
+      const rel = Math.round(relNorm * 10);
+      const total = base + breadth + rel;
+      if (!Number.isFinite(total)) return 0;
+      return Math.max(0, Math.min(100, total));
     }
 
     on(event, cb) {
@@ -170,7 +186,7 @@
       if (idx < 0) return null;
       const removed = agent.learnings.splice(idx, 1)[0];
       const prevStage = agent.stage;
-      agent.xp = Math.max(0, agent.xp - 10);
+      agent.xp = Math.max(0, (agent.learnings?.length ?? 0) * 10);
       agent.stage = calcStage(agent.xp);
       const demoted = agent.stage < prevStage;
       this._save();
