@@ -240,10 +240,27 @@ may be missing fields expected by another. Always use safe fallbacks:
 | Priority | Item |
 |---|---|
 | High | Deep visual redesign pass for Vivarium + Grove (art direction currently in progress) |
-| Medium | Track B Phase B1 — "Neural Mesh" design (new concept, not started) |
+| High | Track B Phase B1 — Build `neural-mesh.html` (design specced, ready to implement) |
 | Medium | Design B2 — second new Track B design (TBD by creative-director) |
 | Low | Phase A4 — Next.js backend skeleton + Supabase schema |
 | Low | Design toggle selector (localStorage-persisted, visible across all pages) |
+
+## Neural Mesh — Design Decisions (Session 6)
+
+Approach: **A — Upfront configurator**. First-run card-picker (4 screens) saves to localStorage,
+mesh renders with chosen settings. Revisitable via settings button.
+
+All 4 choices have real rendering differences (not cosmetic):
+
+| Choice | Options |
+|---|---|
+| Layout | Radial orbit / Free-floating / Force-directed |
+| Growth mechanic | Orbiting motes / Pulse & grow / New tendrils |
+| Stage progression | Size + colour / Size only / Colour only |
+| Palette | Synaptic violet / Technical cyan / Cyberpunk neon |
+
+**Stack**: Three.js 0.169.0 (importmap ESM), GSAP 3.12.2 CDN
+**File**: `neural-mesh.html`
 
 ---
 
