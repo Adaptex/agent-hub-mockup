@@ -10,16 +10,17 @@
 <style>
 /* ── TOKENS ──────────────────────────────────────────────────────────────── */
 :root {
-  --bg: #080f08;
-  --surface: #111c11;
-  --accent: #7eff9a;
-  --accent-dim: rgba(126,255,154,0.22);
-  --accent-glow: rgba(126,255,154,0.08);
-  --text: #f0ebe0;
-  --text-dim: rgba(240,235,224,0.55);
-  --text-mute: rgba(240,235,224,0.30);
-  --border: rgba(126,255,154,0.10);
-  --border-mid: rgba(126,255,154,0.22);
+  --bg: #03060a;
+  --surface: rgba(8,14,24,0.66);
+  --accent: #79f7d4;
+  --accent-2: #b28cff;
+  --accent-dim: rgba(121,247,212,0.30);
+  --accent-glow: rgba(121,247,212,0.14);
+  --text: #f3f6ff;
+  --text-dim: rgba(243,246,255,0.70);
+  --text-mute: rgba(243,246,255,0.44);
+  --border: rgba(121,247,212,0.20);
+  --border-mid: rgba(121,247,212,0.36);
   --ff-serif: 'EB Garamond', Georgia, serif;
   --ff-body: 'Lora', Georgia, serif;
   --ff-mono: 'JetBrains Mono', 'Courier New', monospace;
@@ -34,67 +35,78 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg);
 
 /* ── MASTHEAD ──────────────────────────────────────────────────────────── */
 .masthead {
-  position: fixed; inset-block-start: 0; inset-inline: 0; z-index: var(--z-masthead);
-  height: 56px; padding: 0 24px;
-  display: flex; align-items: center; justify-content: space-between; gap: 16px;
-  background: rgba(8,15,8,0.74); backdrop-filter: blur(12px) saturate(1.4);
-  -webkit-backdrop-filter: blur(12px) saturate(1.4);
-  border-bottom: 1px solid var(--border);
+  position: fixed; top: 18px; left: 18px; z-index: var(--z-masthead);
+  width: min(350px, calc(100vw - 36px)); padding: 16px 16px 14px;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 12px;
+  background: linear-gradient(160deg, rgba(6,12,24,0.84), rgba(10,18,34,0.62));
+  backdrop-filter: blur(16px) saturate(1.24);
+  -webkit-backdrop-filter: blur(16px) saturate(1.24);
+  border: 1px solid rgba(121,247,212,0.24);
+  border-radius: 20px;
+  box-shadow: 0 20px 54px rgba(0,0,0,0.44);
 }
 .masthead__left { display: flex; flex-direction: column; gap: 1px; flex-shrink: 0; }
 .masthead__eyebrow { font-family: var(--ff-mono); font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(126,255,154,0.50); }
-.masthead__wordmark { font-family: var(--ff-serif); font-weight: 700; font-size: 20px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text); line-height: 1; }
-.masthead__right { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
-.design-nav { display: flex; align-items: center; gap: 18px; }
-.design-nav a { font-family: var(--ff-mono); font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-dim); text-decoration: none; transition: color 0.18s; }
+.masthead__wordmark { font-family: var(--ff-serif); font-weight: 700; font-size: 24px; letter-spacing: 0.10em; text-transform: uppercase; color: var(--text); line-height: 1; text-shadow: 0 0 22px rgba(121,247,212,0.20); }
+.masthead__right { display: flex; flex-direction: column; align-items: stretch; gap: 10px; width: 100%; }
+.design-nav { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; width: 100%; }
+.design-nav a { font-family: var(--ff-mono); font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-dim); text-decoration: none; transition: color 0.18s; text-align: center; padding: 7px 6px; border: 1px solid rgba(121,247,212,0.18); border-radius: 6px; background: rgba(10,20,36,0.46); }
 .design-nav a:hover { color: var(--text); }
 .design-nav a.active { color: var(--accent); }
 .stat-pill {
-  display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px;
-  background: var(--accent-glow); border: 1px solid var(--accent-dim); border-radius: 2px;
-  font-family: var(--ff-mono); font-size: 9px; letter-spacing: 0.10em; text-transform: uppercase; color: var(--accent); white-space: nowrap;
+  display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px;
+  background: rgba(12,20,34,0.58); border: 1px solid var(--accent-dim); border-radius: 999px;
+  font-family: var(--ff-mono); font-size: 9px; letter-spacing: 0.10em; text-transform: uppercase; color: var(--accent); white-space: nowrap; width: 100%; justify-content: center;
 }
 .stat-pill::before { content: ''; display: block; width: 5px; height: 5px; border-radius: 50%; background: var(--accent); }
 .btn-viv {
-  height: 32px; padding: 0 12px; background: transparent; border: 1px solid rgba(240,235,224,0.14);
-  border-radius: 2px; cursor: pointer; font-family: var(--ff-mono); font-size: 9px;
-  letter-spacing: 0.10em; text-transform: uppercase; color: var(--text-dim);
+  height: 34px; padding: 0 12px; background: rgba(13,24,38,0.58); border: 1px solid rgba(240,235,224,0.14);
+  border-radius: 2px; cursor: pointer; font-family: var(--ff-mono); font-size: 10.5px;
+  letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-dim);
   transition: border-color 0.18s, color 0.18s; white-space: nowrap;
 }
+.viv-actions { display: grid; grid-template-columns: 1fr; gap: 8px; }
 .btn-viv:hover { border-color: var(--accent-dim); color: var(--text); }
 .btn-viv.primary { border-color: var(--accent-dim); color: var(--accent); }
 .btn-viv.primary:hover { background: var(--accent-glow); }
 .masthead__lede { font-family: var(--ff-body); font-size: 12px; font-style: italic; color: var(--text-mute); line-height: 1.4; max-width: 340px; display: none; }
 .masthead__hint {
-  position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
+  position: fixed; bottom: 18px; right: 22px;
   font-family: var(--ff-mono); font-size: 9px; letter-spacing: 0.10em;
-  color: var(--text-mute); text-transform: uppercase; pointer-events: none; z-index: var(--z-masthead);
+  color: var(--text-mute); text-transform: uppercase; pointer-events: none; z-index: var(--z-masthead); max-width: 420px; text-align: right;
+}
+.focus-chip {
+  position: fixed; top: 24px; right: 24px; z-index: var(--z-masthead);
+  font-family: var(--ff-mono); font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--accent); border: 1px solid rgba(121,247,212,0.26); border-radius: 999px;
+  background: rgba(9,18,32,0.66); padding: 8px 12px; pointer-events: none;
 }
 
 /* ── CREATURE LABELS ───────────────────────────────────────────────────── */
 #vivarium-labels { position: fixed; inset: 0; z-index: var(--z-labels); pointer-events: none; overflow: hidden; }
 .creature-label {
   position: absolute; top: 0; left: 0; will-change: transform, opacity;
-  font-family: var(--ff-mono); font-size: 9px; letter-spacing: 0.10em; text-transform: uppercase;
-  color: rgba(240,235,224,0.80); white-space: nowrap;
-  padding: 3px 7px; background: rgba(8,15,8,0.72); border: 1px solid rgba(126,255,154,0.18);
-  border-radius: 1px; pointer-events: none;
+  font-family: var(--ff-mono); font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase;
+  color: rgba(243,246,255,0.82); white-space: nowrap;
+  padding: 4px 10px; background: rgba(8,14,24,0.84); border: 1px solid rgba(121,247,212,0.28);
+  border-radius: 3px; pointer-events: none; box-shadow: 0 8px 26px rgba(0,0,0,0.34);
 }
 
 /* ── DRAWER ────────────────────────────────────────────────────────────── */
 .drawer-backdrop { position: fixed; inset: 0; z-index: var(--z-backdrop); background: rgba(0,0,0,0); pointer-events: none; visibility: hidden; }
 .drawer {
-  position: fixed; inset-block: 0; inset-inline-end: 0; z-index: var(--z-drawer);
-  width: 380px; max-width: 100vw; overflow: hidden;
-  background: var(--surface); border-left: 1px solid var(--border);
+  position: fixed; left: 50%; bottom: 26px; z-index: var(--z-drawer);
+  width: min(760px, calc(100vw - 34px)); max-height: min(78vh, 760px); overflow: hidden;
+  background: var(--surface); border-left: 1px solid rgba(121,247,212,0.20);
   display: flex; flex-direction: column;
-  transform: translateX(100%); will-change: transform;
+  border: 1px solid rgba(121,247,212,0.26); border-radius: 16px;
+  transform: translate(-50%,120%); will-change: transform;
 }
-.drawer__band { position: relative; height: 120px; flex-shrink: 0; background: var(--agent-color, var(--accent)); }
+.drawer__band { position: relative; height: 132px; flex-shrink: 0; background: var(--agent-color, var(--accent)); }
 .drawer__band::after {
   content: ''; position: absolute; inset: 0;
-  background: rgba(8,15,8,0.40); backdrop-filter: blur(6px) saturate(0.7);
-  -webkit-backdrop-filter: blur(6px) saturate(0.7);
+  background: linear-gradient(180deg, rgba(8,14,24,0.34), rgba(8,14,24,0.72)); backdrop-filter: blur(8px) saturate(1.2);
+  -webkit-backdrop-filter: blur(8px) saturate(1.2);
 }
 .drawer__creature-name {
   position: absolute; inset: 0; z-index: 1;
@@ -124,10 +136,10 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg);
 }
 .drawer__body::-webkit-scrollbar { width: 3px; }
 .drawer__body::-webkit-scrollbar-thumb { background: var(--accent-dim); border-radius: 0; }
-.drawer__section { font-family: var(--ff-mono); font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-mute); margin-bottom: 8px; margin-top: 16px; }
+.drawer__section { font-family: var(--ff-mono); font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-mute); margin-bottom: 8px; margin-top: 16px; }
 .drawer__section:first-child { margin-top: 0; }
 .drawer__lede { font-family: var(--ff-body); font-size: 13px; line-height: 1.55; color: var(--text-dim); font-style: italic; margin-bottom: 12px; }
-.stat-label { display: flex; justify-content: space-between; font-family: var(--ff-mono); font-size: 9px; letter-spacing: 0.10em; text-transform: uppercase; color: var(--text-mute); margin-bottom: 6px; }
+.stat-label { display: flex; justify-content: space-between; font-family: var(--ff-mono); font-size: 10px; letter-spacing: 0.10em; text-transform: uppercase; color: var(--text-mute); margin-bottom: 6px; }
 .stat-label span:last-child { color: rgba(240,235,224,0.70); font-weight: 500; }
 .bar-track { height: 3px; background: rgba(240,235,224,0.07); margin-bottom: 16px; overflow: hidden; }
 .bar-fill { height: 100%; background: var(--accent); transition: width 0.6s cubic-bezier(0.22,1,0.36,1); }
@@ -137,7 +149,7 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg);
 .learning-item .part { font-family: var(--ff-mono); font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); display: block; margin-bottom: 2px; }
 .learning-item .learn-when { display: block; font-family: var(--ff-mono); font-size: 8px; color: var(--text-mute); margin-top: 4px; }
 .learning-item .learn-row-actions { margin-top: 6px; }
-.drawer__footer { flex-shrink: 0; padding: 12px 24px 20px; border-top: 1px solid var(--border); background: var(--surface); }
+.drawer__footer { flex-shrink: 0; padding: 12px 24px 20px; border-top: 1px solid var(--border); background: linear-gradient(180deg, rgba(8,14,24,0.72), rgba(8,14,24,0.96)); }
 .drawer__feed-btn { width: 100%; height: 40px; background: transparent; border: 1px solid var(--accent-dim); border-radius: 2px; cursor: pointer; font-family: var(--ff-mono); font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); transition: background 0.18s, border-color 0.18s; }
 .drawer__feed-btn:hover { background: var(--accent-glow); border-color: rgba(126,255,154,0.50); }
 .drawer__copy-btn { margin-top: 8px; opacity: 0.85; }
@@ -151,16 +163,19 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg);
 }
 .evolved-overlay::before {
   content: ''; position: absolute; inset: 0; pointer-events: none;
-  background: radial-gradient(ellipse 55% 45% at 50% 50%, rgba(126,255,154,0.05) 0%, transparent 70%);
+  background: radial-gradient(ellipse 55% 45% at 50% 50%, rgba(178,140,255,0.10) 0%, transparent 70%);
 }
-.evolved-overlay__name { font-family: var(--ff-serif); font-weight: 700; font-size: clamp(44px, 7vw, 68px); line-height: 1; letter-spacing: 0.01em; color: var(--text); text-align: center; }
-.evolved-overlay__tag { font-family: var(--ff-mono); font-size: 12px; letter-spacing: 0.30em; text-transform: uppercase; color: var(--accent); text-align: center; }
+.evolved-overlay__name { font-family: var(--ff-serif); font-weight: 700; font-size: clamp(50px, 7vw, 78px); line-height: 1; letter-spacing: 0.01em; color: var(--text); text-align: center; text-shadow: 0 0 24px rgba(121,247,212,0.26); }
+.evolved-overlay__tag { font-family: var(--ff-body); font-size: 15px; letter-spacing: 0.04em; color: var(--accent); text-align: center; font-style: italic; }
 .evolved-overlay__stage { font-family: var(--ff-mono); font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-mute); margin-top: 4px; text-align: center; max-width: 360px; line-height: 1.6; }
 
 /* ── MOBILE ────────────────────────────────────────────────────────────── */
 @media (max-width: 600px) {
+  .masthead { top: 8px; left: 8px; width: calc(100vw - 16px); }
   .design-nav { display: none; }
-  .drawer { inset-block-start: auto; inset-block-end: 0; inset-inline: 0; width: 100%; height: 60vh; border-left: none; border-top: 1px solid var(--border); border-radius: 12px 12px 0 0; transform: translateY(100%); }
+  .focus-chip { display: none; }
+  .masthead__hint { left: 12px; right: 12px; bottom: 8px; text-align: center; max-width: none; }
+  .drawer { left: 0; bottom: 0; width: 100%; border-left: none; border-top: 1px solid var(--border); border-radius: 14px 14px 0 0; transform: translateY(100%); }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
 </style>
@@ -185,11 +200,14 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg);
       <a href="grove.html">Grove</a>
     </nav>
     <div class="stat-pill" id="stat-pill">0 specimens · 0 field notes</div>
-    <button class="btn-viv primary" id="btn-observe">Begin Observation</button>
-    <button class="btn-viv" id="btn-add-agent">+ Introduce Specimen</button>
+    <div class="viv-actions">
+      <button class="btn-viv primary" id="btn-observe">Open Nursery</button>
+      <button class="btn-viv" id="btn-add-agent">+ Introduce Specimen</button>
+    </div>
   </div>
 </header>
-<p class="masthead__hint" aria-hidden="true">Click a specimen to open its ledger · Drag to pan · Creatures grow when fed</p>
+<p class="masthead__hint" aria-hidden="true">Select a specimen to open its record · Feed one insight and watch form respond</p>
+<div class="focus-chip" id="focus-chip">Focus: none selected</div>
 
 <div class="drawer-backdrop" id="drawer-backdrop" aria-hidden="true"></div>
 <aside class="drawer" id="agent-drawer" role="complementary" aria-label="Creature detail" aria-hidden="true">
@@ -199,30 +217,30 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg);
     <button class="close-drawer" id="btn-close-drawer" aria-label="Close">×</button>
   </div>
   <div class="drawer__body">
-    <div class="drawer__section">Specimen Record</div>
+    <div class="drawer__section">Living Record</div>
     <p class="drawer__lede" id="drawer-lede"></p>
-    <button type="button" class="drawer__feed-btn" id="btn-feed-inline">Add Observation</button>
-    <div class="drawer__section">Developmental Stage</div>
+    <button type="button" class="drawer__feed-btn" id="btn-feed-inline">Offer Insight</button>
+    <div class="drawer__section">Current Form</div>
     <div class="stat-label"><span>Experience</span><span id="xp-label">0 / 10 XP</span></div>
     <div class="bar-track"><div class="bar-fill xp" id="xp-bar" style="width:0%"></div></div>
     <div class="stat-label"><span>Reliability</span><span id="rel-label">50%</span></div>
     <div class="bar-track"><div class="bar-fill" id="rel-bar" style="width:50%"></div></div>
     <div class="stat-label"><span>Strength</span><span id="str-label">0%</span></div>
     <div class="bar-track"><div class="bar-fill" id="str-bar" style="width:0%"></div></div>
-    <div class="drawer__section">Field Notes</div>
+    <div class="drawer__section">Observations</div>
     <ul class="learning-list" id="learning-list">
       <li class="learning-item" style="color:var(--text-mute);font-style:italic">No observations recorded yet.</li>
     </ul>
   </div>
   <div class="drawer__footer">
-    <button type="button" class="drawer__feed-btn" id="btn-feed-skill">Add Observation</button>
+    <button type="button" class="drawer__feed-btn" id="btn-feed-skill">Offer Insight</button>
     <button type="button" class="drawer__feed-btn drawer__copy-btn" id="btn-copy-workspace">Copy for workspace</button>
   </div>
 </aside>
 
 <div class="evolved-overlay" id="evolved-overlay" aria-live="assertive" aria-atomic="true">
   <div class="evolved-overlay__name" id="evo-name">—</div>
-  <div class="evolved-overlay__tag">Classification updated.</div>
+  <div class="evolved-overlay__tag">Instinct has become grace.</div>
   <div class="evolved-overlay__stage" id="evo-stage">—</div>
 </div>
 
@@ -242,10 +260,10 @@ import { applyCreatureCharm, tickCreatureBlink } from './vivarium-creatures.js';
 import { spawnFeedMotes } from './vivarium-effects.js';
 
 /* ── CONSTANTS ─────────────────────────────────────────────────────────── */
-const STAGE_NAMES  = ['Still','Stirring','Awakened','Settled'];
+const STAGE_NAMES  = ['First Stir','Keenheart','Wildcrest','Starforged'];
 const EVO_STAGE_COPY = {
-  evolving: 'A shift in form. Note the hour.',
-  established: 'Form settled. Temperament clear.'
+  evolving: 'Growth has chosen its next shape.',
+  established: 'What was tender now stands luminous.'
 };
 const STAGE_XP_MAX = [10, 40, 100, 150];
 const CREATURE_NAMES = [
@@ -285,26 +303,29 @@ renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-renderer.setClearColor(0x080f08);
+renderer.setClearColor(0x03060a);
 
 const scene = new THREE.Scene();
-scene.fog   = new THREE.FogExp2(0x0a140a, 0.034);
+scene.fog   = new THREE.FogExp2(0x0b1220, 0.022);
 
-const camera = new THREE.PerspectiveCamera(48, innerWidth / innerHeight, 0.1, 100);
-camera.position.set(0, 4.5, 11);
-camera.lookAt(0, 0.5, 0);
+const camera = new THREE.PerspectiveCamera(42, innerWidth / innerHeight, 0.1, 140);
+camera.position.set(0, 5.6, 12.8);
+camera.lookAt(0, 1.1, 0);
 let camTargetX = 0;
 const vivariumRenderer = createVivariumRenderer(renderer, scene, camera, reducedMotion);
 
 /* ── LIGHTS ─────────────────────────────────────────────────────────────── */
-scene.add(new THREE.HemisphereLight(0xfff4e0, 0x1a2e0a, 0.55));
-const sun = new THREE.DirectionalLight(0xc8d8ff, 0.32);
+scene.add(new THREE.HemisphereLight(0x8fd3ff, 0x0b1320, 0.42));
+const sun = new THREE.DirectionalLight(0x9fe7ff, 0.70);
 sun.position.set(5, 10, 4);
 sun.castShadow = true;
-sun.shadow.mapSize.set(1024, 1024);
+sun.shadow.mapSize.set(1536, 1536);
 Object.assign(sun.shadow.camera, { near:0.5, far:40, left:-12, right:12, top:8, bottom:-8 });
 sun.shadow.bias = -0.001;
 scene.add(sun);
+const rim = new THREE.DirectionalLight(0xc29bff, 0.38);
+rim.position.set(-7, 5, -6);
+scene.add(rim);
 
 /* ── GROUND ─────────────────────────────────────────────────────────────── */
 const GVERT = `varying vec3 vP;void main(){vP=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`;
@@ -313,8 +334,15 @@ float h2(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
 float n2(vec2 p){vec2 i=floor(p);vec2 f=fract(p);f=f*f*(3.0-2.0*f);
   return mix(mix(h2(i),h2(i+vec2(1,0)),f.x),mix(h2(i+vec2(0,1)),h2(i+vec2(1,1)),f.x),f.y);}
 void main(){
-  float n=n2(vP.xz*1.6)*0.5+n2(vP.xz*3.4)*0.3+n2(vP.xz*7.0)*0.2;
-  gl_FragColor=vec4(mix(vec3(0.038,0.092,0.030),vec3(0.072,0.158,0.052),n),1.0);}`;
+  float n=n2(vP.xz*0.9)*0.45+n2(vP.xz*2.8)*0.35+n2(vP.xz*6.4)*0.20;
+  float veins=abs(sin(vP.x*0.55)+cos(vP.z*0.52))*0.28;
+  vec3 c0=vec3(0.030,0.052,0.090);
+  vec3 c1=vec3(0.070,0.132,0.190);
+  vec3 c2=vec3(0.160,0.128,0.280);
+  vec3 col=mix(c0,c1,n);
+  col=mix(col,c2,veins*0.45);
+  gl_FragColor=vec4(col,1.0);
+}`;
 const ground = new THREE.Mesh(
   new THREE.PlaneGeometry(30,20),
   new THREE.ShaderMaterial({ vertexShader:GVERT, fragmentShader:GFRAG })
@@ -324,30 +352,49 @@ ground.receiveShadow = true;
 scene.add(ground);
 
 /* ── FIREFLIES ──────────────────────────────────────────────────────────── */
-const FF = 60;
-const ffPos = new Float32Array(FF*3);
-const ffPh  = new Float32Array(FF);
-for (let i=0;i<FF;i++){
-  ffPos[i*3]=   (Math.random()-.5)*24;
-  ffPos[i*3+1]= Math.random()*3+0.3;
-  ffPos[i*3+2]= (Math.random()-.5)*14;
-  ffPh[i]= Math.random()*Math.PI*2;
-}
-const ffGeo = new THREE.BufferGeometry();
-ffGeo.setAttribute('position', new THREE.BufferAttribute(ffPos,3));
-const ffMat = new THREE.PointsMaterial({ color:0x9eff7a, size:0.06, transparent:true, opacity:0.7 });
-scene.add(new THREE.Points(ffGeo, ffMat));
+const SPORE_BANDS = [
+  { count: 180, color: 0x79f7d4, size: 0.028, opacity: 0.42, yMin: 0.4, yMax: 4.8, drift: 0.0017 },
+  { count: 80, color: 0xb28cff, size: 0.058, opacity: 0.34, yMin: 0.6, yMax: 4.2, drift: 0.0022 },
+  { count: 20, color: 0xf3f6ff, size: 0.10, opacity: 0.65, yMin: 1.2, yMax: 5.3, drift: 0.0014 }
+];
+const sporeBands = SPORE_BANDS.map((cfg) => {
+  const pos = new Float32Array(cfg.count * 3);
+  const ph = new Float32Array(cfg.count);
+  for (let i = 0; i < cfg.count; i += 1) {
+    pos[i * 3] = (Math.random() - 0.5) * 30;
+    pos[i * 3 + 1] = cfg.yMin + Math.random() * (cfg.yMax - cfg.yMin);
+    pos[i * 3 + 2] = (Math.random() - 0.5) * 18;
+    ph[i] = Math.random() * Math.PI * 2;
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  const mat = new THREE.PointsMaterial({ color: cfg.color, size: cfg.size, transparent: true, opacity: cfg.opacity, depthWrite: false });
+  const pts = new THREE.Points(geo, mat);
+  scene.add(pts);
+  return { cfg, geo, mat, ph };
+});
 
 /* ── BACKGROUND TREES ──────────────────────────────────────────────────── */
-[-9,-5,0,5,9].forEach((x,i)=>{
-  const h = 2.5+Math.sin(i*2.3)*0.8;
-  const z = -6-Math.abs(Math.sin(i))*2;
-  const tmat = new THREE.MeshBasicMaterial({color:0x040a04});
-  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.09,h,5),tmat);
-  trunk.position.set(x,h/2,z); scene.add(trunk);
-  const fol = new THREE.Mesh(new THREE.ConeGeometry(0.7+Math.sin(i)*0.2,1.8,6),tmat);
-  fol.position.set(x,h+0.7,z); scene.add(fol);
-});
+for (let i = 0; i < 9; i += 1) {
+  const x = -12 + i * 3;
+  const h = 2.2 + Math.sin(i * 1.2) * 1.1;
+  const z = -6.8 - (i % 2) * 0.7;
+  const arch = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.06, 0.12, h, 7),
+    new THREE.MeshStandardMaterial({ color: 0x0a0f1c, roughness: 0.86, metalness: 0.06 })
+  );
+  arch.position.set(x, h / 2, z);
+  scene.add(arch);
+}
+for (let i = 0; i < 11; i += 1) {
+  const crystal = new THREE.Mesh(
+    new THREE.OctahedronGeometry(0.18 + Math.random() * 0.16, 0),
+    new THREE.MeshStandardMaterial({ color: i % 2 ? 0x79f7d4 : 0xb28cff, emissive: i % 2 ? 0x79f7d4 : 0xb28cff, emissiveIntensity: 0.18, roughness: 0.22, metalness: 0.35 })
+  );
+  crystal.position.set((Math.random() - 0.5) * 18, 0.22 + Math.random() * 1.5, -2.0 - Math.random() * 8.0);
+  crystal.rotation.set(Math.random() * 0.6, Math.random() * Math.PI, Math.random() * 0.6);
+  scene.add(crystal);
+}
 
 /* ── CREATURE BUILDER ───────────────────────────────────────────────────── */
 function buildCreature(agent) {
@@ -363,28 +410,35 @@ function buildCreature(agent) {
   sh.rotation.x=-Math.PI/2; sh.position.y=0.012; g.add(sh);
 
   if (stage===0) {
-    const emat = new THREE.MeshStandardMaterial({color,roughness:0.55,metalness:0.08,emissive:color,emissiveIntensity:0.08});
-    const egg = new THREE.Mesh(new THREE.SphereGeometry(0.35,18,14),emat);
-    egg.scale.y=1.28; egg.position.y=0.44; egg.castShadow=true;
-    g.add(egg); g.userData.egg=egg;
-    for(let s=0;s<5;s++){
-      const a=s*1.26;
-      const sp=new THREE.Mesh(new THREE.SphereGeometry(0.025,6,5),new THREE.MeshBasicMaterial({color:new THREE.Color(color).multiplyScalar(0.45)}));
-      sp.position.set(Math.cos(a)*0.24,0.40+Math.sin(a)*0.12,Math.sin(a)*0.16);
-      g.add(sp);
+    const coreMat = new THREE.MeshStandardMaterial({color,roughness:0.24,metalness:0.18,emissive:color,emissiveIntensity:0.24});
+    const pod = new THREE.Mesh(new THREE.IcosahedronGeometry(0.28, 1), coreMat);
+    pod.scale.set(0.95, 1.28, 0.90);
+    pod.position.y=0.62;
+    pod.castShadow=true;
+    g.add(pod);
+    g.userData.egg=pod;
+    g.userData.orbitBits=[];
+    for(let s=0;s<3;s++){
+      const orb = new THREE.Mesh(
+        new THREE.SphereGeometry(0.045 + s * 0.008, 8, 6),
+        new THREE.MeshBasicMaterial({color:new THREE.Color(color).multiplyScalar(0.8),transparent:true,opacity:0.68})
+      );
+      orb.position.set(Math.cos(s*2.1)*0.35,0.6+Math.sin(s)*0.12,Math.sin(s*2.1)*0.26);
+      g.add(orb);
+      g.userData.orbitBits.push({ mesh: orb, phase: s * 2.1 });
     }
     return g;
   }
 
   // Stage props
   const SP = [null,
-    {bR:0.20,bH:0.30,hR:0.36,hY:0.78,eS:1.40,lR:0.055},
-    {bR:0.25,bH:0.52,hR:0.30,hY:0.96,eS:1.15,lR:0.070},
-    {bR:0.32,bH:0.72,hR:0.25,hY:1.18,eS:0.95,lR:0.085}
+    {bR:0.22,bH:0.26,hR:0.44,hY:0.84,eS:1.50,lR:0.055},
+    {bR:0.26,bH:0.56,hR:0.36,hY:1.02,eS:1.20,lR:0.072},
+    {bR:0.34,bH:0.78,hR:0.29,hY:1.26,eS:1.02,lR:0.088}
   ][stage];
 
   // Body
-  const bmat = new THREE.MeshStandardMaterial({color,roughness:0.52,metalness:0.04,emissive:color,emissiveIntensity:stage>=3?0.14:0.04});
+  const bmat = new THREE.MeshStandardMaterial({color,roughness:0.44,metalness:0.08,emissive:color,emissiveIntensity:stage>=3?0.20:0.06});
   const body = new THREE.Mesh(new THREE.CapsuleGeometry(SP.bR,SP.bH,8,16),bmat);
   body.position.y=SP.bH/2+SP.bR+0.03; body.castShadow=true;
   g.add(body); g.userData.bodyMesh=body; g.userData.bodyMat=bmat;
@@ -393,7 +447,27 @@ function buildCreature(agent) {
   const hg = new THREE.Group();
   hg.position.y=body.position.y+SP.bH/2+SP.bR+SP.hR*0.82;
   g.add(hg); g.userData.headGroup=hg;
-  hg.add(new THREE.Mesh(new THREE.SphereGeometry(SP.hR,22,16),new THREE.MeshStandardMaterial({color,roughness:0.48,metalness:0.04})));
+  hg.add(new THREE.Mesh(new THREE.SphereGeometry(SP.hR,22,16),new THREE.MeshStandardMaterial({color,roughness:0.42,metalness:0.06,emissive:color,emissiveIntensity:0.06})));
+  if (stage <= 1) {
+    const blushMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(color).multiplyScalar(1.2), transparent: true, opacity: 0.45 });
+    [-1, 1].forEach((s) => {
+      const cheek = new THREE.Mesh(new THREE.SphereGeometry(SP.hR * 0.12, 8, 6), blushMat);
+      cheek.position.set(s * SP.hR * 0.42, -SP.hR * 0.08, SP.hR * 0.82);
+      hg.add(cheek);
+    });
+  }
+  if (stage === 1) {
+    [-1, 1].forEach((s) => {
+      const fin = new THREE.Mesh(
+        new THREE.PlaneGeometry(SP.hR * 0.34, SP.hR * 0.24),
+        new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.18, side: THREE.DoubleSide, transparent: true, opacity: 0.62 })
+      );
+      fin.position.set(s * SP.hR * 0.82, SP.hR * 0.10, -SP.hR * 0.05);
+      fin.rotation.y = s * -0.45;
+      fin.rotation.z = s * 0.22;
+      hg.add(fin);
+    });
+  }
 
   // Eyes
   const eOX=SP.hR*0.52, eOZ=SP.hR*0.84, eOY=SP.hR*0.10;
@@ -432,6 +506,20 @@ function buildCreature(agent) {
 
   // Power features
   if (stage>=2) addPowerFeature(g, type, SP, color, stage);
+  if (stage >= 3) {
+    const crownMat = new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.62, roughness: 0.18, metalness: 0.55 });
+    const halo = new THREE.Mesh(new THREE.TorusGeometry(SP.hR * 1.02, 0.026, 10, 32), crownMat);
+    halo.position.set(0, SP.hY + SP.hR * 0.68, 0);
+    halo.rotation.x = Math.PI / 2;
+    g.add(halo);
+    g.userData.halo = halo;
+    for (let i = 0; i < 6; i += 1) {
+      const a = (i / 6) * Math.PI * 2;
+      const star = new THREE.Mesh(new THREE.TetrahedronGeometry(0.042, 0), crownMat);
+      star.position.set(Math.cos(a) * SP.hR * 1.12, SP.hY + SP.hR * 0.68, Math.sin(a) * SP.hR * 1.12);
+      g.add(star);
+    }
+  }
 
   // Per-creature light
   const ptl=new THREE.PointLight(color,0.35+stage*0.4,3.5+stage*0.5);
@@ -496,9 +584,15 @@ function addPowerFeature(g, type, S, color, stage) {
 /* ── CREATURE COLLECTION ────────────────────────────────────────────────── */
 const creatureObjects = new Map();
 
-function layoutX(idx, total) {
-  if (total<=1) return 0;
-  return (idx/(total-1)-0.5)*Math.max(total*2.2,5);
+function layoutPos(idx, total) {
+  if (total <= 1) return { x: 0, z: -0.4 };
+  const t = idx / (total - 1);
+  const a = -Math.PI * 0.72 + t * Math.PI * 1.44;
+  const r = 4.1 + total * 0.42;
+  return {
+    x: Math.cos(a) * r,
+    z: Math.sin(a) * r * 0.34 - 1.2
+  };
 }
 
 function addAgentToScene(agent) {
@@ -507,12 +601,12 @@ function addAgentToScene(agent) {
   const newTotal = creatureObjects.size+1;
   let i=0;
   creatureObjects.forEach(obj=>{
-    gsap.to(obj.group.position,{x:layoutX(i,newTotal),duration:0.6,ease:'power2.out'});
+    const p = layoutPos(i, newTotal);
+    gsap.to(obj.group.position,{x:p.x,z:p.z,duration:0.6,ease:'power2.out'});
     i++;
   });
-  const nx=layoutX(creatureObjects.size, newTotal);
-  const nz=Math.sin(creatureObjects.size*1.7)*0.55;
-  group.position.set(nx,0,nz);
+  const p = layoutPos(creatureObjects.size, newTotal);
+  group.position.set(p.x,0,p.z);
   scene.add(group);
   applyCreatureCharm(group, Math.max(0, Math.min(3, agent.stage ?? 0)));
 
@@ -544,6 +638,8 @@ function openDrawer(agentId) {
   document.getElementById('drawer-band').style.setProperty('--agent-color', agent.color??'#7eff9a');
   document.getElementById('drawer-cn-text').textContent=cname;
   document.getElementById('drawer-agent-label').textContent=agent.name;
+  const fc = document.getElementById('focus-chip');
+  if (fc) fc.textContent = `Focus: ${cname}`;
   document.getElementById('drawer-stage-badge').textContent=STAGE_NAMES[Math.min(agent.stage??0,3)];
   document.getElementById('drawer-lede').textContent=agent.lede||'';
 
@@ -575,19 +671,22 @@ function openDrawer(agentId) {
 
   drawer.setAttribute('aria-hidden','false');
   backdrop.style.visibility='visible';backdrop.style.pointerEvents='auto';
-  if (reducedMotion){drawer.style.transform=isMobile()?'translateY(0%)':'translateX(0%)';backdrop.style.background='rgba(0,0,0,0.55)';return;}
-  const ax=isMobile()?'y':'x';
-  gsap.set(drawer,{[ax]:'100%'});
+  if (reducedMotion){drawer.style.transform=isMobile()?'translateY(0%)':'translate(-50%,0%)';backdrop.style.background='rgba(0,0,0,0.55)';return;}
+  if (isMobile()) gsap.set(drawer,{y:'100%'});
+  else gsap.set(drawer,{x:'-50%',y:'120%'});
   gsap.to(backdrop,{backgroundColor:'rgba(0,0,0,0.55)',duration:0.25});
-  gsap.to(drawer,{[ax]:'0%',duration:0.35,ease:'power2.out'});
+  if (isMobile()) gsap.to(drawer,{y:'0%',duration:0.35,ease:'power2.out'});
+  else gsap.to(drawer,{x:'-50%',y:'0%',duration:0.35,ease:'power2.out'});
 }
 
 function closeDrawer() {
   openAgentId=null;
+  const fc = document.getElementById('focus-chip');
+  if (fc) fc.textContent = 'Focus: none selected';
   drawer.setAttribute('aria-hidden','true');
-  if (reducedMotion){drawer.style.transform=isMobile()?'translateY(100%)':'translateX(100%)';backdrop.style.visibility='hidden';backdrop.style.pointerEvents='none';return;}
-  const ax=isMobile()?'y':'x';
-  gsap.to(drawer,{[ax]:'100%',duration:0.28,ease:'power2.in'});
+  if (reducedMotion){drawer.style.transform=isMobile()?'translateY(100%)':'translate(-50%,120%)';backdrop.style.visibility='hidden';backdrop.style.pointerEvents='none';return;}
+  if (isMobile()) gsap.to(drawer,{y:'100%',duration:0.28,ease:'power2.in'});
+  else gsap.to(drawer,{x:'-50%',y:'120%',duration:0.28,ease:'power2.in'});
   gsap.to(backdrop,{backgroundColor:'rgba(0,0,0,0)',duration:0.22,onComplete:()=>{backdrop.style.visibility='hidden';backdrop.style.pointerEvents='none';}});
 }
 
@@ -629,20 +728,32 @@ function animateCreature(obj, t) {
   const sleeping=!agent.learnings||agent.learnings.length===0;
 
   if (stage===0&&egg) {
-    if (!reducedMotion){egg.rotation.z=Math.sin(t*0.8+phase)*0.042;egg.position.y=0.44+Math.abs(Math.sin(t*0.35+phase))*0.012;}
+    if (!reducedMotion){
+      egg.rotation.y += 0.008;
+      egg.rotation.z=Math.sin(t*0.8+phase)*0.08;
+      egg.position.y=0.62+Math.sin(t*0.7+phase)*0.05;
+      (group.userData.orbitBits || []).forEach((orb, i) => {
+        orb.mesh.position.x = Math.cos(t * 0.8 + orb.phase) * (0.30 + i * 0.05);
+        orb.mesh.position.z = Math.sin(t * 0.8 + orb.phase) * (0.22 + i * 0.04);
+        orb.mesh.position.y = 0.62 + Math.sin(t * 1.8 + orb.phase) * 0.08;
+      });
+    }
     return;
   }
   if (!bodyMesh||!headGroup) return;
   tickCreatureBlink(group, t);
 
-  const breath=1+Math.sin(t*1.1+phase)*(sleeping?0.004:0.008);
+  const breath=1+Math.sin(t*1.0+phase)*(sleeping?0.004:0.010);
   bodyMesh.scale.x=breath; bodyMesh.scale.z=breath;
 
   if (!sleeping&&!reducedMotion) {
-    if (stage===1) group.position.y=Math.abs(Math.sin(t*1.4+phase))*0.045;
+    if (stage===1) group.position.y=Math.abs(Math.sin(t*1.5+phase))*0.06;
+    if (stage===2) group.position.y=Math.sin(t*0.85+phase)*0.035;
+    if (stage>=3) group.position.y=Math.sin(t*0.65+phase)*0.028;
     const look=Math.sin(t*0.22+phase*1.3)*0.30;
     headGroup.rotation.y+=(look-headGroup.rotation.y)*0.04;
     if (stage>=3) headGroup.rotation.x=Math.sin(t*0.55+phase)*0.04;
+    if (stage>=3&&group.userData.halo) group.userData.halo.rotation.z += 0.01;
   }
 
   if (agent.status==='working'&&bodyMat) {
@@ -656,17 +767,19 @@ function animate() {
   const T=clock.getElapsedTime();
   camera.position.x+=(camTargetX-camera.position.x)*0.06;
   creatureObjects.forEach(obj=>animateCreature(obj,T));
-  // Firefly tick
-  const p=ffGeo.attributes.position;
-  for(let i=0;i<FF;i++){
-    p.array[i*3]  +=Math.sin(T*0.4+ffPh[i])*0.003;
-    p.array[i*3+1]+=Math.cos(T*0.3+ffPh[i]*1.3)*0.002;
-    p.array[i*3+2]+=Math.sin(T*0.25+ffPh[i]*0.7)*0.003;
-    if(p.array[i*3+1]>4.0)p.array[i*3+1]=0.3;
-    if(p.array[i*3+1]<0.2)p.array[i*3+1]=3.5;
-  }
-  p.needsUpdate=true;
-  ffMat.opacity=0.45+Math.sin(T*1.3)*0.25;
+  sporeBands.forEach((band, idx) => {
+    const p = band.geo.attributes.position;
+    for (let i = 0; i < band.cfg.count; i += 1) {
+      const drift = band.cfg.drift;
+      p.array[i * 3] += Math.sin(T * (0.28 + idx * 0.08) + band.ph[i]) * drift;
+      p.array[i * 3 + 1] += Math.cos(T * (0.22 + idx * 0.06) + band.ph[i] * 1.2) * drift * 0.7;
+      p.array[i * 3 + 2] += Math.sin(T * (0.18 + idx * 0.05) + band.ph[i] * 0.8) * drift;
+      if (p.array[i * 3 + 1] > band.cfg.yMax) p.array[i * 3 + 1] = band.cfg.yMin;
+      if (p.array[i * 3 + 1] < band.cfg.yMin) p.array[i * 3 + 1] = band.cfg.yMax;
+    }
+    p.needsUpdate = true;
+    band.mat.opacity = band.cfg.opacity + Math.sin(T * (0.7 + idx * 0.3)) * 0.10;
+  });
   // Labels
   creatureObjects.forEach(({group,label})=>{
     const v=group.position.clone(); v.y+=0.15; v.project(camera);
@@ -685,7 +798,7 @@ let md=null,dragging=false,dragSX=0;
 canvas.addEventListener('pointerdown',e=>{md={x:e.clientX,y:e.clientY};dragSX=camTargetX;dragging=false;});
 canvas.addEventListener('pointermove',e=>{
   if(!md)return;
-  if(Math.abs(e.clientX-md.x)>4){dragging=true;camTargetX=Math.max(-8,Math.min(8,dragSX-(e.clientX-md.x)*0.018));}
+  if(Math.abs(e.clientX-md.x)>4){dragging=true;camTargetX=Math.max(-12,Math.min(12,dragSX-(e.clientX-md.x)*0.018));}
 });
 canvas.addEventListener('pointerup',e=>{
   if(!dragging&&md){
@@ -698,7 +811,7 @@ canvas.addEventListener('pointerup',e=>{
   }
   md=null;dragging=false;
 });
-canvas.addEventListener('wheel',e=>{camera.position.z=Math.max(6,Math.min(16,camera.position.z+e.deltaY*0.008));},{passive:true});
+canvas.addEventListener('wheel',e=>{camera.position.z=Math.max(7.8,Math.min(17.5,camera.position.z+e.deltaY*0.008));},{passive:true});
 
 document.getElementById('btn-close-drawer').addEventListener('click',closeDrawer);
 document.getElementById('drawer-backdrop').addEventListener('click',closeDrawer);
@@ -732,6 +845,20 @@ if (hub) {
       obj.agent.color,
       reducedMotion
     );
+    if (!reducedMotion) {
+      sporeBands.forEach((band, idx) => {
+        const base = band.cfg.opacity;
+        gsap.killTweensOf(band.mat);
+        gsap.timeline()
+          .to(band.mat, { opacity: Math.min(1, base + 0.22 + idx * 0.06), duration: 0.22, ease: 'power2.out' })
+          .to(band.mat, { opacity: base, duration: 0.55, ease: 'power2.inOut' });
+      });
+      if (group.userData.pointLight) {
+        gsap.timeline()
+          .to(group.userData.pointLight, { intensity: group.userData.pointLight.intensity + 0.48, duration: 0.2, ease: 'power2.out' })
+          .to(group.userData.pointLight, { intensity: 0.45 + group.userData.stage * 0.28, duration: 0.45, ease: 'power2.inOut' });
+      }
+    }
     const sleeping=!fa?.learnings||fa.learnings.length===0;
     gsap.to(label,{opacity:sleeping?0.4:1.0,duration:0.55});
 

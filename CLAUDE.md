@@ -227,12 +227,10 @@ may be missing fields expected by another. Always use safe fallbacks:
 
 ## Known Remaining Issues
 
-1. **`window._agentHub` not set in vivarium/grove** — feed-skill and create-agent modal buttons in
-   the drawer won't fire. Fix: add `window._agentHub = hub;` after `const hub = new window.StateManager(...)`.
-2. **Duplicate creature/plant names** — 4 agents × 4 types × 4 variants = some hash collisions
+1. **Duplicate creature/plant names** — 4 agents × 4 types × 4 variants = some hash collisions
    (e.g., two agents get "Cascala" or "Seelwix"). Cosmetic only — inherent to the name space size.
    Fix if needed: expand name arrays or add fallback suffix.
-3. **No backend** — PLAN.md Phase A4 describes Next.js API routes + Supabase schema (not started).
+2. **No backend** — PLAN.md Phase A4 describes Next.js API routes + Supabase schema (not started).
    The project is purely frontend localStorage-based for now.
 
 ---
@@ -241,7 +239,7 @@ may be missing fields expected by another. Always use safe fallbacks:
 
 | Priority | Item |
 |---|---|
-| High | Fix `window._agentHub` in vivarium.html and grove.html so modals work |
+| High | Deep visual redesign pass for Vivarium + Grove (art direction currently in progress) |
 | Medium | Track B Phase B1 — "Neural Mesh" design (new concept, not started) |
 | Medium | Design B2 — second new Track B design (TBD by creative-director) |
 | Low | Phase A4 — Next.js backend skeleton + Supabase schema |
@@ -278,3 +276,4 @@ build (`three.min.js`) conflicts with OrbitControls ESM addons.
 | Session 2 | Tidal Archive + Foundry Glass new designs built and code-reviewed |
 | Session 3 | Vivarium (creature evolution) built, 6 bugs fixed by code-reviewer |
 | Session 4 | Grove (plant evolution) built, 5 bugs fixed, StateManager instantiation bug found + fixed in both vivarium & grove, hexColor numeric fix, nav links added to all 5 designs, visual verification via Chrome screenshots confirmed both render |
+| Session 5 | Vivarium + Grove visual redesign pass started: stronger palettes, updated stage naming/copy, improved header/drawer styling, cuter Vivarium stage-0/1 traits, richer Grove pot/flower/leaf composition and lighting |

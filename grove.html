@@ -10,19 +10,19 @@
 <style>
 /* ── TOKENS ──────────────────────────────────────────────────────────────── */
 :root {
-  --bg: #f5f0e8;
-  --surface: #ede8dc;
-  --surface-lift: #e4ddd0;
-  --accent: #5c8a3c;
-  --rose: #c84040;
-  --sun: #e3a030;
-  --accent-dim: rgba(92,138,60,0.22);
-  --accent-glow: rgba(92,138,60,0.08);
-  --text: #2c2423;
-  --text-dim: rgba(44,36,35,0.60);
-  --text-mute: rgba(44,36,35,0.36);
-  --border: rgba(92,138,60,0.12);
-  --border-mid: rgba(92,138,60,0.28);
+  --bg: #0f0d0a;
+  --surface: rgba(24,20,16,0.86);
+  --surface-lift: #2a241d;
+  --accent: #f2b544;
+  --rose: #d45858;
+  --sun: #f0b03f;
+  --accent-dim: rgba(242,181,68,0.32);
+  --accent-glow: rgba(242,181,68,0.13);
+  --text: #f3e9d8;
+  --text-dim: rgba(243,233,216,0.72);
+  --text-mute: rgba(243,233,216,0.46);
+  --border: rgba(255,220,150,0.16);
+  --border-mid: rgba(255,220,150,0.34);
   --ff-serif: 'Playfair Display', Georgia, serif;
   --ff-body: 'Lora', Georgia, serif;
   --ff-mono: 'JetBrains Mono', 'Courier New', monospace;
@@ -38,70 +38,75 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg);
 
 /* ── MASTHEAD ──────────────────────────────────────────────────────────── */
 .masthead {
-  position: fixed; inset-block-start: 0; inset-inline: 0; z-index: var(--z-masthead);
-  height: 56px; padding: 0 var(--sp-6);
-  display: flex; align-items: center; justify-content: space-between; gap: var(--sp-4);
-  background: rgba(245,240,232,0.82); backdrop-filter: blur(14px) saturate(1.6);
-  -webkit-backdrop-filter: blur(14px) saturate(1.6);
-  border-bottom: 1px solid rgba(92,138,60,0.14);
+  position: fixed; right: 14px; top: 14px; z-index: var(--z-masthead);
+  width: min(310px, calc(100vw - 28px)); padding: 14px;
+  display: flex; flex-direction: column; align-items: stretch; gap: 10px;
+  background: rgba(24,20,16,0.82);
+  backdrop-filter: blur(18px) saturate(1.2);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
+  border: 1px solid rgba(255,220,150,0.16);
+  border-radius: 18px;
+  box-shadow: 0 14px 42px rgba(0,0,0,0.38);
 }
-.masthead__left { display: flex; flex-direction: column; gap: 1px; flex-shrink: 0; }
+.masthead__left { display: flex; flex-direction: column; gap: 1px; }
 .masthead__eyebrow { font-family: var(--ff-mono); font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(92,138,60,0.55); }
-.masthead__wordmark { font-family: var(--ff-serif); font-weight: 700; font-style: italic; font-size: 20px; letter-spacing: 0.04em; color: var(--text); line-height: 1; }
-.masthead__right { display: flex; align-items: center; gap: var(--sp-3); flex-shrink: 0; }
-.design-nav { display: flex; align-items: center; gap: 18px; }
-.design-nav a { font-family: var(--ff-mono); font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-dim); text-decoration: none; transition: color 0.18s; }
+.masthead__wordmark { font-family: var(--ff-serif); font-weight: 700; font-style: italic; font-size: 22px; letter-spacing: 0.05em; color: var(--text); line-height: 1; }
+.masthead__right { display: flex; flex-direction: column; align-items: stretch; gap: 8px; }
+.design-nav { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.design-nav a { font-family: var(--ff-mono); font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-dim); text-decoration: none; transition: color 0.18s; text-align: center; padding: 7px 6px; border: 1px solid rgba(255,220,150,0.14); border-radius: 6px; }
 .design-nav a:hover { color: var(--text); }
 .design-nav a.active { color: var(--accent); }
 .stat-pill {
-  display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px;
-  background: var(--accent-glow); border: 1px solid var(--accent-dim); border-radius: 2px;
-  font-family: var(--ff-mono); font-size: 9px; letter-spacing: 0.10em; text-transform: uppercase; color: var(--accent); white-space: nowrap;
+  display: inline-flex; align-items: center; gap: 5px; padding: 5px 12px;
+  background: rgba(34,28,22,0.78); border: 1px solid var(--accent-dim); border-radius: 999px;
+  font-family: var(--ff-mono); font-size: 9px; letter-spacing: 0.10em; text-transform: uppercase; color: var(--accent); white-space: nowrap; justify-content: center;
 }
 .stat-pill::before { content: ''; display: block; width: 5px; height: 5px; border-radius: 50%; background: var(--accent); }
 .btn-grove {
-  height: 32px; padding: 0 var(--sp-3); background: transparent; border: 1px solid rgba(44,36,35,0.16);
-  border-radius: 2px; cursor: pointer; font-family: var(--ff-mono); font-size: 9px;
-  letter-spacing: 0.10em; text-transform: uppercase; color: var(--text-dim);
+  height: 32px; padding: 0 var(--sp-3); background: rgba(36,30,24,0.40); border: 1px solid rgba(255,220,150,0.22);
+  border-radius: 2px; cursor: pointer; font-family: var(--ff-mono); font-size: 10.5px;
+  letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-dim);
   transition: border-color 0.18s, color 0.18s, background 0.18s; white-space: nowrap;
 }
 .btn-grove:hover { border-color: var(--accent-dim); color: var(--text); }
 .btn-grove.primary { border-color: var(--accent-dim); color: var(--accent); }
 .btn-grove.primary:hover { background: var(--accent-glow); }
 .masthead__hint {
-  position: fixed; bottom: var(--sp-4); left: 50%; transform: translateX(-50%);
+  position: fixed; bottom: 18px; left: 24px;
   font-family: var(--ff-mono); font-size: 9px; letter-spacing: 0.10em;
-  color: var(--text-mute); text-transform: uppercase; pointer-events: none; z-index: var(--z-masthead);
+  color: var(--text-mute); text-transform: uppercase; pointer-events: none; z-index: var(--z-masthead); max-width: 420px; text-align: left;
 }
 
 /* ── PLANT LABELS ───────────────────────────────────────────────────────── */
 #grove-labels { position: fixed; inset: 0; z-index: var(--z-labels); pointer-events: none; overflow: hidden; }
 .plant-label {
   position: absolute; top: 0; left: 0; will-change: transform, opacity;
-  font-family: var(--ff-body); font-size: 10px; font-style: italic; letter-spacing: 0.04em;
-  color: rgba(44,36,35,0.80); white-space: nowrap;
-  padding: 3px 8px; background: rgba(237,232,220,0.85); border: 1px solid rgba(92,138,60,0.20);
-  border-radius: 1px; pointer-events: none;
+  font-family: var(--ff-body); font-size: 10px; font-style: italic; letter-spacing: 0.05em;
+  color: rgba(243,233,216,0.88); white-space: nowrap;
+  padding: 4px 10px; background: rgba(24,20,16,0.84); border: 1px solid rgba(255,220,150,0.26);
+  border-radius: 3px; pointer-events: none;
+  box-shadow: 0 10px 24px rgba(0,0,0,0.35);
 }
 .plant-label::after { content: ''; position: absolute; bottom: -5px; left: 50%; transform: translateX(-50%); width: 1px; height: 5px; background: rgba(92,138,60,0.30); }
 
 /* ── DRAWER ────────────────────────────────────────────────────────────── */
 .drawer-backdrop { position: fixed; inset: 0; z-index: var(--z-backdrop); background: rgba(0,0,0,0); pointer-events: none; visibility: hidden; }
 .drawer {
-  position: fixed; inset-block: 0; inset-inline-end: 0; z-index: var(--z-drawer);
-  width: 380px; max-width: 100vw; overflow: hidden;
-  background: var(--surface); border-left: 1px solid rgba(92,138,60,0.16);
+  position: fixed; left: 18px; top: 18px; bottom: 18px; z-index: var(--z-drawer);
+  width: min(430px, calc(100vw - 36px)); max-width: 100vw; overflow: hidden;
+  background: var(--surface); border-left: 1px solid rgba(255,220,150,0.16);
   display: flex; flex-direction: column;
-  transform: translateX(100%); will-change: transform;
+  border: 1px solid rgba(255,220,150,0.22); border-radius: 14px;
+  transform: translateX(-112%); will-change: transform;
 }
 .drawer__band {
-  position: relative; height: 118px; flex-shrink: 0;
+  position: relative; height: 130px; flex-shrink: 0;
   background: var(--agent-color, var(--accent));
 }
 .drawer__band::after {
   content: ''; position: absolute; inset: 0;
-  background: rgba(245,240,232,0.25); backdrop-filter: blur(4px) saturate(0.8);
-  -webkit-backdrop-filter: blur(4px) saturate(0.8);
+  background: linear-gradient(180deg, rgba(24,20,16,0.22), rgba(24,20,16,0.70)); backdrop-filter: blur(8px) saturate(1.2);
+  -webkit-backdrop-filter: blur(8px) saturate(1.2);
 }
 .drawer__plant-name {
   position: absolute; inset: 0; z-index: 1;
@@ -120,31 +125,31 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg);
 }
 .close-drawer {
   position: absolute; top: 10px; right: 10px; z-index: 3;
-  background: rgba(245,240,232,0.40); border: 1px solid rgba(44,36,35,0.14); border-radius: 2px;
+  background: rgba(24,20,16,0.62); border: 1px solid rgba(255,220,150,0.20); border-radius: 2px;
   width: 26px; height: 26px; cursor: pointer; color: var(--text); font-size: 16px;
   line-height: 26px; text-align: center; transition: background 0.15s;
 }
-.close-drawer:hover { background: rgba(245,240,232,0.70); }
+.close-drawer:hover { background: rgba(56,42,28,0.82); }
 .drawer__body {
   flex: 1; overflow-y: auto; overscroll-behavior: contain; padding: 32px var(--sp-6) 16px; min-height: 0;
   scrollbar-width: thin; scrollbar-color: var(--accent-dim) transparent;
 }
 .drawer__body::-webkit-scrollbar { width: 3px; }
 .drawer__body::-webkit-scrollbar-thumb { background: var(--accent-dim); border-radius: 0; }
-.drawer__section { font-family: var(--ff-mono); font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-mute); margin-bottom: var(--sp-2); margin-top: var(--sp-4); }
+.drawer__section { font-family: var(--ff-mono); font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-mute); margin-bottom: var(--sp-2); margin-top: var(--sp-4); }
 .drawer__section:first-child { margin-top: 0; }
 .drawer__lede { font-family: var(--ff-body); font-size: 13px; font-style: italic; line-height: 1.58; color: var(--text-dim); margin-bottom: var(--sp-3); }
-.stat-label { display: flex; justify-content: space-between; font-family: var(--ff-mono); font-size: 9px; letter-spacing: 0.10em; text-transform: uppercase; color: var(--text-mute); margin-bottom: 5px; }
-.stat-label span:last-child { color: rgba(44,36,35,0.70); font-weight: 500; }
-.bar-track { height: 3px; background: rgba(44,36,35,0.08); margin-bottom: var(--sp-4); overflow: hidden; }
+.stat-label { display: flex; justify-content: space-between; font-family: var(--ff-mono); font-size: 10px; letter-spacing: 0.10em; text-transform: uppercase; color: var(--text-mute); margin-bottom: 5px; }
+.stat-label span:last-child { color: rgba(243,233,216,0.70); font-weight: 500; }
+.bar-track { height: 3px; background: rgba(243,233,216,0.12); margin-bottom: var(--sp-4); overflow: hidden; }
 .bar-fill { height: 100%; background: var(--accent); transition: width 0.6s cubic-bezier(0.22,1,0.36,1); }
 .bar-fill.xp { box-shadow: 0 0 6px rgba(92,138,60,0.45); }
 .learning-list { list-style: none; display: flex; flex-direction: column; gap: 7px; }
-.learning-item { font-family: var(--ff-body); font-size: 13px; line-height: 1.55; color: rgba(44,36,35,0.72); padding: 7px 10px; background: rgba(44,36,35,0.04); border-left: 2px solid var(--accent-dim); }
+.learning-item { font-family: var(--ff-body); font-size: 13px; line-height: 1.55; color: rgba(243,233,216,0.78); padding: 7px 10px; background: rgba(243,233,216,0.06); border-left: 2px solid var(--accent-dim); }
 .learning-item .part { font-family: var(--ff-mono); font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); display: block; margin-bottom: 2px; }
 .learning-item .learn-when { display: block; font-family: var(--ff-mono); font-size: 8px; color: var(--text-mute); margin-top: 4px; }
 .learning-item .learn-row-actions { margin-top: 6px; }
-.drawer__footer { flex-shrink: 0; padding: var(--sp-3) var(--sp-6) 20px; border-top: 1px solid var(--border); background: var(--surface); }
+.drawer__footer { flex-shrink: 0; padding: var(--sp-3) var(--sp-6) 20px; border-top: 1px solid var(--border); background: linear-gradient(180deg, rgba(24,20,16,0.72), rgba(24,20,16,0.95)); }
 .drawer__feed-btn { width: 100%; height: 40px; background: transparent; border: 1px solid var(--accent-dim); border-radius: 2px; cursor: pointer; font-family: var(--ff-mono); font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); transition: background 0.18s, border-color 0.18s; }
 .drawer__feed-btn:hover { background: var(--accent-glow); border-color: rgba(92,138,60,0.50); }
 .drawer__copy-btn { margin-top: 8px; opacity: 0.9; }
@@ -154,20 +159,22 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg);
   position: fixed; inset: 0; z-index: var(--z-overlay);
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
   opacity: 0; pointer-events: none; visibility: hidden;
-  background: rgba(245,240,232,0.92);
+  background: rgba(10,8,6,0.88);
 }
 .bloom-overlay::before {
   content: ''; position: absolute; inset: 0; pointer-events: none;
-  background: radial-gradient(ellipse 50% 40% at 50% 50%, rgba(92,138,60,0.10) 0%, transparent 70%);
+  background: radial-gradient(ellipse 50% 40% at 50% 50%, rgba(242,181,68,0.14) 0%, transparent 70%);
 }
-.bloom-overlay__name { font-family: var(--ff-serif); font-weight: 700; font-style: italic; font-size: clamp(42px, 6.5vw, 64px); line-height: 1; letter-spacing: 0.01em; color: var(--text); text-align: center; }
-.bloom-overlay__tag { font-family: var(--ff-mono); font-size: 11px; letter-spacing: 0.28em; text-transform: uppercase; color: var(--accent); text-align: center; }
+.bloom-overlay__name { font-family: var(--ff-serif); font-weight: 700; font-style: italic; font-size: clamp(46px, 6.5vw, 70px); line-height: 1; letter-spacing: 0.01em; color: var(--text); text-align: center; text-shadow: 0 0 18px rgba(79,127,47,0.16); }
+.bloom-overlay__tag { font-family: var(--ff-body); font-size: 15px; letter-spacing: 0.04em; color: var(--accent); text-align: center; font-style: italic; }
 .bloom-overlay__stage { font-family: var(--ff-body); font-size: 13px; font-style: italic; color: var(--text-mute); margin-top: 4px; text-align: center; max-width: 360px; line-height: 1.65; }
 
 /* ── MOBILE ────────────────────────────────────────────────────────────── */
 @media (max-width: 600px) {
+  .masthead { left: 8px; right: 8px; top: 8px; width: calc(100vw - 16px); transform: none; padding: 10px 12px; }
   .design-nav { display: none; }
-  .drawer { inset-block-start: auto; inset-block-end: 0; inset-inline: 0; width: 100%; height: 60vh; border-left: none; border-top: 1px solid var(--border); border-radius: 12px 12px 0 0; transform: translateY(100%); }
+  .masthead__hint { left: 12px; right: 12px; bottom: 8px; text-align: center; max-width: none; }
+  .drawer { left: 0; top: auto; bottom: 0; width: 100%; height: 60vh; border-left: none; border-top: 1px solid var(--border); border-radius: 12px 12px 0 0; transform: translateY(100%); }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
 </style>
@@ -192,11 +199,11 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg);
       <a href="grove.html" class="active" aria-current="page">Grove</a>
     </nav>
     <div class="stat-pill" id="stat-pill">0 specimens · 0 field notes</div>
-    <button class="btn-grove primary" id="btn-enter">Enter the Garden</button>
+    <button class="btn-grove primary" id="btn-enter">Open Conservatory</button>
     <button class="btn-grove" id="btn-add-agent">+ Plant a New Specimen</button>
   </div>
 </header>
-<p class="masthead__hint" aria-hidden="true">Select any plant to open its record · Observations accumulate over time</p>
+<p class="masthead__hint" aria-hidden="true">Select a specimen to open its record · Every note leaves a visible trace</p>
 
 <div class="drawer-backdrop" id="drawer-backdrop" aria-hidden="true"></div>
 <aside class="drawer" id="agent-drawer" role="complementary" aria-label="Plant detail" aria-hidden="true">
@@ -206,23 +213,23 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg);
     <button class="close-drawer" id="btn-close-drawer" aria-label="Close">×</button>
   </div>
   <div class="drawer__body">
-    <div class="drawer__section">Specimen</div>
+    <div class="drawer__section">Living Record</div>
     <p class="drawer__lede" id="drawer-lede"></p>
-    <button type="button" class="drawer__feed-btn" id="btn-feed-inline">Tend This Specimen</button>
-    <div class="drawer__section">Growth Stage</div>
+    <button type="button" class="drawer__feed-btn" id="btn-feed-inline">Offer Insight</button>
+    <div class="drawer__section">Current Form</div>
     <div class="stat-label"><span>Experience</span><span id="xp-label">0 / 10 XP</span></div>
     <div class="bar-track"><div class="bar-fill xp" id="xp-bar" style="width:0%"></div></div>
     <div class="stat-label"><span>Reliability</span><span id="rel-label">50%</span></div>
     <div class="bar-track"><div class="bar-fill" id="rel-bar" style="width:50%"></div></div>
     <div class="stat-label"><span>Strength</span><span id="str-label">0%</span></div>
     <div class="bar-track"><div class="bar-fill" id="str-bar" style="width:0%"></div></div>
-    <div class="drawer__section">Field Notes</div>
+    <div class="drawer__section">Observations</div>
     <ul class="learning-list" id="learning-list">
       <li class="learning-item" style="color:var(--text-mute);font-style:italic">No field notes yet. Offer it something to work with.</li>
     </ul>
   </div>
   <div class="drawer__footer">
-    <button type="button" class="drawer__feed-btn" id="btn-feed-skill">Tend This Specimen</button>
+    <button type="button" class="drawer__feed-btn" id="btn-feed-skill">Offer Insight</button>
     <button type="button" class="drawer__feed-btn drawer__copy-btn" id="btn-copy-workspace">Copy for workspace</button>
   </div>
 </aside>
@@ -249,7 +256,7 @@ import { applyPlantArtDirection } from './grove-plants.js';
 import { spawnPollenBurst } from './grove-effects.js';
 
 /* ── CONSTANTS ─────────────────────────────────────────────────────────── */
-const STAGE_NAMES  = ['Seeded','Rooting','Leafing','In Flower'];
+const STAGE_NAMES  = ['Rooted Calm','Morning Sprout','Woven Canopy','Radiant Orchard'];
 const STAGE_XP_MAX = [10, 40, 100, 150];
 const PLANT_NAMES  = [
   ['Petalvine','Rosaleth','Bloome','Velourosa'],
@@ -288,28 +295,28 @@ renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-renderer.setClearColor(0xf5f0e8);
+renderer.setClearColor(0x0f0d0a);
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0xf5f0e8);
+scene.background = new THREE.Color(0x0f0d0a);
 
-const camera = new THREE.PerspectiveCamera(44, innerWidth / innerHeight, 0.1, 100);
-camera.position.set(0, 10, 8);
-camera.lookAt(0, 0, 0);
+const camera = new THREE.PerspectiveCamera(39, innerWidth / innerHeight, 0.1, 100);
+camera.position.set(0, 6.8, 11.5);
+camera.lookAt(0, 1.2, 0);
 let camTargetX = 0;
 const groveRenderer = createGroveRenderer(renderer, scene, camera, reducedMotion);
 
 /* ── LIGHTS ─────────────────────────────────────────────────────────────── */
-scene.add(new THREE.HemisphereLight(0xa8c8e8, 0x4a3828, 0.48));
-const sun = new THREE.DirectionalLight(0xffeec8, 1.10);
+scene.add(new THREE.HemisphereLight(0x2d241a, 0x0a0806, 0.22));
+const sun = new THREE.DirectionalLight(0xffc978, 1.65);
 sun.position.set(6, 12, 5);
 sun.castShadow = true;
-sun.shadow.mapSize.set(1024, 1024);
+sun.shadow.mapSize.set(2048, 2048);
 Object.assign(sun.shadow.camera, { near:0.5, far:50, left:-14, right:14, top:10, bottom:-10 });
-sun.shadow.bias = -0.0008;
+sun.shadow.bias = -0.0005;
 scene.add(sun);
 // Warm fill from the opposite side
-const fill = new THREE.DirectionalLight(0xffe0c0, 0.22);
+const fill = new THREE.DirectionalLight(0xffb57c, 0.24);
 fill.position.set(-5, 6, -3);
 scene.add(fill);
 
@@ -320,13 +327,16 @@ float h2(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
 float n2(vec2 p){vec2 i=floor(p);vec2 f=fract(p);f=f*f*(3.0-2.0*f);
   return mix(mix(h2(i),h2(i+vec2(1,0)),f.x),mix(h2(i+vec2(0,1)),h2(i+vec2(1,1)),f.x),f.y);}
 void main(){
-  float g1=n2(vec2(vUv.x*18.0+n2(vUv*3.5)*0.9,vUv.y*1.2))*0.55;
-  float g2=n2(vec2(vUv.x*30.0+n2(vUv*6.0)*0.5,vUv.y*1.8))*0.30;
-  float g3=n2(vUv*9.0)*0.15;
-  float grain=g1+g2+g3;
-  vec3 dark=vec3(0.380,0.215,0.098);
-  vec3 light=vec3(0.560,0.345,0.175);
-  gl_FragColor=vec4(mix(dark,light,grain),1.0);}`;
+  float g1=n2(vec2(vUv.x*8.0+n2(vUv*2.0)*0.6,vUv.y*1.4))*0.45;
+  float g2=n2(vec2(vUv.x*24.0+n2(vUv*6.4)*0.6,vUv.y*2.0))*0.35;
+  float g3=n2(vUv*60.0)*0.20;
+  float stone=g1+g2+g3;
+  float streak=abs(sin(vUv.x*35.0+n2(vUv*9.0)*3.0))*0.12;
+  vec3 dark=vec3(0.086,0.071,0.058);
+  vec3 light=vec3(0.164,0.132,0.104);
+  vec3 col=mix(dark,light,stone);
+  col += vec3(0.10,0.07,0.03) * streak;
+  gl_FragColor=vec4(col,1.0);}`;
 const table = new THREE.Mesh(
   new THREE.PlaneGeometry(28, 18),
   new THREE.ShaderMaterial({ vertexShader:TVERT, fragmentShader:TFRAG })
@@ -334,20 +344,29 @@ const table = new THREE.Mesh(
 table.rotation.x = -Math.PI / 2;
 table.receiveShadow = true;
 scene.add(table);
+for (let i = 0; i < 7; i += 1) {
+  const arch = new THREE.Mesh(
+    new THREE.TorusGeometry(5.8 + i * 0.45, 0.05, 8, 40, Math.PI),
+    new THREE.MeshStandardMaterial({ color: 0x17120f, roughness: 0.86, metalness: 0.05 })
+  );
+  arch.rotation.x = Math.PI / 2;
+  arch.position.set(0, 1.6 + i * 0.42, -5.4 - i * 0.7);
+  scene.add(arch);
+}
 
 /* ── DUST MOTES ─────────────────────────────────────────────────────────── */
-const DM = 40;
+const DM = 120;
 const dmPos = new Float32Array(DM * 3);
 const dmPh  = new Float32Array(DM);
 for (let i = 0; i < DM; i++) {
   dmPos[i*3]   = (Math.random() - 0.5) * 18;
-  dmPos[i*3+1] = 0.5 + Math.random() * 4;
+  dmPos[i*3+1] = 0.6 + Math.random() * 6;
   dmPos[i*3+2] = (Math.random() - 0.5) * 12;
   dmPh[i]      = Math.random() * Math.PI * 2;
 }
 const dmGeo = new THREE.BufferGeometry();
 dmGeo.setAttribute('position', new THREE.BufferAttribute(dmPos, 3));
-scene.add(new THREE.Points(dmGeo, new THREE.PointsMaterial({ color:0xfff5dc, size:0.04, transparent:true, opacity:0.55 })));
+scene.add(new THREE.Points(dmGeo, new THREE.PointsMaterial({ color:0xffdba5, size:0.032, transparent:true, opacity:0.42, depthWrite:false })));
 
 /* ── GLSL LEAF SHADERS ──────────────────────────────────────────────────── */
 const LEAF_VERT = `varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`;
@@ -384,7 +403,7 @@ function makeStemCurve(type, baseY, height) {
 }
 
 function addLeaves(group, leafMat, type, stage) {
-  const count = [0, 2, 4, 6][stage];
+  const count = [0, 3, 6, 9][stage];
   const stemH = [0, 0.52, 0.88, 1.30][stage];
   const leafW = [0.16, 0.10, 0.18, 0.17][type];
   const leafH = [0.10, 0.20, 0.11, 0.13][type];
@@ -393,8 +412,8 @@ function addLeaves(group, leafMat, type, stage) {
     const t    = 0.25 + (i / Math.max(count - 1, 1)) * 0.60;
     const hy   = 0.42 + stemH * t;
     const side = i % 2 === 0 ? 1 : -1;
-    leaf.position.set(side * 0.13 + (type === 2 ? -0.12 : 0), hy, 0.04 * (i % 3 - 1));
-    leaf.rotation.z = side * (0.45 + Math.random() * 0.10);
+    leaf.position.set(side * 0.14 + (type === 2 ? -0.12 : 0), hy, 0.04 * (i % 3 - 1));
+    leaf.rotation.z = side * (0.42 + Math.random() * 0.16);
     leaf.rotation.x = -0.28 - Math.random() * 0.08;
     leaf.castShadow = false;
     group.add(leaf);
@@ -405,7 +424,7 @@ function addFlowers(group, type, stage, color) {
   const flowerCount = stage >= 3 ? (type === 3 ? 3 : 2) : 1;
   const stemH = [0, 0.52, 0.88, 1.30][stage];
   const stageColor = stage >= 3
-    ? color.clone().lerp(new THREE.Color(type % 2 === 0 ? 0xc84040 : 0xe3a030), 0.42)
+    ? color.clone().lerp(new THREE.Color(type % 2 === 0 ? 0xd45858 : 0xf0b03f), 0.48)
     : color;
   const petalMat = new THREE.MeshStandardMaterial({
     color: stageColor, roughness: 0.30, metalness: 0.04,
@@ -421,10 +440,10 @@ function addFlowers(group, type, stage, color) {
 
     if (stage >= 3) {
       // Open flower: petals arranged radially
-      const petalCount = [5, 8, 4, 6][type];
+      const petalCount = [8, 10, 6, 8][type];
       const petalW     = [0.075, 0.045, 0.080, 0.110][type];
       const petalH     = [0.100, 0.200, 0.110, 0.085][type];
-      const openAngle  = [0.55, 0.25, 0.60, 0.15][type]; // cup=very flat, spire=upright
+      const openAngle  = [0.58, 0.22, 0.64, 0.12][type]; // cup=very flat, spire=upright
       for (let p = 0; p < petalCount; p++) {
         const ang = (p / petalCount) * Math.PI * 2;
         const petal = new THREE.Mesh(new THREE.PlaneGeometry(petalW, petalH), petalMat);
@@ -464,15 +483,24 @@ function makePollenParticles(color) {
 }
 
 function buildPlant(agent) {
-  const color = hexColor(agent.color);
+  const color = hexColor(agent.color).clone();
+  color.offsetHSL(0, -0.14, 0.02);
   const stage = Math.max(0, Math.min(3, agent.stage ?? 0));
   const type  = plantType(agent.id);
   const g     = new THREE.Group();
   g.userData  = { agentId: agent.id, stage, type, phase: hashStr(agent.id) * 0.001 % (Math.PI * 2), leafMat: null, pollenPts: null, growthGroup: null, potMeshes: [], rimMat: null, baseY: 0 };
 
+  const plinth = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.62, 0.68, 0.12, 24),
+    new THREE.MeshStandardMaterial({ color: 0x1b1510, roughness: 0.84, metalness: 0.05 })
+  );
+  plinth.position.y = 0.06;
+  plinth.receiveShadow = true;
+  g.add(plinth);
+
   // Pot
-  const potMat = new THREE.MeshStandardMaterial({ color: 0xc4845a, roughness: 0.72, metalness: 0.0 });
-  const pot    = new THREE.Mesh(new THREE.CylinderGeometry(0.30, 0.25, 0.42, 12), potMat);
+  const potMat = new THREE.MeshStandardMaterial({ color: 0x6e4d3b, roughness: 0.72, metalness: 0.03 });
+  const pot    = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.24, 0.46, 16), potMat);
   pot.position.y = 0.21; pot.castShadow = true; pot.receiveShadow = true;
   g.add(pot); g.userData.potMeshes.push(pot);
 
@@ -481,6 +509,15 @@ function buildPlant(agent) {
   const rim    = new THREE.Mesh(new THREE.TorusGeometry(0.30, 0.022, 8, 24), rimMat);
   rim.rotation.x = Math.PI / 2; rim.position.y = 0.42; g.add(rim);
   g.userData.rimMat = rimMat; g.userData.potMeshes.push(rim);
+  if (stage >= 1) {
+    const accentRing = new THREE.Mesh(
+      new THREE.TorusGeometry(0.275, 0.010, 8, 28),
+      new THREE.MeshStandardMaterial({ color: 0xd9b988, roughness: 0.34, metalness: 0.08 })
+    );
+    accentRing.rotation.x = Math.PI / 2;
+    accentRing.position.y = 0.28;
+    g.add(accentRing);
+  }
 
   // Soil
   const soil = new THREE.Mesh(new THREE.CircleGeometry(0.265, 12), new THREE.MeshStandardMaterial({ color: 0x2a1a0a, roughness: 0.95 }));
@@ -509,8 +546,15 @@ function buildPlant(agent) {
   }
 
   if (stage === 0) {
-    const seed = new THREE.Mesh(new THREE.SphereGeometry(0.022, 6, 5), new THREE.MeshStandardMaterial({ color: 0x3a2510, roughness: 0.92 }));
-    seed.position.y = 0.44; g.add(seed);
+    for (let i = 0; i < 4; i += 1) {
+      const seed = new THREE.Mesh(
+        new THREE.OctahedronGeometry(0.020 + i * 0.005, 0),
+        new THREE.MeshStandardMaterial({ color: 0x5a3f26, roughness: 0.68, metalness: 0.08 })
+      );
+      seed.position.set((i - 1.5) * 0.018, 0.44 + i * 0.008, (i % 2 ? -1 : 1) * 0.012);
+      seed.rotation.y = i * 0.7;
+      g.add(seed);
+    }
     return g;
   }
 
@@ -570,9 +614,15 @@ function buildPlant(agent) {
 /* ── PLANT COLLECTION ───────────────────────────────────────────────────── */
 const plantObjects = new Map();
 
-function layoutX(idx, total) {
-  if (total <= 1) return 0;
-  return (idx / (total - 1) - 0.5) * Math.max(total * 2.8, 6.0);
+function layoutPos(idx, total) {
+  if (total <= 1) return { x: 0, z: 0 };
+  const lane = idx % 3;
+  const row = Math.floor(idx / 3);
+  const laneOffsets = [-2.2, 0.2, 2.4];
+  return {
+    x: laneOffsets[lane] + row * 0.35,
+    z: -0.7 - row * 1.65 + lane * 0.35
+  };
 }
 
 function addAgentToScene(agent) {
@@ -581,12 +631,12 @@ function addAgentToScene(agent) {
   const newTotal = plantObjects.size + 1;
   let i = 0;
   plantObjects.forEach(obj => {
-    gsap.to(obj.group.position, { x: layoutX(i, newTotal), duration: 0.65, ease: 'power2.out' });
+    const p = layoutPos(i, newTotal);
+    gsap.to(obj.group.position, { x: p.x, z: p.z, duration: 0.65, ease: 'power2.out' });
     i++;
   });
-  const nx = layoutX(plantObjects.size, newTotal);
-  const nz = Math.sin(plantObjects.size * 1.4) * 0.55;
-  group.position.set(nx, 0, nz);
+  const p = layoutPos(plantObjects.size, newTotal);
+  group.position.set(p.x, 0, p.z);
   group.userData.baseY = 0;
   scene.add(group);
   applyPlantArtDirection(group, Math.max(0, Math.min(3, agent.stage ?? 0)));
@@ -654,20 +704,20 @@ function openDrawer(agentId) {
 
   drawer.setAttribute('aria-hidden', 'false');
   backdrop.style.visibility = 'visible'; backdrop.style.pointerEvents = 'auto';
-  if (reducedMotion) { drawer.style.transform = isMobile() ? 'translateY(0%)' : 'translateX(0%)'; backdrop.style.background = 'rgba(0,0,0,0.22)'; return; }
+  if (reducedMotion) { drawer.style.transform = isMobile() ? 'translateY(0%)' : 'translateX(0%)'; backdrop.style.background = 'rgba(0,0,0,0.32)'; return; }
   const ax = isMobile() ? 'y' : 'x';
   gsap.killTweensOf(drawer);
-  gsap.set(drawer, { [ax]: '100%' });
-  gsap.to(backdrop, { backgroundColor: 'rgba(0,0,0,0.22)', duration: 0.25 });
+  gsap.set(drawer, { [ax]: isMobile() ? '100%' : '-112%' });
+  gsap.to(backdrop, { backgroundColor: 'rgba(0,0,0,0.32)', duration: 0.25 });
   gsap.to(drawer, { [ax]: '0%', duration: 0.35, ease: 'power2.out' });
 }
 
 function closeDrawer() {
   openAgentId = null;
   drawer.setAttribute('aria-hidden', 'true');
-  if (reducedMotion) { drawer.style.transform = isMobile() ? 'translateY(100%)' : 'translateX(100%)'; backdrop.style.visibility = 'hidden'; backdrop.style.pointerEvents = 'none'; return; }
+  if (reducedMotion) { drawer.style.transform = isMobile() ? 'translateY(100%)' : 'translateX(-112%)'; backdrop.style.visibility = 'hidden'; backdrop.style.pointerEvents = 'none'; return; }
   const ax = isMobile() ? 'y' : 'x';
-  gsap.to(drawer, { [ax]: '100%', duration: 0.28, ease: 'power2.in' });
+  gsap.to(drawer, { [ax]: isMobile() ? '100%' : '-112%', duration: 0.28, ease: 'power2.in' });
   gsap.to(backdrop, { backgroundColor: 'rgba(0,0,0,0)', duration: 0.22, onComplete: () => { backdrop.style.visibility = 'hidden'; backdrop.style.pointerEvents = 'none'; } });
 }
 
@@ -677,8 +727,8 @@ function showBloomOverlay(agentId, newStage, onDone) {
   const pn   = plantName(agentId);
   document.getElementById('bloom-name').textContent = pn;
   document.getElementById('bloom-stage').textContent = newStage >= 3
-    ? `${pn} is in flower now. Rooted, steady, unmistakably itself.`
-    : `${pn} has opened new growth. The season is turning.`;
+    ? 'The wild now carries a crown.'
+    : 'A new form answers the light.';
   ov.style.visibility = 'visible';
   if (reducedMotion) {
     ov.style.opacity = '1';
@@ -715,13 +765,17 @@ function animatePlant(obj, T) {
   const { stage, phase, leafMat, pollenPts, growthGroup, rimMat, pointLight } = group.userData;
   const sleeping = !agent.learnings || agent.learnings.length === 0;
 
-  if (stage === 0) return; // seed: static
+  if (stage === 0) {
+    if (!reducedMotion && pointLight) pointLight.intensity = 0.12 + Math.sin(T * 0.8 + phase) * 0.05;
+    return;
+  }
   if (!growthGroup) return;
 
   // Gentle sway
   if (!reducedMotion) {
-    growthGroup.rotation.z = Math.sin(T * 0.60 + phase) * (sleeping ? 0.012 : 0.028);
-    growthGroup.rotation.x = Math.sin(T * 0.40 + phase * 1.2) * (sleeping ? 0.005 : 0.014);
+    const swayBase = stage >= 3 ? 0.022 : stage >= 2 ? 0.026 : 0.018;
+    growthGroup.rotation.z = Math.sin(T * 0.56 + phase) * (sleeping ? swayBase * 0.6 : swayBase);
+    growthGroup.rotation.x = Math.sin(T * 0.34 + phase * 1.2) * (sleeping ? 0.006 : 0.014);
   }
 
   // Update leaf time uniform
@@ -729,8 +783,10 @@ function animatePlant(obj, T) {
 
   // Working: rim glows, point light pulses
   if (agent.status === 'working') {
-    if (rimMat) rimMat.emissiveIntensity = 0.35 + Math.sin(T * 2.0 + phase) * 0.20;
-    if (pointLight) pointLight.intensity = 0.40 + Math.sin(T * 2.0) * 0.18;
+    if (rimMat) rimMat.emissiveIntensity = 0.30 + Math.sin(T * 2.0 + phase) * 0.18;
+    if (pointLight) pointLight.intensity = 0.48 + stage * 0.08 + Math.sin(T * 2.0) * 0.24;
+  } else if (pointLight) {
+    pointLight.intensity = 0.18 + stage * 0.10 + Math.sin(T * 0.9 + phase) * 0.05;
   }
 
   // Pollen drift (stage 3)
@@ -758,11 +814,11 @@ function animate() {
   // Dust motes
   const dp = dmGeo.attributes.position;
   for (let i = 0; i < DM; i++) {
-    dp.array[i*3]   += Math.sin(T * 0.18 + dmPh[i]) * 0.0012;
-    dp.array[i*3+1] += Math.cos(T * 0.14 + dmPh[i] * 1.2) * 0.0006;
-    dp.array[i*3+2] += Math.sin(T * 0.22 + dmPh[i] * 0.8) * 0.0008;
-    if (dp.array[i*3+1] > 5.0) dp.array[i*3+1] = 0.4;
-    if (dp.array[i*3+1] < 0.3) dp.array[i*3+1] = 4.5;
+    dp.array[i*3]   += Math.sin(T * 0.18 + dmPh[i]) * 0.0014;
+    dp.array[i*3+1] += Math.cos(T * 0.14 + dmPh[i] * 1.2) * 0.0008;
+    dp.array[i*3+2] += Math.sin(T * 0.22 + dmPh[i] * 0.8) * 0.0010;
+    if (dp.array[i*3+1] > 6.2) dp.array[i*3+1] = 0.5;
+    if (dp.array[i*3+1] < 0.4) dp.array[i*3+1] = 5.8;
   }
   dp.needsUpdate = true;
 
@@ -811,7 +867,7 @@ function raycastPots(ex, ey) {
 canvas.addEventListener('pointerdown', e => { md = { x: e.clientX, y: e.clientY }; dragSX = camTargetX; dragging = false; });
 canvas.addEventListener('pointermove', e => {
   if (md) {
-    if (Math.abs(e.clientX - md.x) > 4) { dragging = true; camTargetX = Math.max(-10, Math.min(10, dragSX - (e.clientX - md.x) * 0.016)); }
+    if (Math.abs(e.clientX - md.x) > 4) { dragging = true; camTargetX = Math.max(-7, Math.min(7, dragSX - (e.clientX - md.x) * 0.016)); }
     return;
   }
   // Hover detection
@@ -837,7 +893,7 @@ canvas.addEventListener('pointerleave', () => {
 canvas.addEventListener('wheel', e => {
   const dist = camera.position.length();
   if (dist < 0.001) return;
-  const newDist = Math.max(8, Math.min(20, dist * (1 + e.deltaY * 0.0008)));
+  const newDist = Math.max(7, Math.min(15, dist * (1 + e.deltaY * 0.0008)));
   camera.position.normalize().multiplyScalar(newDist);
 }, { passive: true });
 
@@ -876,15 +932,21 @@ if (hub) {
     const sleeping = !fa?.learnings || fa.learnings.length === 0;
     gsap.to(label, { opacity: sleeping ? 0.45 : 1.0, duration: 0.55 });
 
-    // Growth pulse: rim glow + slight scale pop
+    // Growth pulse: coronation-style response
     if (!reducedMotion && group.userData.rimMat) {
       gsap.timeline()
-        .to(group.userData.rimMat, { emissiveIntensity: 0.70, duration: 0.12, ease: 'power2.out' })
-        .to(group.userData.rimMat, { emissiveIntensity: 0.10, duration: 0.55, ease: 'power2.in' });
+        .to(group.userData.rimMat, { emissiveIntensity: 0.86, duration: 0.16, ease: 'power2.out' })
+        .to(group.userData.rimMat, { emissiveIntensity: 0.16, duration: 0.65, ease: 'power2.in' });
       if (group.userData.growthGroup) {
         gsap.timeline()
-          .to(group.userData.growthGroup.scale, { x: 1.06, y: 1.06, z: 1.06, duration: 0.18, ease: 'power2.out' })
-          .to(group.userData.growthGroup.scale, { x: 1.00, y: 1.00, z: 1.00, duration: 0.30, ease: 'elastic.out(1.2, 0.5)' });
+          .to(group.userData.growthGroup.scale, { x: 0.96, y: 0.96, z: 0.96, duration: 0.18, ease: 'power2.out' })
+          .to(group.userData.growthGroup.scale, { x: 1.18, y: 1.18, z: 1.18, duration: 0.30, ease: 'power2.out' })
+          .to(group.userData.growthGroup.scale, { x: 1.00, y: 1.00, z: 1.00, duration: 0.44, ease: 'elastic.out(1.1, 0.42)' });
+      }
+      if (group.userData.pointLight) {
+        gsap.timeline()
+          .to(group.userData.pointLight, { intensity: group.userData.pointLight.intensity + 0.50, duration: 0.2, ease: 'power2.out' })
+          .to(group.userData.pointLight, { intensity: 0.24 + group.userData.stage * 0.1, duration: 0.8, ease: 'power2.inOut' });
       }
     }
 
