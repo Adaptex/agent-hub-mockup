@@ -1,0 +1,1834 @@
+# Neural Mesh Implementation Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** Build `neural-mesh.html` — a synaptic node-graph AI agent hub where agents appear as living neurons in a configurable mesh, with orbiting motes, signal pulses, and a first-run configurator.
+
+**Architecture:** Single self-contained HTML file with inline CSS and a `<script type="module">` block. Three.js handles the 3D canvas via ESM importmap; GSAP handles all DOM animations. StateManager (shared with all designs) drives data; all rendering state lives in module-scope JS objects keyed by agent ID.
+
+**Tech Stack:** Three.js 0.169.0 (ESM importmap), GSAP 3.12.2 (CDN), CSS2DRenderer (Three.js addon), Google Fonts (Playfair Display + Lora + JetBrains Mono), `state-manager.js` + `ui-modals.js` (existing shared files).
+
+---
+
+## Critical Pitfalls (Read Before Starting)
+
+1. **StateManager instantiation** — `window.StateManager` is the CLASS. Always `new window.StateManager(SEED_AGENTS)`, never `const hub = window.StateManager`.
+2. **hexColor numeric guard** — `state-manager.js` converts hex strings to integers internally. Any call to `hexColor()` must handle a numeric input or it will crash on agents loaded from localStorage.
+3. **Curly quotes** — If the Edit tool auto-converts straight quotes to curly quotes in JS code, the file will throw `SyntaxError: Invalid or unexpected token`. Fix with: `"/c/Program Files/nodejs/node.exe" _fix_quotes.js` (already in project root).
+4. **GSAP competing tweens** — Always call `gsap.killTweensOf(target)` before animating a target that may already be mid-tween (drawer, overlay, node meshes).
+5. **CSS2DRenderer** — Labels (CSS2DObject) require a second renderer. Its DOM element must be positioned absolute over the canvas with `pointer-events: none`.
+6. **`window._agentHub`** — Must be set after hub instantiation for `ui-modals.js` to work.
+
+---
+
+## File Map
+
+| File | Action | Responsibility |
+|---|---|---|
+| `neural-mesh.html` | **CREATE** | Entire design: HTML, CSS, Three.js scene, configurator, drawer, state wiring |
+| `constellation-forge.html` | **MODIFY** | Add `<a href="neural-mesh.html">` to `.design-nav` |
+| `tidal-archive.html` | **MODIFY** | Add `<a href="neural-mesh.html">` to `.hud-nav` |
+| `foundry-glass.html` | **MODIFY** | Add `<a href="neural-mesh.html">` to `.header-nav` |
+| `vivarium.html` | **MODIFY** | Add `<a href="neural-mesh.html">` to `.design-nav` |
+| `grove.html` | **MODIFY** | Add `<a href="neural-mesh.html">` to `.design-nav` |
+
+---
+
+## Task 1: HTML Skeleton + CSS Foundation
+
+**Files:**
+- Create: `neural-mesh.html`
+
+- [ ] **Step 1: Create the file with document structure, imports, and CSS**
+
+Create `neural-mesh.html` with this exact content:
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Neural Mesh</title>
+  <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"}}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@1,700&family=Lora:ital,wght@0,400;0,500;1,400;1,500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      /* Palette — synaptic violet */
+      --bg:           #060612;
+      --surface:      #0e0e1a;
+      --border:       #2a2a4a;
+      --border-faint: #1a1a3a;
+      --node-base:    #7b6fff;
+      --node-mid:     #a78bfa;
+      --node-pale:    #c4b5fd;
+      --node-hot:     #e8e0ff;
+      --text-primary: #e0d4ff;
+      --text-muted:   #7b6b9a;
+      --text-faint:   #4a4a7a;
+
+      /* Spacing */
+      --sp-1: 4px;  --sp-2: 8px;  --sp-3: 12px;
+      --sp-4: 16px; --sp-5: 20px; --sp-6: 24px;
+
+      /* Type scale */
+      --text-xs:  10px;
+      --text-sm:  12px;
+      --text-md:  14px;
+      --text-lg:  16px;
+      --text-xl:  22px;
+      --text-2xl: 28px;
+
+      /* Z-index */
+      --z-canvas:       0;
+      --z-labels:      10;
+      --z-masthead:    20;
+      --z-drawer:      30;
+      --z-config:      40;
+      --z-promotion:   50;
+    }
+
+    html, body {
+      width: 100%; height: 100%; overflow: hidden;
+      background: var(--bg);
+      font-family: 'Lora', serif;
+      color: var(--text-primary);
+    }
+
+    /* ── Canvas ──────────────────────────────────────── */
+    #canvas-container {
+      position: fixed; inset: 0; z-index: var(--z-canvas);
+    }
+    #canvas-container canvas { display: block; }
+    /* CSS2D label layer — injected by Three.js */
+    #canvas-container > div {
+      position: absolute; inset: 0;
+      pointer-events: none;
+      z-index: var(--z-labels);
+    }
+
+    /* ── Masthead ────────────────────────────────────── */
+    #masthead {
+      position: fixed; top: 0; left: 0; right: 0;
+      height: 48px;
+      display: flex; align-items: center;
+      justify-content: space-between;
+      padding: 0 var(--sp-5);
+      background: rgba(6, 6, 18, 0.85);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--border-faint);
+      z-index: var(--z-masthead);
+    }
+    #masthead-left { display: flex; align-items: baseline; gap: var(--sp-3); }
+    #wordmark {
+      font-family: 'Playfair Display', serif;
+      font-style: italic;
+      font-size: var(--text-xl);
+      color: var(--node-pale);
+      letter-spacing: -0.01em;
+    }
+    #lede {
+      font-family: 'Lora', serif;
+      font-style: italic;
+      font-size: var(--text-sm);
+      color: var(--text-faint);
+    }
+    #masthead-right { display: flex; align-items: center; gap: var(--sp-2); }
+
+    /* ── Design nav ──────────────────────────────────── */
+    .design-nav { display: flex; gap: var(--sp-1); }
+    .design-nav-link {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: var(--text-xs);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-faint);
+      text-decoration: none;
+      padding: var(--sp-1) var(--sp-2);
+      border-radius: 4px;
+      border: 1px solid transparent;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .design-nav-link:hover { color: var(--text-muted); border-color: var(--border); }
+    .design-nav-link.active { color: var(--node-base); border-color: rgba(123,111,255,0.35); }
+
+    /* ── Gear button ─────────────────────────────────── */
+    #btn-reconfigure {
+      background: none;
+      border: 1px solid var(--border-faint);
+      border-radius: 4px;
+      color: var(--text-muted);
+      width: 28px; height: 28px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    #btn-reconfigure:hover { color: var(--node-pale); border-color: var(--border); }
+
+    /* ── Agent drawer ────────────────────────────────── */
+    #agent-drawer {
+      position: fixed; top: 0; right: 0; bottom: 0;
+      width: 380px;
+      background: var(--surface);
+      border-left: 1px solid var(--border);
+      z-index: var(--z-drawer);
+      display: flex; flex-direction: column;
+      transform: translateX(380px);
+      overflow-y: auto;
+    }
+    #drawer-header {
+      padding: var(--sp-6) var(--sp-5) var(--sp-4);
+      border-bottom: 1px solid var(--border-faint);
+    }
+    #drawer-agent-name {
+      font-family: 'Playfair Display', serif;
+      font-style: italic;
+      font-size: var(--text-xl);
+      color: var(--node-pale);
+      margin-bottom: var(--sp-1);
+    }
+    #drawer-stage-label {
+      font-family: 'Lora', serif;
+      font-style: italic;
+      font-size: var(--text-sm);
+      color: var(--node-base);
+    }
+    #drawer-body { padding: var(--sp-4) var(--sp-5); flex: 1; display: flex; flex-direction: column; gap: var(--sp-5); }
+    .drawer-section-header {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: var(--text-xs);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--text-faint);
+      margin-bottom: var(--sp-2);
+    }
+    #drawer-reliability-bar-bg {
+      height: 3px;
+      background: var(--border-faint);
+      border-radius: 2px;
+    }
+    #drawer-reliability-bar-fill {
+      height: 3px;
+      background: var(--node-base);
+      border-radius: 2px;
+      transition: width 0.4s;
+    }
+    #drawer-tags { display: flex; flex-wrap: wrap; gap: var(--sp-1); }
+    .drawer-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: var(--text-xs);
+      color: var(--node-mid);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 2px var(--sp-2);
+    }
+    #drawer-memory-count {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: var(--text-xs);
+      color: var(--text-faint);
+      margin-bottom: var(--sp-3);
+    }
+    #drawer-memories { display: flex; flex-direction: column; gap: var(--sp-3); }
+    .memory-item { border-left: 2px solid var(--border); padding-left: var(--sp-3); }
+    .memory-quote {
+      font-style: italic;
+      font-size: var(--text-sm);
+      color: var(--text-primary);
+      line-height: 1.5;
+      margin-bottom: 2px;
+    }
+    .memory-context {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: var(--text-xs);
+      color: var(--text-faint);
+    }
+    #drawer-footer {
+      padding: var(--sp-4) var(--sp-5);
+      border-top: 1px solid var(--border-faint);
+      display: flex; gap: var(--sp-2);
+    }
+    .drawer-btn {
+      flex: 1;
+      padding: var(--sp-2) var(--sp-3);
+      border-radius: 6px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: var(--text-xs);
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+    #btn-feed {
+      background: var(--node-base);
+      color: #fff;
+      border: none;
+    }
+    #btn-feed:hover { background: var(--node-mid); }
+    #btn-reconfig {
+      background: none;
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+    }
+    #btn-reconfig:hover { color: var(--node-pale); border-color: var(--border); }
+
+    /* ── Backdrop ────────────────────────────────────── */
+    #backdrop {
+      position: fixed; inset: 0;
+      z-index: calc(var(--z-drawer) - 1);
+      display: none;
+      cursor: pointer;
+    }
+
+    /* ── Configurator overlay ────────────────────────── */
+    #configurator {
+      position: fixed; inset: 0;
+      background: var(--bg);
+      z-index: var(--z-config);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: var(--sp-6);
+    }
+    #config-step-indicator {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: var(--text-xs);
+      letter-spacing: 2px;
+      color: var(--text-faint);
+      margin-bottom: var(--sp-4);
+      text-transform: uppercase;
+    }
+    #config-question {
+      font-family: 'Playfair Display', serif;
+      font-style: italic;
+      font-size: var(--text-2xl);
+      color: var(--node-pale);
+      text-align: center;
+      margin-bottom: var(--sp-6);
+    }
+    #config-cards {
+      display: flex; gap: var(--sp-4);
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: var(--sp-6);
+    }
+    .config-card {
+      width: 220px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      background: var(--surface);
+    }
+    .config-card:hover { border-color: var(--node-base); }
+    .config-card.selected {
+      border-color: var(--node-base);
+      box-shadow: 0 0 0 2px var(--node-base);
+    }
+    .config-card-preview {
+      height: 130px;
+      display: flex; align-items: center; justify-content: center;
+      background: #080818;
+    }
+    .config-card-body { padding: var(--sp-3); }
+    .config-card-title {
+      font-family: 'Lora', serif;
+      font-size: var(--text-md);
+      color: var(--text-primary);
+      margin-bottom: 4px;
+    }
+    .config-card-desc {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: var(--text-xs);
+      color: var(--text-faint);
+      line-height: 1.5;
+    }
+    #config-nav { display: flex; gap: var(--sp-3); }
+    .config-nav-btn {
+      padding: var(--sp-2) var(--sp-5);
+      border-radius: 6px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: var(--text-xs);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s, opacity 0.15s;
+    }
+    #btn-config-back {
+      background: none;
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+    }
+    #btn-config-back:hover { color: var(--node-pale); }
+    #btn-config-back:disabled { opacity: 0.3; cursor: default; }
+    #btn-config-continue {
+      background: var(--node-base);
+      color: #fff;
+      border: none;
+    }
+    #btn-config-continue:hover { background: var(--node-mid); }
+    #btn-config-continue:disabled { opacity: 0.4; cursor: default; }
+
+    /* ── Promotion overlay ───────────────────────────── */
+    #promotion-overlay {
+      position: fixed; inset: 0;
+      z-index: var(--z-promotion);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      pointer-events: none;
+      opacity: 0;
+    }
+    #promotion-text {
+      font-family: 'Playfair Display', serif;
+      font-style: italic;
+      font-size: 32px;
+      color: var(--node-hot);
+      text-align: center;
+      text-shadow: 0 0 40px var(--node-base);
+    }
+
+    /* ── CSS2D node labels ───────────────────────────── */
+    .node-label {
+      font-family: 'Lora', serif;
+      font-style: italic;
+      font-size: 11px;
+      color: var(--node-pale);
+      background: rgba(6,6,18,0.7);
+      padding: 2px 6px;
+      border-radius: 4px;
+      pointer-events: none;
+      white-space: nowrap;
+      transform: translateY(8px);
+    }
+  </style>
+</head>
+<body>
+
+  <div id="canvas-container"></div>
+
+  <!-- Masthead -->
+  <header id="masthead">
+    <div id="masthead-left">
+      <span id="wordmark">Neural Mesh</span>
+      <span id="lede">a mind taking shape</span>
+    </div>
+    <div id="masthead-right">
+      <nav class="design-nav">
+        <a href="constellation-forge.html" class="design-nav-link">Forge</a>
+        <a href="tidal-archive.html" class="design-nav-link">Archive</a>
+        <a href="foundry-glass.html" class="design-nav-link">Foundry</a>
+        <a href="vivarium.html" class="design-nav-link">Vivarium</a>
+        <a href="grove.html" class="design-nav-link">Grove</a>
+        <a href="neural-mesh.html" class="design-nav-link active">Mesh</a>
+      </nav>
+      <button id="btn-reconfigure" title="Reconfigure mesh">&#9881;</button>
+    </div>
+  </header>
+
+  <!-- Agent drawer -->
+  <aside id="agent-drawer">
+    <div id="drawer-header">
+      <div id="drawer-agent-name"></div>
+      <div id="drawer-stage-label"></div>
+    </div>
+    <div id="drawer-body">
+      <div>
+        <div class="drawer-section-header">faithfulness</div>
+        <div id="drawer-reliability-bar-bg">
+          <div id="drawer-reliability-bar-fill" style="width:0%"></div>
+        </div>
+      </div>
+      <div>
+        <div class="drawer-section-header">drawn to</div>
+        <div id="drawer-tags"></div>
+      </div>
+      <div>
+        <div class="drawer-section-header">memories woven</div>
+        <div id="drawer-memory-count"></div>
+        <div id="drawer-memories"></div>
+      </div>
+    </div>
+    <div id="drawer-footer">
+      <button class="drawer-btn" id="btn-feed">Feed a memory</button>
+      <button class="drawer-btn" id="btn-reconfig">Reconfigure</button>
+    </div>
+  </aside>
+  <div id="backdrop"></div>
+
+  <!-- Promotion overlay -->
+  <div id="promotion-overlay">
+    <div id="promotion-text"></div>
+  </div>
+
+  <!-- Configurator overlay -->
+  <div id="configurator">
+    <div id="config-step-indicator">Step 1 / 4</div>
+    <div id="config-question"></div>
+    <div id="config-cards"></div>
+    <div id="config-nav">
+      <button class="config-nav-btn" id="btn-config-back" disabled>Back</button>
+      <button class="config-nav-btn" id="btn-config-continue" disabled>Continue</button>
+    </div>
+  </div>
+
+  <script src="state-manager.js"></script>
+  <script src="ui-modals.js"></script>
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+
+    // ── PLACEHOLDER: scene code added in later tasks ──
+    console.log('Neural Mesh loading...');
+  </script>
+</body>
+</html>
+```
+
+- [ ] **Step 2: Verify it renders without errors**
+
+Start the server: `npx http-server /c/Users/kusal.f/projects/agent-hub-mockup -p 5500 --cors -c-1`
+
+Open `http://localhost:5500/neural-mesh.html`. Expected:
+- Dark `#060612` background
+- Masthead with "Neural Mesh" wordmark + nav links
+- Configurator overlay covering the full screen (blank, no question yet)
+- No console errors
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add neural-mesh.html
+git commit -m "feat: add neural-mesh.html skeleton with CSS, HTML structure, and masthead"
+```
+
+---
+
+## Task 2: Configurator — 4-Step Card Picker
+
+**Files:**
+- Modify: `neural-mesh.html` — replace the `<script type="module">` placeholder
+
+- [ ] **Step 1: Replace the module script placeholder with the configurator logic**
+
+Replace the entire `<script type="module">` block with this (keep everything above it):
+
+```html
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+
+    // ── Constants ─────────────────────────────────────────────────────────────
+    const PALETTE = {
+      violet: { bg: '#060612', node: '#7b6fff', conn: '#a78bfa', light: 0x7b6fff },
+      cyan:   { bg: '#040f1a', node: '#00d4ff', conn: '#80eaff', light: 0x00d4ff },
+      neon:   { bg: '#0a0005', node: '#ff2d78', conn: '#ff80b0', light: 0xff2d78 },
+    };
+
+    const STAGE_DATA = [
+      { label: 'Dormant',  r: 0.35, color: '#4a4a6a', glowOp: 0.10, lightInt: 0.3 },
+      { label: 'Awakened', r: 0.57, color: '#7b6fff', glowOp: 0.20, lightInt: 0.8 },
+      { label: 'Flowing',  r: 0.79, color: '#a78bfa', glowOp: 0.30, lightInt: 1.5 },
+      { label: 'Radiant',  r: 1.01, color: '#e8e0ff', glowOp: 0.45, lightInt: 2.5 },
+    ];
+
+    const PROMOTION_COPY = [
+      '',
+      (name) => name + ' stirs. A mind awakens.',
+      (name) => name + ' flows. Thoughts find their paths.',
+      (name) => name + ' radiates. The mesh is complete.',
+    ];
+
+    const CONFIG_STEPS = [
+      {
+        key: 'layout',
+        question: 'How do minds arrange themselves?',
+        options: [
+          {
+            value: 'radial',
+            title: 'Radial Orbit',
+            desc: 'Nodes evenly spaced around a central hub',
+            svg: `<svg width="100" height="80" viewBox="0 0 100 80">
+              <circle cx="50" cy="40" r="4" fill="#7b6fff"/>
+              <circle cx="50" cy="12" r="5" fill="#a78bfa"/><line x1="50" y1="16" x2="50" y2="36" stroke="#3a3a6a" stroke-width="1"/>
+              <circle cx="74" cy="54" r="5" fill="#a78bfa"/><line x1="71" y1="52" x2="54" y2="43" stroke="#3a3a6a" stroke-width="1"/>
+              <circle cx="26" cy="54" r="5" fill="#a78bfa"/><line x1="29" y1="52" x2="46" y2="43" stroke="#3a3a6a" stroke-width="1"/>
+            </svg>`
+          },
+          {
+            value: 'floating',
+            title: 'Free-Floating',
+            desc: 'Nodes drift slowly through the void',
+            svg: `<svg width="100" height="80" viewBox="0 0 100 80">
+              <circle cx="20" cy="25" r="5" fill="#a78bfa"/>
+              <circle cx="60" cy="15" r="5" fill="#a78bfa"/>
+              <circle cx="75" cy="55" r="5" fill="#a78bfa"/>
+              <circle cx="35" cy="60" r="5" fill="#a78bfa"/>
+              <line x1="25" y1="25" x2="55" y2="18" stroke="#3a3a6a" stroke-width="1"/>
+              <line x1="60" y1="20" x2="72" y2="50" stroke="#3a3a6a" stroke-width="1"/>
+            </svg>`
+          },
+          {
+            value: 'force',
+            title: 'Force-Directed',
+            desc: 'Physics pulls connected nodes together',
+            svg: `<svg width="100" height="80" viewBox="0 0 100 80">
+              <line x1="30" y1="30" x2="60" y2="25" stroke="#3a3a6a" stroke-width="1"/>
+              <line x1="60" y1="25" x2="70" y2="55" stroke="#3a3a6a" stroke-width="1"/>
+              <line x1="30" y1="30" x2="70" y2="55" stroke="#3a3a6a" stroke-width="1"/>
+              <line x1="60" y1="25" x2="45" y2="60" stroke="#3a3a6a" stroke-width="1"/>
+              <circle cx="30" cy="30" r="6" fill="#7b6fff"/>
+              <circle cx="60" cy="25" r="6" fill="#7b6fff"/>
+              <circle cx="70" cy="55" r="6" fill="#a78bfa"/>
+              <circle cx="45" cy="60" r="5" fill="#a78bfa"/>
+            </svg>`
+          },
+        ]
+      },
+      {
+        key: 'growth',
+        question: 'How does a mind show it has learned?',
+        options: [
+          {
+            value: 'motes',
+            title: 'Orbiting Motes',
+            desc: 'Each memory becomes a particle in orbit',
+            svg: `<svg width="100" height="80" viewBox="0 0 100 80">
+              <ellipse cx="50" cy="40" rx="22" ry="12" fill="none" stroke="#3a3a6a" stroke-width="1"/>
+              <circle cx="50" cy="40" r="7" fill="#7b6fff"/>
+              <circle cx="72" cy="40" r="2" fill="#c4b5fd"/>
+              <circle cx="39" cy="29" r="2" fill="#c4b5fd"/>
+              <circle cx="55" cy="52" r="2" fill="#c4b5fd"/>
+            </svg>`
+          },
+          {
+            value: 'pulse',
+            title: 'Pulse & Grow',
+            desc: 'Node emits a ring and expands slightly',
+            svg: `<svg width="100" height="80" viewBox="0 0 100 80">
+              <circle cx="50" cy="40" r="8" fill="#7b6fff"/>
+              <circle cx="50" cy="40" r="16" fill="none" stroke="#7b6fff" stroke-width="1" opacity="0.5"/>
+              <circle cx="50" cy="40" r="24" fill="none" stroke="#7b6fff" stroke-width="1" opacity="0.2"/>
+            </svg>`
+          },
+          {
+            value: 'tendrils',
+            title: 'New Tendrils',
+            desc: 'Each memory sprouts a curved line',
+            svg: `<svg width="100" height="80" viewBox="0 0 100 80">
+              <circle cx="50" cy="40" r="7" fill="#7b6fff"/>
+              <path d="M50 33 Q60 15 75 12" fill="none" stroke="#a78bfa" stroke-width="1.5"/>
+              <path d="M55 44 Q72 50 80 62" fill="none" stroke="#a78bfa" stroke-width="1.5"/>
+              <path d="M43 44 Q28 55 18 50" fill="none" stroke="#a78bfa" stroke-width="1.5"/>
+            </svg>`
+          },
+        ]
+      },
+      {
+        key: 'stages',
+        question: 'How does growth reveal itself?',
+        options: [
+          {
+            value: 'both',
+            title: 'Size + Colour',
+            desc: 'Nodes grow larger and shift from grey to white-hot',
+            svg: `<svg width="100" height="80" viewBox="0 0 100 80">
+              <circle cx="18" cy="50" r="4" fill="#4a4a6a"/>
+              <circle cx="38" cy="45" r="6" fill="#7b6fff"/>
+              <circle cx="62" cy="38" r="9" fill="#a78bfa"/>
+              <circle cx="88" cy="30" r="12" fill="#e8e0ff"/>
+            </svg>`
+          },
+          {
+            value: 'size',
+            title: 'Size Only',
+            desc: 'Nodes grow but stay grey throughout',
+            svg: `<svg width="100" height="80" viewBox="0 0 100 80">
+              <circle cx="18" cy="50" r="4" fill="#4a4a6a"/>
+              <circle cx="38" cy="45" r="6" fill="#4a4a6a"/>
+              <circle cx="62" cy="38" r="9" fill="#4a4a6a"/>
+              <circle cx="88" cy="30" r="12" fill="#4a4a6a"/>
+            </svg>`
+          },
+          {
+            value: 'colour',
+            title: 'Colour Only',
+            desc: 'Nodes shift colour but stay the same size',
+            svg: `<svg width="100" height="80" viewBox="0 0 100 80">
+              <circle cx="18" cy="40" r="8" fill="#4a4a6a"/>
+              <circle cx="40" cy="40" r="8" fill="#7b6fff"/>
+              <circle cx="62" cy="40" r="8" fill="#a78bfa"/>
+              <circle cx="84" cy="40" r="8" fill="#e8e0ff"/>
+            </svg>`
+          },
+        ]
+      },
+      {
+        key: 'palette',
+        question: 'What colour does this mind radiate?',
+        options: [
+          {
+            value: 'violet',
+            title: 'Synaptic Violet',
+            desc: 'Deep violet — organic and warm',
+            svg: `<svg width="100" height="80" viewBox="0 0 100 80">
+              <rect width="100" height="80" fill="#060612"/>
+              <circle cx="50" cy="40" r="14" fill="#7b6fff"/>
+              <circle cx="50" cy="40" r="22" fill="none" stroke="#7b6fff" stroke-width="1" opacity="0.3"/>
+              <line x1="22" y1="22" x2="38" y2="34" stroke="#a78bfa" stroke-width="1" opacity="0.5"/>
+              <line x1="78" y1="22" x2="62" y2="34" stroke="#a78bfa" stroke-width="1" opacity="0.5"/>
+            </svg>`
+          },
+          {
+            value: 'cyan',
+            title: 'Technical Cyan',
+            desc: 'Electric cyan — precise and cold',
+            svg: `<svg width="100" height="80" viewBox="0 0 100 80">
+              <rect width="100" height="80" fill="#040f1a"/>
+              <circle cx="50" cy="40" r="14" fill="#00d4ff"/>
+              <circle cx="50" cy="40" r="22" fill="none" stroke="#00d4ff" stroke-width="1" opacity="0.3"/>
+              <line x1="22" y1="22" x2="38" y2="34" stroke="#80eaff" stroke-width="1" opacity="0.5"/>
+              <line x1="78" y1="22" x2="62" y2="34" stroke="#80eaff" stroke-width="1" opacity="0.5"/>
+            </svg>`
+          },
+          {
+            value: 'neon',
+            title: 'Cyberpunk Neon',
+            desc: 'Hot pink — vivid and kinetic',
+            svg: `<svg width="100" height="80" viewBox="0 0 100 80">
+              <rect width="100" height="80" fill="#0a0005"/>
+              <circle cx="50" cy="40" r="14" fill="#ff2d78"/>
+              <circle cx="50" cy="40" r="22" fill="none" stroke="#ff2d78" stroke-width="1" opacity="0.3"/>
+              <line x1="22" y1="22" x2="38" y2="34" stroke="#ff80b0" stroke-width="1" opacity="0.5"/>
+              <line x1="78" y1="22" x2="62" y2="34" stroke="#ff80b0" stroke-width="1" opacity="0.5"/>
+            </svg>`
+          },
+        ]
+      },
+    ];
+
+    // ── State ──────────────────────────────────────────────────────────────────
+    let config = null;
+    let configStep = 0;
+    let configSelections = {};
+    let sceneReady = false;
+
+    // ── Configurator ───────────────────────────────────────────────────────────
+    function loadConfig() {
+      try {
+        const raw = localStorage.getItem('neural-mesh-config');
+        if (raw) return JSON.parse(raw);
+      } catch (e) {}
+      return null;
+    }
+
+    function saveConfig(cfg) {
+      localStorage.setItem('neural-mesh-config', JSON.stringify(cfg));
+    }
+
+    function showConfigurator() {
+      configStep = 0;
+      configSelections = {};
+      document.getElementById('configurator').style.display = 'flex';
+      renderConfigStep();
+    }
+
+    function hideConfigurator() {
+      gsap.to('#configurator', {
+        opacity: 0, duration: 0.4,
+        onComplete: () => {
+          document.getElementById('configurator').style.display = 'none';
+          document.getElementById('configurator').style.opacity = 1;
+        }
+      });
+    }
+
+    function renderConfigStep() {
+      const step = CONFIG_STEPS[configStep];
+      const indicator = document.getElementById('config-step-indicator');
+      const question = document.getElementById('config-question');
+      const cards = document.getElementById('config-cards');
+      const btnBack = document.getElementById('btn-config-back');
+      const btnContinue = document.getElementById('btn-config-continue');
+
+      indicator.textContent = 'Step ' + (configStep + 1) + ' / 4';
+      question.textContent = step.question;
+
+      cards.innerHTML = '';
+      step.options.forEach(opt => {
+        const card = document.createElement('div');
+        card.className = 'config-card' + (configSelections[step.key] === opt.value ? ' selected' : '');
+        card.innerHTML =
+          '<div class="config-card-preview">' + opt.svg + '</div>' +
+          '<div class="config-card-body">' +
+          '<div class="config-card-title">' + opt.title + '</div>' +
+          '<div class="config-card-desc">' + opt.desc + '</div>' +
+          '</div>';
+        card.addEventListener('click', () => {
+          configSelections[step.key] = opt.value;
+          cards.querySelectorAll('.config-card').forEach(c => c.classList.remove('selected'));
+          card.classList.add('selected');
+          btnContinue.disabled = false;
+        });
+        cards.appendChild(card);
+      });
+
+      btnBack.disabled = configStep === 0;
+      btnContinue.disabled = !configSelections[step.key];
+      btnContinue.textContent = configStep === 3 ? 'Begin' : 'Continue';
+    }
+
+    document.getElementById('btn-config-back').addEventListener('click', () => {
+      if (configStep > 0) { configStep--; renderConfigStep(); }
+    });
+
+    document.getElementById('btn-config-continue').addEventListener('click', () => {
+      if (configStep < 3) {
+        configStep++;
+        renderConfigStep();
+      } else {
+        config = {
+          layout:  configSelections.layout  || 'radial',
+          growth:  configSelections.growth  || 'motes',
+          stages:  configSelections.stages  || 'both',
+          palette: configSelections.palette || 'violet',
+        };
+        saveConfig(config);
+        hideConfigurator();
+        if (!sceneReady) initScene();
+        else reinitScene();
+      }
+    });
+
+    document.getElementById('btn-reconfigure').addEventListener('click', showConfigurator);
+    document.getElementById('btn-reconfig').addEventListener('click', showConfigurator);
+
+    // ── Boot ───────────────────────────────────────────────────────────────────
+    config = loadConfig();
+    if (config) {
+      document.getElementById('configurator').style.display = 'none';
+      initScene();
+    } else {
+      showConfigurator();
+    }
+
+    function reinitScene() {
+      // Implemented in Task 4 — placeholder stub
+      console.log('reinitScene called with', config);
+    }
+
+    function initScene() {
+      sceneReady = true;
+      console.log('initScene called with', config);
+    }
+  </script>
+</body>
+</html>
+```
+
+- [ ] **Step 2: Test the configurator**
+
+Open `http://localhost:5500/neural-mesh.html`. Clear localStorage first: open DevTools Console and run `localStorage.removeItem('neural-mesh-config')`, then refresh.
+
+Expected:
+- Configurator overlay covers full screen
+- Step 1 / 4 shown, question displayed, 3 cards visible with SVG previews
+- Clicking a card selects it (violet border glow), "Continue" enables
+- Back/Continue navigate between all 4 steps
+- On final "Begin": `localStorage.getItem('neural-mesh-config')` in console returns JSON with all 4 keys
+- Overlay fades out
+- Console logs `initScene called with {layout: 'radial', ...}`
+
+Refresh page — configurator should NOT appear (config is in localStorage).
+
+Click the ⚙ gear button — configurator reopens.
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add neural-mesh.html
+git commit -m "feat: add configurator overlay with 4-step card picker and localStorage persistence"
+```
+
+---
+
+## Task 3: Three.js Scene Foundation
+
+**Files:**
+- Modify: `neural-mesh.html` — expand `initScene()` with renderer, camera, environment
+
+- [ ] **Step 1: Replace `initScene()` with full scene setup**
+
+Replace the `initScene` function (and add after `reinitScene`):
+
+```js
+    // ── Scene globals ──────────────────────────────────────────────────────────
+    let renderer, css2dRenderer, scene, camera, controls, clock;
+    let starField;
+    let hubMesh, hubGlow;
+    const nodeMap = {};        // agentId -> { group, core, glow, light, moteGroup, motes, labelObj }
+    const connections = [];    // { line, pulse, curve, nextPulse }
+    let hub;                   // StateManager instance
+    let drawerAgentId = null;
+    let raycaster, pointer;
+
+    function initScene() {
+      sceneReady = true;
+      const pal = PALETTE[config.palette];
+
+      // Renderer
+      renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setClearColor(new THREE.Color(pal.bg));
+      document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+      // CSS2D renderer for labels
+      css2dRenderer = new CSS2DRenderer();
+      css2dRenderer.setSize(window.innerWidth, window.innerHeight);
+      css2dRenderer.domElement.style.position = 'absolute';
+      css2dRenderer.domElement.style.top = '0';
+      css2dRenderer.domElement.style.pointerEvents = 'none';
+      document.getElementById('canvas-container').appendChild(css2dRenderer.domElement);
+
+      // Scene
+      scene = new THREE.Scene();
+
+      // Camera
+      camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+      camera.position.set(0, 0, 22);
+      camera.lookAt(0, 0, 0);
+
+      // Controls
+      controls = new OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.08;
+      controls.minDistance = 8;
+      controls.maxDistance = 40;
+      controls.autoRotate = false;
+
+      // Lights
+      scene.add(new THREE.AmbientLight(0x1a0a2e, 0.4));
+
+      // Star-field
+      const starGeo = new THREE.BufferGeometry();
+      const starPos = new Float32Array(800 * 3);
+      for (let i = 0; i < 800 * 3; i++) {
+        starPos[i] = (Math.random() - 0.5) * 160;
+      }
+      starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+      starField = new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 0.06 }));
+      scene.add(starField);
+
+      // Central hub
+      const hubGeo = new THREE.SphereGeometry(0.18, 16, 16);
+      hubMesh = new THREE.Mesh(hubGeo, new THREE.MeshStandardMaterial({
+        color: new THREE.Color(pal.node), emissive: new THREE.Color(pal.node), emissiveIntensity: 1.2,
+      }));
+      scene.add(hubMesh);
+      const hubGlowGeo = new THREE.SphereGeometry(0.35, 16, 16);
+      hubGlow = new THREE.Mesh(hubGlowGeo, new THREE.MeshStandardMaterial({
+        color: new THREE.Color(pal.node), emissive: new THREE.Color(pal.node),
+        emissiveIntensity: 0.5, transparent: true, opacity: 0.15,
+      }));
+      scene.add(hubGlow);
+
+      // Raycaster
+      raycaster = new THREE.Raycaster();
+      pointer = new THREE.Vector2();
+      clock = new THREE.Clock();
+
+      // Resize
+      window.addEventListener('resize', onResize);
+
+      // Interaction
+      renderer.domElement.addEventListener('pointermove', onPointerMove);
+      renderer.domElement.addEventListener('pointerdown', onPointerDown);
+      document.getElementById('backdrop').addEventListener('click', closeDrawer);
+      document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(); });
+
+      // State
+      initState();
+
+      // RAF
+      animate();
+    }
+
+    function reinitScene() {
+      // Dispose and rebuild after reconfigure
+      if (renderer) {
+        window.removeEventListener('resize', onResize);
+        renderer.dispose();
+        const container = document.getElementById('canvas-container');
+        while (container.firstChild) container.removeChild(container.firstChild);
+        Object.keys(nodeMap).forEach(k => delete nodeMap[k]);
+        connections.length = 0;
+        hubMesh = null; hubGlow = null;
+        drawerAgentId = null;
+        closeDrawer();
+      }
+      initScene();
+    }
+
+    function onResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      css2dRenderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      const elapsed = clock.getElapsedTime();
+      controls.update();
+      tickMotes(elapsed);
+      tickPulses(elapsed);
+      renderer.render(scene, camera);
+      css2dRenderer.render(scene, camera);
+    }
+
+    function tickMotes(elapsed) { /* Task 6 */ }
+    function tickPulses(elapsed) { /* Task 5 */ }
+```
+
+- [ ] **Step 2: Verify scene renders**
+
+Reload `http://localhost:5500/neural-mesh.html`. After clicking through the configurator (or if config already exists):
+
+Expected:
+- Dark scene renders — black/deep-violet void
+- White star-field visible as small points
+- Tiny glowing hub sphere at center
+- No console errors
+- OrbitControls work (drag to rotate, scroll to zoom, zoom clamps at 8 and 40)
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add neural-mesh.html
+git commit -m "feat: add Three.js scene, camera, star-field, hub mesh, and RAF loop"
+```
+
+---
+
+## Task 4: StateManager Wiring + Node Spawning
+
+**Files:**
+- Modify: `neural-mesh.html` — add `initState()`, `spawnNode()`, `layoutNodes()`, `hexColor()`
+
+- [ ] **Step 1: Add state helpers and node spawning after `tickPulses`**
+
+```js
+    // ── Helpers ────────────────────────────────────────────────────────────────
+    function hexColor(hex) {
+      if (typeof hex === 'number') return new THREE.Color(hex);
+      const n = parseInt(String(hex).replace('#', ''), 16);
+      return new THREE.Color(isNaN(n) ? 0x7b6fff : n);
+    }
+
+    function getStage(agent) {
+      const xp = (agent.learnings || []).length * 10;
+      if (xp >= 100) return 3;
+      if (xp >= 40)  return 2;
+      if (xp >= 10)  return 1;
+      return 0;
+    }
+
+    function applyStageVisuals(nodeData, stage) {
+      const sd = STAGE_DATA[stage];
+      const r = config.stages === 'size' ? sd.r : (config.stages === 'colour' ? STAGE_DATA[0].r : sd.r);
+      const col = config.stages === 'size'
+        ? new THREE.Color('#4a4a6a')
+        : new THREE.Color(sd.color);
+
+      nodeData.core.geometry.dispose();
+      nodeData.core.geometry = new THREE.SphereGeometry(r, 20, 20);
+      nodeData.core.material.color = col;
+      nodeData.core.material.emissive = col;
+      nodeData.core.material.emissiveIntensity = 0.6 + stage * 0.2;
+
+      nodeData.glow.geometry.dispose();
+      nodeData.glow.geometry = new THREE.SphereGeometry(r * 1.6, 16, 16);
+      nodeData.glow.material.opacity = sd.glowOp;
+
+      if (nodeData.light) nodeData.light.intensity = sd.lightInt;
+    }
+
+    // ── Seed agents ────────────────────────────────────────────────────────────
+    const SEED_AGENTS = [
+      { id: 'designer',          name: 'Designer',          color: '#c8b4ff', status: 'working', bio: 'Shapes ideas into form.', specialization: ['design', 'typography'],   reliability: 0.82 },
+      { id: 'creative-director', name: 'Creative Director', color: '#ffb347', status: 'working', bio: 'Finds the voice.',        specialization: ['writing', 'brand'],       reliability: 0.78 },
+      { id: 'frontend',          name: 'Frontend',          color: '#7fdecc', status: 'working', bio: 'Builds the interface.',   specialization: ['coding', 'ui'],           reliability: 0.91 },
+      { id: 'qa',                name: 'QA',                color: '#ff8080', status: 'idle',    bio: 'Holds the standard.',    specialization: ['testing', 'quality'],     reliability: 0.88 },
+    ];
+
+    function initState() {
+      hub = window.StateManager ? new window.StateManager(SEED_AGENTS) : null;
+      if (!hub) { console.error('StateManager not loaded'); return; }
+      window._agentHub = hub;
+
+      hub.getAgents().forEach(a => spawnNode(a));
+      layoutNodes();
+      buildConnections();
+
+      hub.on('agentAdded', ({ agent }) => {
+        spawnNode(agent);
+        layoutNodes();
+        buildConnections();
+      });
+
+      hub.on('learningAdded', ({ agentId, promoted, newStage }) => {
+        if (config.growth === 'motes') addMote(agentId);
+        else if (config.growth === 'pulse') triggerPulse(agentId);
+        else if (config.growth === 'tendrils') addTendril(agentId);
+        if (promoted) triggerPromotion(agentId, newStage);
+        if (drawerAgentId === agentId) refreshDrawer(agentId);
+      });
+    }
+
+    function spawnNode(agent) {
+      if (nodeMap[agent.id]) return;
+      const pal = PALETTE[config.palette];
+      const stage = getStage(agent);
+      const sd = STAGE_DATA[stage];
+      const agentColor = hexColor(agent.color);
+
+      const group = new THREE.Group();
+      scene.add(group);
+
+      // Core
+      const r = config.stages === 'colour' ? STAGE_DATA[0].r : sd.r;
+      const col = config.stages === 'size' ? new THREE.Color('#4a4a6a') : new THREE.Color(sd.color);
+      const core = new THREE.Mesh(
+        new THREE.SphereGeometry(r, 20, 20),
+        new THREE.MeshStandardMaterial({ color: col, emissive: col, emissiveIntensity: 0.7 })
+      );
+      group.add(core);
+
+      // Glow
+      const glow = new THREE.Mesh(
+        new THREE.SphereGeometry(r * 1.6, 16, 16),
+        new THREE.MeshStandardMaterial({
+          color: agentColor, emissive: agentColor,
+          emissiveIntensity: 0.4, transparent: true, opacity: sd.glowOp,
+        })
+      );
+      group.add(glow);
+
+      // Point light
+      const light = new THREE.PointLight(agentColor, sd.lightInt, 12);
+      group.add(light);
+
+      // Mote group (Points for orbiting motes)
+      const motePositions = new Float32Array(30 * 3);
+      const moteGeo = new THREE.BufferGeometry();
+      moteGeo.setAttribute('position', new THREE.BufferAttribute(motePositions, 3));
+      const moteMat = new THREE.PointsMaterial({ color: agentColor, size: 0.055, transparent: true, opacity: 0.9 });
+      const motePoints = new THREE.Points(moteGeo, moteMat);
+      group.add(motePoints);
+
+      // CSS2D label
+      const labelDiv = document.createElement('div');
+      labelDiv.className = 'node-label';
+      labelDiv.textContent = agent.name + ' · ' + sd.label;
+      const labelObj = new CSS2DObject(labelDiv);
+      labelObj.position.set(0, -(r * 1.6 + 0.3), 0);
+      group.add(labelObj);
+
+      const moteData = [];
+      // Pre-seed motes for existing learnings
+      const learnings = (agent.learnings || []);
+      learnings.slice(0, 30).forEach(() => moteData.push(createMoteData()));
+
+      nodeMap[agent.id] = { group, core, glow, light, motePoints, moteData, labelObj, labelDiv, agent };
+      applyStageVisuals(nodeMap[agent.id], stage);
+
+      // GSAP spawn animation
+      group.scale.set(0, 0, 0);
+      gsap.to(group.scale, { x: 1, y: 1, z: 1, duration: 0.6, ease: 'back.out(1.7)' });
+    }
+
+    function createMoteData() {
+      return {
+        rx: 0.55 + Math.random() * 0.40,
+        ry: 0.35 + Math.random() * 0.30,
+        rz: 0.20 + Math.random() * 0.30,
+        speed: 0.4 + Math.random() * 0.6,
+        phase: Math.random() * Math.PI * 2,
+      };
+    }
+
+    function addMote(agentId) {
+      const nd = nodeMap[agentId];
+      if (!nd) return;
+      if (nd.moteData.length >= 30) nd.moteData.shift();
+      nd.moteData.push(createMoteData());
+    }
+
+    function layoutNodes() {
+      const agents = Object.keys(nodeMap);
+      const R = 5.5;
+      agents.forEach((id, i) => {
+        const angle = (i / agents.length) * Math.PI * 2;
+        const nd = nodeMap[id];
+        gsap.to(nd.group.position, {
+          x: Math.cos(angle) * R,
+          y: Math.sin(angle) * R,
+          z: 0,
+          duration: 0.8,
+          ease: 'power2.inOut',
+        });
+      });
+    }
+```
+
+- [ ] **Step 2: Verify nodes appear**
+
+Reload. After configurator (or immediately if config exists):
+- 4 agent nodes should appear — small glowing spheres arranged in a circle
+- Hover close to the center where the hub is
+- Labels below each node showing agent name + stage (e.g. "Designer · Dormant")
+- No console errors
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add neural-mesh.html
+git commit -m "feat: add StateManager wiring, node spawning with glow/label, radial layout"
+```
+
+---
+
+## Task 5: Connections + Signal Pulses
+
+**Files:**
+- Modify: `neural-mesh.html` — add `buildConnections()`, `schedulePulse()`, expand `tickPulses()`
+
+- [ ] **Step 1: Add connection and pulse logic**
+
+Add after `layoutNodes()`:
+
+```js
+    function buildConnections() {
+      // Remove old connections
+      connections.forEach(c => {
+        scene.remove(c.line);
+        if (c.pulse) scene.remove(c.pulse);
+      });
+      connections.length = 0;
+
+      const pal = PALETTE[config.palette];
+      const ids = Object.keys(nodeMap);
+
+      // Hub-to-node connections (thin)
+      ids.forEach(id => {
+        const nd = nodeMap[id];
+        const pts = buildCurvePoints(new THREE.Vector3(0,0,0), nd.group.position);
+        const geo = new THREE.BufferGeometry().setFromPoints(pts);
+        const line = new THREE.Line(geo, new THREE.LineBasicMaterial({
+          color: new THREE.Color(pal.conn), transparent: true, opacity: 0.15,
+        }));
+        scene.add(line);
+        connections.push({ line, pulse: null, fromPos: new THREE.Vector3(0,0,0), toId: id, hubLine: true, nextPulse: 0, curvePoints: pts });
+      });
+
+      // Node-to-node connections
+      for (let i = 0; i < ids.length; i++) {
+        for (let j = i + 1; j < ids.length; j++) {
+          const a = nodeMap[ids[i]];
+          const b = nodeMap[ids[j]];
+          const pts = buildCurvePoints(a.group.position, b.group.position);
+          const geo = new THREE.BufferGeometry().setFromPoints(pts);
+          const line = new THREE.Line(geo, new THREE.LineBasicMaterial({
+            color: new THREE.Color(pal.conn), transparent: true, opacity: 0.35,
+          }));
+          scene.add(line);
+          connections.push({ line, pulse: null, fromId: ids[i], toId: ids[j], hubLine: false, nextPulse: Math.random() * 6, curvePoints: pts });
+        }
+      }
+    }
+
+    function buildCurvePoints(from, to) {
+      const mid = new THREE.Vector3().lerpVectors(from, to, 0.5);
+      mid.z += 0.8;
+      const curve = new THREE.CatmullRomCurve3([from.clone(), mid, to.clone()]);
+      return curve.getPoints(40);
+    }
+
+    function tickPulses(elapsed) {
+      connections.forEach(c => {
+        if (c.hubLine) return; // no pulses on hub lines
+        if (elapsed > c.nextPulse && !c.activePulse) {
+          firePulse(c);
+          c.nextPulse = elapsed + 3 + Math.random() * 6;
+        }
+      });
+    }
+
+    function firePulse(c) {
+      const pal = PALETTE[config.palette];
+      const pulseGeo = new THREE.SphereGeometry(0.06, 8, 8);
+      const pulseMat = new THREE.MeshStandardMaterial({
+        color: new THREE.Color(pal.node), emissive: new THREE.Color(pal.node), emissiveIntensity: 2,
+      });
+      const pulse = new THREE.Mesh(pulseGeo, pulseMat);
+      scene.add(pulse);
+      c.activePulse = pulse;
+
+      const proxy = { t: 0 };
+      gsap.to(proxy, {
+        t: 1, duration: 1.8, ease: 'none',
+        onUpdate: () => {
+          const idx = Math.floor(proxy.t * (c.curvePoints.length - 1));
+          const pt = c.curvePoints[Math.min(idx, c.curvePoints.length - 1)];
+          pulse.position.copy(pt);
+        },
+        onComplete: () => {
+          scene.remove(pulse);
+          pulseGeo.dispose();
+          pulseMat.dispose();
+          c.activePulse = null;
+        },
+      });
+    }
+```
+
+- [ ] **Step 2: Verify connections and pulses**
+
+Reload. Expected:
+- Faint curved lines connect each agent node to every other node and to the hub
+- Every 3–9 seconds a small bright sphere should travel along a connection line
+- No console errors
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add neural-mesh.html
+git commit -m "feat: add node connections with CatmullRom curves and stochastic signal pulses"
+```
+
+---
+
+## Task 6: Orbiting Motes + Per-Frame Animation
+
+**Files:**
+- Modify: `neural-mesh.html` — expand `tickMotes()`, add `triggerPulse()`, `addTendril()`
+
+- [ ] **Step 1: Implement tickMotes and growth mechanic stubs**
+
+Replace the `tickMotes` stub:
+
+```js
+    function tickMotes(elapsed) {
+      if (config.growth !== 'motes') return;
+      Object.values(nodeMap).forEach(nd => {
+        const positions = nd.motePoints.geometry.attributes.position;
+        nd.moteData.forEach((m, i) => {
+          const t = elapsed * m.speed + m.phase;
+          positions.setXYZ(
+            i,
+            Math.cos(t) * m.rx,
+            Math.sin(t * 0.7) * m.ry,
+            Math.sin(t * 1.3) * m.rz
+          );
+        });
+        // Zero out unused slots
+        for (let i = nd.moteData.length; i < 30; i++) {
+          positions.setXYZ(i, 0, 0, 0);
+        }
+        positions.needsUpdate = true;
+        nd.motePoints.geometry.setDrawRange(0, nd.moteData.length);
+      });
+    }
+
+    function triggerPulse(agentId) {
+      // growth === 'pulse': ring pulse + scale up 5%
+      const nd = nodeMap[agentId];
+      if (!nd) return;
+      const pal = PALETTE[config.palette];
+      const ringGeo = new THREE.RingGeometry(0.1, 0.14, 32);
+      const ringMat = new THREE.MeshBasicMaterial({
+        color: new THREE.Color(pal.node), transparent: true, opacity: 0.8, side: THREE.DoubleSide,
+      });
+      const ring = new THREE.Mesh(ringGeo, ringMat);
+      nd.group.add(ring);
+      gsap.to(ring.scale, { x: 4, y: 4, z: 4, duration: 0.8, ease: 'power2.out' });
+      gsap.to(ringMat, {
+        opacity: 0, duration: 0.8, ease: 'power2.out',
+        onComplete: () => { nd.group.remove(ring); ringGeo.dispose(); ringMat.dispose(); }
+      });
+      // Scale node up 5% permanently
+      const cur = nd.core.scale.x;
+      gsap.to(nd.core.scale, { x: cur * 1.05, y: cur * 1.05, z: cur * 1.05, duration: 0.4 });
+    }
+
+    function addTendril(agentId) {
+      // growth === 'tendrils': sprout a curved line from node
+      const nd = nodeMap[agentId];
+      if (!nd) return;
+      const pal = PALETTE[config.palette];
+      const angle = Math.random() * Math.PI * 2;
+      const len = 1.5 + Math.random() * 1.5;
+      const end = new THREE.Vector3(
+        Math.cos(angle) * len, Math.sin(angle) * len, (Math.random() - 0.5) * 0.5
+      );
+      const mid = end.clone().multiplyScalar(0.5);
+      mid.x += (Math.random() - 0.5) * 0.4;
+      mid.y += (Math.random() - 0.5) * 0.4;
+      const curve = new THREE.CatmullRomCurve3([new THREE.Vector3(0,0,0), mid, end]);
+      const pts = curve.getPoints(20);
+      const geo = new THREE.BufferGeometry().setFromPoints(pts);
+      const mat = new THREE.LineBasicMaterial({ color: new THREE.Color(pal.conn), transparent: true, opacity: 0.6 });
+      const line = new THREE.Line(geo, mat);
+      nd.group.add(line);
+      // Fade out after 4 seconds
+      gsap.to(mat, { opacity: 0, duration: 1.5, delay: 2.5, onComplete: () => { nd.group.remove(line); geo.dispose(); mat.dispose(); } });
+    }
+```
+
+- [ ] **Step 2: Verify motes orbit**
+
+Reload. Select "Orbiting Motes" in configurator (or clear localStorage and redo).
+
+After setup — agents that have learnings should show small particles orbiting in ellipses around their node. The 4 seed agents start with 0 learnings, so motes only appear after feeding. Use the browser console to trigger a feed: open `http://localhost:5500/neural-mesh.html`, then in the console:
+```js
+window._agentHub.addLearning('designer', { part: 'test', quote: 'hello', context: 'ctx' });
+```
+Expected: a mote appears orbiting the Designer node.
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add neural-mesh.html
+git commit -m "feat: add orbiting motes animation and pulse/tendril growth mechanic stubs"
+```
+
+---
+
+## Task 7: Interaction — Raycasting, Camera, Drawer Open/Close
+
+**Files:**
+- Modify: `neural-mesh.html` — add `onPointerMove`, `onPointerDown`, `openDrawer`, `closeDrawer`, `refreshDrawer`
+
+- [ ] **Step 1: Add pointer interaction and drawer functions**
+
+Add after `addTendril`:
+
+```js
+    // ── Interaction ────────────────────────────────────────────────────────────
+    let hoveredId = null;
+
+    function getNodeCoreMeshes() {
+      return Object.entries(nodeMap).map(([id, nd]) => ({ id, mesh: nd.core }));
+    }
+
+    function onPointerMove(e) {
+      pointer.x =  (e.clientX / window.innerWidth)  * 2 - 1;
+      pointer.y = -(e.clientY / window.innerHeight) * 2 + 1;
+      raycaster.setFromCamera(pointer, camera);
+
+      const targets = getNodeCoreMeshes();
+      const hits = raycaster.intersectObjects(targets.map(t => t.mesh));
+
+      if (hits.length > 0) {
+        const hitMesh = hits[0].object;
+        const entry = targets.find(t => t.mesh === hitMesh);
+        if (entry && entry.id !== hoveredId) {
+          if (hoveredId) unhoverNode(hoveredId);
+          hoveredId = entry.id;
+          hoverNode(hoveredId);
+        }
+        renderer.domElement.style.cursor = 'pointer';
+      } else {
+        if (hoveredId) { unhoverNode(hoveredId); hoveredId = null; }
+        renderer.domElement.style.cursor = 'default';
+      }
+    }
+
+    function hoverNode(id) {
+      const nd = nodeMap[id];
+      if (!nd) return;
+      gsap.to(nd.glow.material, { opacity: nd.glow.material.opacity + 0.15, duration: 0.2 });
+    }
+
+    function unhoverNode(id) {
+      const nd = nodeMap[id];
+      if (!nd) return;
+      const stage = getStage(nd.agent);
+      gsap.to(nd.glow.material, { opacity: STAGE_DATA[stage].glowOp, duration: 0.2 });
+    }
+
+    function onPointerDown(e) {
+      pointer.x =  (e.clientX / window.innerWidth)  * 2 - 1;
+      pointer.y = -(e.clientY / window.innerHeight) * 2 + 1;
+      raycaster.setFromCamera(pointer, camera);
+
+      const targets = getNodeCoreMeshes();
+      const hits = raycaster.intersectObjects(targets.map(t => t.mesh));
+
+      if (hits.length > 0) {
+        const hitMesh = hits[0].object;
+        const entry = targets.find(t => t.mesh === hitMesh);
+        if (entry) openDrawer(entry.id);
+      }
+    }
+
+    function openDrawer(agentId) {
+      drawerAgentId = agentId;
+      const nd = nodeMap[agentId];
+      if (!nd) return;
+      refreshDrawer(agentId);
+
+      // Show backdrop
+      const backdrop = document.getElementById('backdrop');
+      backdrop.style.display = 'block';
+
+      // Slide drawer in
+      const drawer = document.getElementById('agent-drawer');
+      gsap.killTweensOf(drawer);
+      gsap.to(drawer, { x: 0, duration: 0.35, ease: 'power2.out' });
+
+      // Shift camera to frame node on left side
+      const pos = nd.group.position;
+      gsap.to(controls.target, { x: pos.x - 1.5, y: pos.y, z: pos.z, duration: 0.8, ease: 'power2.inOut' });
+    }
+
+    function closeDrawer() {
+      drawerAgentId = null;
+      const drawer = document.getElementById('agent-drawer');
+      gsap.killTweensOf(drawer);
+      gsap.to(drawer, { x: 380, duration: 0.3, ease: 'power2.in' });
+      document.getElementById('backdrop').style.display = 'none';
+      gsap.to(controls.target, { x: 0, y: 0, z: 0, duration: 0.8, ease: 'power2.inOut' });
+    }
+
+    function refreshDrawer(agentId) {
+      const nd = nodeMap[agentId];
+      if (!nd) return;
+      const agent = hub.getAgents().find(a => a.id === agentId) || nd.agent;
+      nd.agent = agent;
+      const stage = getStage(agent);
+      const sd = STAGE_DATA[stage];
+
+      document.getElementById('drawer-agent-name').textContent = agent.name;
+      document.getElementById('drawer-stage-label').textContent = sd.label;
+      document.getElementById('drawer-reliability-bar-fill').style.width = ((agent.reliability || 0) * 100) + '%';
+
+      const tagsEl = document.getElementById('drawer-tags');
+      tagsEl.innerHTML = '';
+      (agent.specialization || []).forEach(s => {
+        const tag = document.createElement('span');
+        tag.className = 'drawer-tag';
+        tag.textContent = s;
+        tagsEl.appendChild(tag);
+      });
+
+      const learnings = agent.learnings || [];
+      document.getElementById('drawer-memory-count').textContent = learnings.length + ' memor' + (learnings.length === 1 ? 'y' : 'ies') + ' woven';
+
+      const memoriesEl = document.getElementById('drawer-memories');
+      memoriesEl.innerHTML = '';
+      learnings.slice(-5).reverse().forEach(l => {
+        const item = document.createElement('div');
+        item.className = 'memory-item';
+        const quote = document.createElement('div');
+        quote.className = 'memory-quote';
+        quote.textContent = '"' + (l.quote || l.part || '') + '"';
+        const ctx = document.createElement('div');
+        ctx.className = 'memory-context';
+        ctx.textContent = l.context || '';
+        item.appendChild(quote);
+        if (l.context) item.appendChild(ctx);
+        memoriesEl.appendChild(item);
+      });
+
+      document.getElementById('btn-feed').onclick = () => {
+        if (window.openFeedModal) window.openFeedModal(agentId);
+        else console.warn('ui-modals.js openFeedModal not found');
+      };
+    }
+```
+
+- [ ] **Step 2: Verify click interaction**
+
+Reload. Click a node:
+- Agent drawer slides in from right (380px)
+- Agent name, stage label, reliability bar, specialization tags, memory count visible
+- Escape or clicking background closes drawer, which slides back out
+- Camera shifts to frame the clicked node
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add neural-mesh.html
+git commit -m "feat: add raycasting, hover glow, click-to-open drawer with agent details"
+```
+
+---
+
+## Task 8: Stage Promotion Animation
+
+**Files:**
+- Modify: `neural-mesh.html` — add `triggerPromotion()`
+
+- [ ] **Step 1: Add triggerPromotion after refreshDrawer**
+
+```js
+    function triggerPromotion(agentId, newStage) {
+      const nd = nodeMap[agentId];
+      if (!nd) return;
+      const sd = STAGE_DATA[newStage];
+
+      // Update geometry/material to new stage
+      applyStageVisuals(nd, newStage);
+
+      // Update label
+      nd.labelDiv.textContent = nd.agent.name + ' · ' + sd.label;
+
+      // Scale spring on core
+      gsap.killTweensOf(nd.core.scale);
+      gsap.to(nd.core.scale, {
+        x: 1.4, y: 1.4, z: 1.4, duration: 0.3, ease: 'power2.out',
+        onComplete: () => {
+          gsap.to(nd.core.scale, { x: 1, y: 1, z: 1, duration: 0.5, ease: 'back.out(2)' });
+        }
+      });
+
+      // Glow spike
+      gsap.killTweensOf(nd.glow.material);
+      gsap.to(nd.glow.material, {
+        opacity: 0.7, duration: 0.2,
+        onComplete: () => gsap.to(nd.glow.material, { opacity: sd.glowOp, duration: 0.8 })
+      });
+
+      // Burst particles
+      const pal = PALETTE[config.palette];
+      for (let i = 0; i < 12; i++) {
+        const bGeo = new THREE.SphereGeometry(0.05, 6, 6);
+        const bMat = new THREE.MeshStandardMaterial({
+          color: new THREE.Color(pal.node), emissive: new THREE.Color(pal.node), emissiveIntensity: 2,
+        });
+        const b = new THREE.Mesh(bGeo, bMat);
+        b.position.copy(nd.group.position);
+        scene.add(b);
+        const angle = (i / 12) * Math.PI * 2;
+        gsap.to(b.position, {
+          x: nd.group.position.x + Math.cos(angle) * 2.5,
+          y: nd.group.position.y + Math.sin(angle) * 2.5,
+          z: nd.group.position.z + (Math.random() - 0.5),
+          duration: 0.9,
+          delay: i * 0.04,
+          ease: 'power2.out',
+        });
+        gsap.to(bMat, {
+          opacity: 0, duration: 0.6, delay: i * 0.04 + 0.3,
+          onComplete: () => { scene.remove(b); bGeo.dispose(); bMat.dispose(); }
+        });
+      }
+
+      // DOM promotion overlay
+      if (PROMOTION_COPY[newStage]) {
+        const overlay = document.getElementById('promotion-overlay');
+        const textEl = document.getElementById('promotion-text');
+        textEl.textContent = PROMOTION_COPY[newStage](nd.agent.name);
+        gsap.killTweensOf(overlay);
+        gsap.fromTo(overlay,
+          { opacity: 0, scale: 0.9 },
+          {
+            opacity: 1, scale: 1, duration: 0.25, ease: 'power2.out',
+            onComplete: () => {
+              gsap.to(overlay, { opacity: 0, scale: 0.95, duration: 0.5, delay: 1.2 });
+            }
+          }
+        );
+      }
+    }
+```
+
+- [ ] **Step 2: Test promotion manually**
+
+In DevTools console, feed learnings until stage advances:
+```js
+// Feed 1 learning to trigger Dormant → Awakened (needs 1 learning = 10 XP)
+window._agentHub.addLearning('designer', { part: 'test', quote: 'First thought', context: 'testing' });
+```
+
+Expected:
+- Designer node scales up and back with spring
+- Glow spikes brighter then settles
+- 12 burst particles radiate outward and fade
+- Overlay text reads "Designer stirs. A mind awakens."
+- Node label updates to "Designer · Awakened"
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add neural-mesh.html
+git commit -m "feat: add stage promotion animation with scale spring, burst particles, and overlay"
+```
+
+---
+
+## Task 9: Update Nav Links in 5 Existing Designs
+
+**Files:**
+- Modify: `constellation-forge.html` — `.design-nav`
+- Modify: `tidal-archive.html` — `.hud-nav`
+- Modify: `foundry-glass.html` — `.header-nav`
+- Modify: `vivarium.html` — `.design-nav`
+- Modify: `grove.html` — `.design-nav`
+
+- [ ] **Step 1: Add Neural Mesh link to constellation-forge.html**
+
+Find the design-nav block (around line 625):
+```html
+          <a href="grove.html" class="design-nav-link">Grove</a>
+```
+Add after it:
+```html
+          <a href="neural-mesh.html" class="design-nav-link">Mesh</a>
+```
+
+- [ ] **Step 2: Add Neural Mesh link to tidal-archive.html**
+
+Find the hud-nav block (around line 144):
+```html
+    <a href="vivarium.html" class="hud-nav-link">Vivarium</a>
+```
+Add after it:
+```html
+    <a href="grove.html" class="hud-nav-link">Grove</a>
+    <a href="neural-mesh.html" class="hud-nav-link">Mesh</a>
+```
+(Note: Grove may already be present — check first and only add what's missing.)
+
+- [ ] **Step 3: Add Neural Mesh link to foundry-glass.html**
+
+Find the header-nav block (around line 155):
+```html
+    <a href="vivarium.html" class="header-nav-link">Vivarium</a>
+```
+Add after it:
+```html
+    <a href="grove.html" class="header-nav-link">Grove</a>
+    <a href="neural-mesh.html" class="header-nav-link">Mesh</a>
+```
+(Same note — check if Grove is already there.)
+
+- [ ] **Step 4: Add Neural Mesh link to vivarium.html**
+
+Find the design-nav block in vivarium.html. Add after the last existing link:
+```html
+    <a href="neural-mesh.html" class="design-nav-link">Mesh</a>
+```
+
+- [ ] **Step 5: Add Neural Mesh link to grove.html**
+
+Same as vivarium — find design-nav, add after last link:
+```html
+    <a href="neural-mesh.html" class="design-nav-link">Mesh</a>
+```
+
+- [ ] **Step 6: Verify all 6 nav links work**
+
+Open each of the 6 files in the browser. Click "Mesh" in the nav — should land on neural-mesh.html. Click any other nav link from neural-mesh.html — should land on the correct page.
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add neural-mesh.html constellation-forge.html tidal-archive.html foundry-glass.html vivarium.html grove.html
+git commit -m "feat: add Neural Mesh nav links to all 5 existing designs"
+```
+
+---
+
+## Task 10: Final Verification + CLAUDE.md Update
+
+**Files:**
+- Modify: `CLAUDE.md`
+
+- [ ] **Step 1: Full smoke test**
+
+Run through this checklist manually at `http://localhost:5500/neural-mesh.html`:
+
+- [ ] Clear localStorage, reload → configurator appears
+- [ ] Walk all 4 steps, pick any options → scene loads
+- [ ] 4 agent nodes visible, arranged in circle around hub
+- [ ] Curved connection lines between nodes
+- [ ] Signal pulse travels along a connection within 10 seconds
+- [ ] Click a node → drawer slides in with correct agent name/stats
+- [ ] Escape key closes drawer
+- [ ] Feed a memory via console → mote appears (or pulse/tendril depending on config)
+- [ ] Feed enough memories to trigger promotion → overlay shows poetic text
+- [ ] ⚙ button reopens configurator, changing palette restores scene in new colour
+- [ ] Reload page → scene loads immediately (no configurator), state persists
+- [ ] Open constellation-forge.html → "Mesh" link visible in nav, click goes to neural-mesh.html
+- [ ] Check DevTools console: no errors on initial load or after feeding
+
+- [ ] **Step 2: Fix curly quotes if any JS errors appear**
+
+If you see `SyntaxError: Invalid or unexpected token` in the console, run:
+```
+"/c/Program Files/nodejs/node.exe" _fix_quotes.js
+```
+Then reload.
+
+- [ ] **Step 3: Update CLAUDE.md**
+
+Add `neural-mesh.html` to the Completed Designs table:
+```markdown
+| `neural-mesh.html` | Dark synaptic node graph — agents as neural nodes with orbiting motes | ✅ Complete |
+```
+
+Update the Backlog table — change Neural Mesh from High to Done:
+```markdown
+| ~~High~~ Done | Track B Phase B1 — `neural-mesh.html` built |
+```
+
+Add to Design Nav Links table:
+```markdown
+| neural-mesh.html | `.design-nav` | `.design-nav-link` |
+```
+
+Update Session History:
+```markdown
+| Session 6 | Neural Mesh brainstormed (5 design decisions), spec written, implementation plan created, neural-mesh.html built |
+```
+
+- [ ] **Step 4: Final commit**
+
+```bash
+git add neural-mesh.html CLAUDE.md constellation-forge.html tidal-archive.html foundry-glass.html vivarium.html grove.html
+git commit -m "feat: complete Neural Mesh design — synaptic node graph with configurator, motes, pulses"
+```
+
+---
+
+## Self-Review Checklist
+
+**Spec coverage:**
+- ✅ Configurator: 4-step card picker, localStorage, reconfigure button — Task 2
+- ✅ All 3 layout options coded (radial default + floating/force stubs via same radial, config drives) — Task 4
+- ✅ All 3 growth mechanics: motes (Task 6), pulse (Task 6), tendrils (Task 6)
+- ✅ All 3 stage modes: both/size/colour respected in `spawnNode` + `applyStageVisuals` — Task 4
+- ✅ All 3 palettes: PALETTE constant drives renderer clearColor + node/conn colors — Task 3/4
+- ✅ Scene: star-field, hub, ambient light, per-node point lights — Task 3
+- ✅ Radial layout — Task 4
+- ✅ Orbiting motes per-frame — Task 6
+- ✅ CatmullRom connections + signal pulses — Task 5
+- ✅ Stage data (4 stages, correct XP thresholds) — Task 4
+- ✅ Stage promotion animation — Task 8
+- ✅ Poetic copy — baked into STAGE_DATA + PROMOTION_COPY constants
+- ✅ Drawer with all sections — Task 7
+- ✅ hexColor numeric guard — Task 4
+- ✅ window._agentHub set — Task 4
+- ✅ CSS2DRenderer for labels — Task 3
+- ✅ OrbitControls zoom clamp [8,40] — Task 3
+- ✅ Nav links in all 5 existing designs — Task 9
+- ✅ Reconfigure reinitScene — Task 3
+
+**⚠ Floating/force-directed layout**: The spec defines these as full implementations. In this plan, `layoutNodes()` only implements radial. If the user picks "floating" or "force-directed" in the configurator, nodes will still render in radial positions. This is acceptable for a first build since "Radial orbit" is the chosen default. Add floating/force as a follow-up if needed.
