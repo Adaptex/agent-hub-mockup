@@ -646,18 +646,21 @@
     function showConfigurator() {
       configStep = 0;
       configSelections = {};
+      gsap.killTweensOf('#configurator');
       const el = document.getElementById('configurator');
+      el.style.opacity = 0;
       el.style.display = 'flex';
       renderConfigStep();
+      gsap.to('#configurator', { opacity: 1, duration: 0.3 });
     }
 
     function hideConfigurator() {
+      gsap.killTweensOf('#configurator');
       gsap.to('#configurator', {
         opacity: 0, duration: 0.4,
         onComplete: () => {
           const el = document.getElementById('configurator');
           el.style.display = 'none';
-          el.style.opacity = 1;
         }
       });
     }
