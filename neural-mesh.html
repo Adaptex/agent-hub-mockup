@@ -435,8 +435,311 @@
     import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
     import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 
-    // ── PLACEHOLDER: scene code added in later tasks ──
-    console.log('Neural Mesh loading...');
+    // ── Constants ─────────────────────────────────────────────────────────────
+    const PALETTE = {
+      violet: { bg: '#060612', node: '#7b6fff', conn: '#a78bfa', light: 0x7b6fff },
+      cyan:   { bg: '#040f1a', node: '#00d4ff', conn: '#80eaff', light: 0x00d4ff },
+      neon:   { bg: '#0a0005', node: '#ff2d78', conn: '#ff80b0', light: 0xff2d78 },
+    };
+
+    const STAGE_DATA = [
+      { label: 'Dormant',  r: 0.35, color: '#4a4a6a', glowOp: 0.10, lightInt: 0.3 },
+      { label: 'Awakened', r: 0.57, color: '#7b6fff', glowOp: 0.20, lightInt: 0.8 },
+      { label: 'Flowing',  r: 0.79, color: '#a78bfa', glowOp: 0.30, lightInt: 1.5 },
+      { label: 'Radiant',  r: 1.01, color: '#e8e0ff', glowOp: 0.45, lightInt: 2.5 },
+    ];
+
+    const PROMOTION_COPY = [
+      '',
+      (name) => name + ' stirs. A mind awakens.',
+      (name) => name + ' flows. Thoughts find their paths.',
+      (name) => name + ' radiates. The mesh is complete.',
+    ];
+
+    const CONFIG_STEPS = [
+      {
+        key: 'layout',
+        question: 'How do minds arrange themselves?',
+        options: [
+          {
+            value: 'radial',
+            title: 'Radial Orbit',
+            desc: 'Nodes evenly spaced around a central hub',
+            svg: `<svg width="100" height="80" viewBox="0 0 100 80">
+              <circle cx="50" cy="40" r="4" fill="#7b6fff"/>
+              <circle cx="50" cy="12" r="5" fill="#a78bfa"/><line x1="50" y1="16" x2="50" y2="36" stroke="#3a3a6a" stroke-width="1"/>
+              <circle cx="74" cy="54" r="5" fill="#a78bfa"/><line x1="71" y1="52" x2="54" y2="43" stroke="#3a3a6a" stroke-width="1"/>
+              <circle cx="26" cy="54" r="5" fill="#a78bfa"/><line x1="29" y1="52" x2="46" y2="43" stroke="#3a3a6a" stroke-width="1"/>
+            </svg>`
+          },
+          {
+            value: 'floating',
+            title: 'Free-Floating',
+            desc: 'Nodes drift slowly through the void',
+            svg: `<svg width="100" height="80" viewBox="0 0 100 80">
+              <circle cx="20" cy="25" r="5" fill="#a78bfa"/>
+              <circle cx="60" cy="15" r="5" fill="#a78bfa"/>
+              <circle cx="75" cy="55" r="5" fill="#a78bfa"/>
+              <circle cx="35" cy="60" r="5" fill="#a78bfa"/>
+              <line x1="25" y1="25" x2="55" y2="18" stroke="#3a3a6a" stroke-width="1"/>
+              <line x1="60" y1="20" x2="72" y2="50" stroke="#3a3a6a" stroke-width="1"/>
+            </svg>`
+          },
+          {
+            value: 'force',
+            title: 'Force-Directed',
+            desc: 'Physics pulls connected nodes together',
+            svg: `<svg width="100" height="80" viewBox="0 0 100 80">
+              <line x1="30" y1="30" x2="60" y2="25" stroke="#3a3a6a" stroke-width="1"/>
+              <line x1="60" y1="25" x2="70" y2="55" stroke="#3a3a6a" stroke-width="1"/>
+              <line x1="30" y1="30" x2="70" y2="55" stroke="#3a3a6a" stroke-width="1"/>
+              <line x1="60" y1="25" x2="45" y2="60" stroke="#3a3a6a" stroke-width="1"/>
+              <circle cx="30" cy="30" r="6" fill="#7b6fff"/>
+              <circle cx="60" cy="25" r="6" fill="#7b6fff"/>
+              <circle cx="70" cy="55" r="6" fill="#a78bfa"/>
+              <circle cx="45" cy="60" r="5" fill="#a78bfa"/>
+            </svg>`
+          },
+        ]
+      },
+      {
+        key: 'growth',
+        question: 'How does a mind show it has learned?',
+        options: [
+          {
+            value: 'motes',
+            title: 'Orbiting Motes',
+            desc: 'Each memory becomes a particle in orbit',
+            svg: `<svg width="100" height="80" viewBox="0 0 100 80">
+              <ellipse cx="50" cy="40" rx="22" ry="12" fill="none" stroke="#3a3a6a" stroke-width="1"/>
+              <circle cx="50" cy="40" r="7" fill="#7b6fff"/>
+              <circle cx="72" cy="40" r="2" fill="#c4b5fd"/>
+              <circle cx="39" cy="29" r="2" fill="#c4b5fd"/>
+              <circle cx="55" cy="52" r="2" fill="#c4b5fd"/>
+            </svg>`
+          },
+          {
+            value: 'pulse',
+            title: 'Pulse & Grow',
+            desc: 'Node emits a ring and expands slightly',
+            svg: `<svg width="100" height="80" viewBox="0 0 100 80">
+              <circle cx="50" cy="40" r="8" fill="#7b6fff"/>
+              <circle cx="50" cy="40" r="16" fill="none" stroke="#7b6fff" stroke-width="1" opacity="0.5"/>
+              <circle cx="50" cy="40" r="24" fill="none" stroke="#7b6fff" stroke-width="1" opacity="0.2"/>
+            </svg>`
+          },
+          {
+            value: 'tendrils',
+            title: 'New Tendrils',
+            desc: 'Each memory sprouts a curved line',
+            svg: `<svg width="100" height="80" viewBox="0 0 100 80">
+              <circle cx="50" cy="40" r="7" fill="#7b6fff"/>
+              <path d="M50 33 Q60 15 75 12" fill="none" stroke="#a78bfa" stroke-width="1.5"/>
+              <path d="M55 44 Q72 50 80 62" fill="none" stroke="#a78bfa" stroke-width="1.5"/>
+              <path d="M43 44 Q28 55 18 50" fill="none" stroke="#a78bfa" stroke-width="1.5"/>
+            </svg>`
+          },
+        ]
+      },
+      {
+        key: 'stages',
+        question: 'How does growth reveal itself?',
+        options: [
+          {
+            value: 'both',
+            title: 'Size + Colour',
+            desc: 'Nodes grow larger and shift from grey to white-hot',
+            svg: `<svg width="100" height="80" viewBox="0 0 100 80">
+              <circle cx="18" cy="50" r="4" fill="#4a4a6a"/>
+              <circle cx="38" cy="45" r="6" fill="#7b6fff"/>
+              <circle cx="62" cy="38" r="9" fill="#a78bfa"/>
+              <circle cx="88" cy="30" r="12" fill="#e8e0ff"/>
+            </svg>`
+          },
+          {
+            value: 'size',
+            title: 'Size Only',
+            desc: 'Nodes grow but stay grey throughout',
+            svg: `<svg width="100" height="80" viewBox="0 0 100 80">
+              <circle cx="18" cy="50" r="4" fill="#4a4a6a"/>
+              <circle cx="38" cy="45" r="6" fill="#4a4a6a"/>
+              <circle cx="62" cy="38" r="9" fill="#4a4a6a"/>
+              <circle cx="88" cy="30" r="12" fill="#4a4a6a"/>
+            </svg>`
+          },
+          {
+            value: 'colour',
+            title: 'Colour Only',
+            desc: 'Nodes shift colour but stay the same size',
+            svg: `<svg width="100" height="80" viewBox="0 0 100 80">
+              <circle cx="18" cy="40" r="8" fill="#4a4a6a"/>
+              <circle cx="40" cy="40" r="8" fill="#7b6fff"/>
+              <circle cx="62" cy="40" r="8" fill="#a78bfa"/>
+              <circle cx="84" cy="40" r="8" fill="#e8e0ff"/>
+            </svg>`
+          },
+        ]
+      },
+      {
+        key: 'palette',
+        question: 'What colour does this mind radiate?',
+        options: [
+          {
+            value: 'violet',
+            title: 'Synaptic Violet',
+            desc: 'Deep violet — organic and warm',
+            svg: `<svg width="100" height="80" viewBox="0 0 100 80">
+              <rect width="100" height="80" fill="#060612"/>
+              <circle cx="50" cy="40" r="14" fill="#7b6fff"/>
+              <circle cx="50" cy="40" r="22" fill="none" stroke="#7b6fff" stroke-width="1" opacity="0.3"/>
+              <line x1="22" y1="22" x2="38" y2="34" stroke="#a78bfa" stroke-width="1" opacity="0.5"/>
+              <line x1="78" y1="22" x2="62" y2="34" stroke="#a78bfa" stroke-width="1" opacity="0.5"/>
+            </svg>`
+          },
+          {
+            value: 'cyan',
+            title: 'Technical Cyan',
+            desc: 'Electric cyan — precise and cold',
+            svg: `<svg width="100" height="80" viewBox="0 0 100 80">
+              <rect width="100" height="80" fill="#040f1a"/>
+              <circle cx="50" cy="40" r="14" fill="#00d4ff"/>
+              <circle cx="50" cy="40" r="22" fill="none" stroke="#00d4ff" stroke-width="1" opacity="0.3"/>
+              <line x1="22" y1="22" x2="38" y2="34" stroke="#80eaff" stroke-width="1" opacity="0.5"/>
+              <line x1="78" y1="22" x2="62" y2="34" stroke="#80eaff" stroke-width="1" opacity="0.5"/>
+            </svg>`
+          },
+          {
+            value: 'neon',
+            title: 'Cyberpunk Neon',
+            desc: 'Hot pink — vivid and kinetic',
+            svg: `<svg width="100" height="80" viewBox="0 0 100 80">
+              <rect width="100" height="80" fill="#0a0005"/>
+              <circle cx="50" cy="40" r="14" fill="#ff2d78"/>
+              <circle cx="50" cy="40" r="22" fill="none" stroke="#ff2d78" stroke-width="1" opacity="0.3"/>
+              <line x1="22" y1="22" x2="38" y2="34" stroke="#ff80b0" stroke-width="1" opacity="0.5"/>
+              <line x1="78" y1="22" x2="62" y2="34" stroke="#ff80b0" stroke-width="1" opacity="0.5"/>
+            </svg>`
+          },
+        ]
+      },
+    ];
+
+    // ── State ──────────────────────────────────────────────────────────────────
+    let config = null;
+    let configStep = 0;
+    let configSelections = {};
+    let sceneReady = false;
+
+    // ── Configurator ───────────────────────────────────────────────────────────
+    function loadConfig() {
+      try {
+        const raw = localStorage.getItem('neural-mesh-config');
+        if (raw) return JSON.parse(raw);
+      } catch (e) {}
+      return null;
+    }
+
+    function saveConfig(cfg) {
+      localStorage.setItem('neural-mesh-config', JSON.stringify(cfg));
+    }
+
+    function showConfigurator() {
+      configStep = 0;
+      configSelections = {};
+      const el = document.getElementById('configurator');
+      el.style.display = 'flex';
+      renderConfigStep();
+    }
+
+    function hideConfigurator() {
+      gsap.to('#configurator', {
+        opacity: 0, duration: 0.4,
+        onComplete: () => {
+          const el = document.getElementById('configurator');
+          el.style.display = 'none';
+          el.style.opacity = 1;
+        }
+      });
+    }
+
+    function renderConfigStep() {
+      const step = CONFIG_STEPS[configStep];
+      const indicator = document.getElementById('config-step-indicator');
+      const question = document.getElementById('config-question');
+      const cards = document.getElementById('config-cards');
+      const btnBack = document.getElementById('btn-config-back');
+      const btnContinue = document.getElementById('btn-config-continue');
+
+      indicator.textContent = 'Step ' + (configStep + 1) + ' / 4';
+      question.textContent = step.question;
+
+      cards.innerHTML = '';
+      step.options.forEach(opt => {
+        const card = document.createElement('div');
+        card.className = 'config-card' + (configSelections[step.key] === opt.value ? ' selected' : '');
+        card.innerHTML =
+          '<div class="config-card-preview">' + opt.svg + '</div>' +
+          '<div class="config-card-body">' +
+          '<div class="config-card-title">' + opt.title + '</div>' +
+          '<div class="config-card-desc">' + opt.desc + '</div>' +
+          '</div>';
+        card.addEventListener('click', () => {
+          configSelections[step.key] = opt.value;
+          cards.querySelectorAll('.config-card').forEach(c => c.classList.remove('selected'));
+          card.classList.add('selected');
+          btnContinue.disabled = false;
+        });
+        cards.appendChild(card);
+      });
+
+      btnBack.disabled = configStep === 0;
+      btnContinue.disabled = !configSelections[step.key];
+      btnContinue.textContent = configStep === 3 ? 'Begin' : 'Continue';
+    }
+
+    document.getElementById('btn-config-back').addEventListener('click', () => {
+      if (configStep > 0) { configStep--; renderConfigStep(); }
+    });
+
+    document.getElementById('btn-config-continue').addEventListener('click', () => {
+      if (configStep < 3) {
+        configStep++;
+        renderConfigStep();
+      } else {
+        config = {
+          layout:  configSelections.layout  || 'radial',
+          growth:  configSelections.growth  || 'motes',
+          stages:  configSelections.stages  || 'both',
+          palette: configSelections.palette || 'violet',
+        };
+        saveConfig(config);
+        hideConfigurator();
+        if (!sceneReady) initScene();
+        else reinitScene();
+      }
+    });
+
+    document.getElementById('btn-reconfigure').addEventListener('click', showConfigurator);
+    document.getElementById('btn-reconfig').addEventListener('click', showConfigurator);
+
+    // ── Boot ───────────────────────────────────────────────────────────────────
+    config = loadConfig();
+    if (config) {
+      document.getElementById('configurator').style.display = 'none';
+      initScene();
+    } else {
+      showConfigurator();
+    }
+
+    function reinitScene() {
+      // Implemented in Task 3 — placeholder stub
+      console.log('reinitScene called with', config);
+    }
+
+    function initScene() {
+      sceneReady = true;
+      console.log('initScene called with', config);
+    }
   </script>
 </body>
 </html>
