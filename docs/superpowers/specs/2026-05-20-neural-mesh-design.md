@@ -6,6 +6,27 @@
 
 ---
 
+## 0. Feel Brief
+
+**First 3 seconds:** Curiosity and calm — the user should want to sit with it. Hypnotic, not overwhelming. Like a screensaver you actually want to leave open, but purposeful enough that it feels like a real tool, not a demo.
+
+**Reference:** `constellation-forge.html` comes closest — that level of calm aliveness, subtle ambient movement, dark space with things breathing. Neural Mesh should feel like that, but at a smaller scale: not cosmic, synaptic. Neurons, not stars.
+
+**Explicitly not:**
+- A network diagram — flat dots on lines, no personality, looks like a PowerPoint about microservices
+- Generic dark SaaS — could be any tool, no feeling of a living thing
+- Game UI / HUD — too much glow, too aggressive, nothing resting
+- A screensaver — pretty but purposeless; the nodes need to feel like they're *doing* something even at rest
+
+**What this means for implementation decisions:**
+- Animations slow down: mote orbits are gentle drifts, not zips. Signal pulses take 1.8–2.5s to travel an edge.
+- Glow is restrained — constellation-forge level, not full bloom. The brightest thing in the scene should still feel calm.
+- Connections at rest: barely visible (opacity 0.12–0.18), thin. They assert themselves only when a pulse travels them.
+- Promotion animation: expanding glow + slow label fade, not an explosion. Earned and quiet.
+- At no point should the scene feel like it's showing off. It should feel like it's working.
+
+---
+
 ## 1. Concept & Metaphor
 
 **Neural Mesh** renders each AI agent as a living neural node in an organic brain. Agents are
