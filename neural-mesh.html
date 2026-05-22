@@ -132,7 +132,6 @@
       border-left: 1px solid var(--border);
       z-index: var(--z-drawer);
       display: flex; flex-direction: column;
-      transform: translateX(380px);
       overflow-y: auto;
     }
     #drawer-header {
@@ -232,6 +231,7 @@
     /* ── Backdrop ────────────────────────────────────── */
     #backdrop {
       position: fixed; inset: 0;
+      background: rgba(0, 0, 0, 0.45);
       z-index: calc(var(--z-drawer) - 1);
       display: none;
       cursor: pointer;
@@ -242,7 +242,7 @@
       position: fixed; inset: 0;
       background: var(--bg);
       z-index: var(--z-config);
-      display: flex; flex-direction: column;
+      display: none; flex-direction: column;
       align-items: center; justify-content: center;
       padding: var(--sp-6);
     }
