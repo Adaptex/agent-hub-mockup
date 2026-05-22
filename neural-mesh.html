@@ -861,8 +861,173 @@
     function tickMotes(elapsed) { /* Task 6 */ }
     function tickPulses(elapsed) { /* Task 5 */ }
 
-    // ── Stubs (Tasks 4–8) ──────────────────────────────────────────────────────
-    function initState() {}
+    // ── Helpers ────────────────────────────────────────────────────────────────
+    function hexColor(hex) {
+      if (typeof hex === 'number') return new THREE.Color(hex);
+      const n = parseInt(String(hex).replace('#', ''), 16);
+      return new THREE.Color(isNaN(n) ? 0x7b6fff : n);
+    }
+
+    function getStage(agent) {
+      const xp = (agent.learnings || []).length * 10;
+      if (xp >= 100) return 3;
+      if (xp >= 40)  return 2;
+      if (xp >= 10)  return 1;
+      return 0;
+    }
+
+    function applyStageVisuals(nodeData, stage) {
+      const sd = STAGE_DATA[stage];
+      const r = config.stages === 'colour' ? STAGE_DATA[0].r : sd.r;
+      const col = config.stages === 'size'
+        ? new THREE.Color('#4a4a6a')
+        : new THREE.Color(sd.color);
+
+      nodeData.core.geometry.dispose();
+      nodeData.core.geometry = new THREE.SphereGeometry(r, 20, 20);
+      nodeData.core.material.color = col;
+      nodeData.core.material.emissive = col;
+      nodeData.core.material.emissiveIntensity = 0.6 + stage * 0.2;
+
+      nodeData.glow.geometry.dispose();
+      nodeData.glow.geometry = new THREE.SphereGeometry(r * 1.6, 16, 16);
+      nodeData.glow.material.opacity = sd.glowOp;
+
+      if (nodeData.light) nodeData.light.intensity = sd.lightInt;
+    }
+
+    // ── Seed agents ────────────────────────────────────────────────────────────
+    const SEED_AGENTS = [
+      { id: 'designer',          name: 'Designer',          color: '#c8b4ff', status: 'working', bio: 'Shapes ideas into form.',  specialization: ['design', 'typography'], reliability: 0.82 },
+      { id: 'creative-director', name: 'Creative Director', color: '#ffb347', status: 'working', bio: 'Finds the voice.',          specialization: ['writing', 'brand'],     reliability: 0.78 },
+      { id: 'frontend',          name: 'Frontend',          color: '#7fdecc', status: 'working', bio: 'Builds the interface.',     specialization: ['coding', 'ui'],         reliability: 0.91 },
+      { id: 'qa',                name: 'QA',                color: '#ff8080', status: 'idle',    bio: 'Holds the standard.',      specialization: ['testing', 'quality'],   reliability: 0.88 },
+    ];
+
+    function initState() {
+      hub = window.StateManager ? new window.StateManager(SEED_AGENTS) : null;
+      if (!hub) { console.error('StateManager not loaded'); return; }
+      window._agentHub = hub;
+
+      hub.getAgents().forEach(a => spawnNode(a));
+      layoutNodes();
+      buildConnections();
+
+      hub.on('agentAdded', ({ agent }) => {
+        spawnNode(agent);
+        layoutNodes();
+        buildConnections();
+      });
+
+      hub.on('learningAdded', ({ agentId, promoted, newStage }) => {
+        if (config.growth === 'motes') addMote(agentId);
+        else if (config.growth === 'pulse') triggerPulse(agentId);
+        else if (config.growth === 'tendrils') addTendril(agentId);
+        if (promoted) triggerPromotion(agentId, newStage);
+        if (drawerAgentId === agentId) refreshDrawer(agentId);
+      });
+    }
+
+    function spawnNode(agent) {
+      if (nodeMap[agent.id]) return;
+      const pal = PALETTE[config.palette];
+      const stage = getStage(agent);
+      const sd = STAGE_DATA[stage];
+      const agentColor = hexColor(agent.color);
+
+      const group = new THREE.Group();
+      scene.add(group);
+
+      // Core
+      const r = config.stages === 'colour' ? STAGE_DATA[0].r : sd.r;
+      const col = config.stages === 'size' ? new THREE.Color('#4a4a6a') : new THREE.Color(sd.color);
+      const core = new THREE.Mesh(
+        new THREE.SphereGeometry(r, 20, 20),
+        new THREE.MeshStandardMaterial({ color: col, emissive: col, emissiveIntensity: 0.7 })
+      );
+      group.add(core);
+
+      // Glow
+      const glow = new THREE.Mesh(
+        new THREE.SphereGeometry(r * 1.6, 16, 16),
+        new THREE.MeshStandardMaterial({
+          color: agentColor, emissive: agentColor,
+          emissiveIntensity: 0.4, transparent: true, opacity: sd.glowOp,
+        })
+      );
+      group.add(glow);
+
+      // Point light
+      const light = new THREE.PointLight(agentColor, sd.lightInt, 12);
+      group.add(light);
+
+      // Mote group (Points for orbiting motes)
+      const motePositions = new Float32Array(30 * 3);
+      const moteGeo = new THREE.BufferGeometry();
+      moteGeo.setAttribute('position', new THREE.BufferAttribute(motePositions, 3));
+      const moteMat = new THREE.PointsMaterial({ color: agentColor, size: 0.055, transparent: true, opacity: 0.9 });
+      const motePoints = new THREE.Points(moteGeo, moteMat);
+      group.add(motePoints);
+
+      // CSS2D label
+      const labelDiv = document.createElement('div');
+      labelDiv.className = 'node-label';
+      labelDiv.textContent = agent.name + ' · ' + sd.label;
+      const labelObj = new CSS2DObject(labelDiv);
+      labelObj.position.set(0, -(r * 1.6 + 0.3), 0);
+      group.add(labelObj);
+
+      const moteData = [];
+      const learnings = (agent.learnings || []);
+      learnings.slice(0, 30).forEach(() => moteData.push(createMoteData()));
+
+      nodeMap[agent.id] = { group, core, glow, light, motePoints, moteData, labelObj, labelDiv, agent };
+      applyStageVisuals(nodeMap[agent.id], stage);
+
+      // Spawn animation
+      group.scale.set(0, 0, 0);
+      gsap.to(group.scale, { x: 1, y: 1, z: 1, duration: 0.6, ease: 'back.out(1.7)' });
+    }
+
+    function createMoteData() {
+      return {
+        rx: 0.55 + Math.random() * 0.40,
+        ry: 0.35 + Math.random() * 0.30,
+        rz: 0.20 + Math.random() * 0.30,
+        speed: 0.4 + Math.random() * 0.6,
+        phase: Math.random() * Math.PI * 2,
+      };
+    }
+
+    function addMote(agentId) {
+      const nd = nodeMap[agentId];
+      if (!nd) return;
+      if (nd.moteData.length >= 30) nd.moteData.shift();
+      nd.moteData.push(createMoteData());
+    }
+
+    function layoutNodes() {
+      const agents = Object.keys(nodeMap);
+      const R = 5.5;
+      agents.forEach((id, i) => {
+        const angle = (i / agents.length) * Math.PI * 2;
+        const nd = nodeMap[id];
+        gsap.to(nd.group.position, {
+          x: Math.cos(angle) * R,
+          y: Math.sin(angle) * R,
+          z: 0,
+          duration: 0.8,
+          ease: 'power2.inOut',
+        });
+      });
+    }
+
+    // ── Stubs (Tasks 5–8) ──────────────────────────────────────────────────────
+    function buildConnections() {}
+    function triggerPulse(agentId) {}
+    function addTendril(agentId) {}
+    function triggerPromotion(agentId, newStage) {}
+    function refreshDrawer(agentId) {}
     function onPointerMove() {}
     function onPointerDown() {}
     function closeDrawer() {}
