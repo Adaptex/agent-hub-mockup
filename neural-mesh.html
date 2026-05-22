@@ -858,8 +858,6 @@
       css2dRenderer.render(scene, camera);
     }
 
-    function tickMotes(elapsed) { /* Task 6 */ }
-    function tickPulses(elapsed) { /* Task 5 */ }
 
     // ── Helpers ────────────────────────────────────────────────────────────────
     function hexColor(hex) {
@@ -1022,15 +1020,344 @@
       });
     }
 
-    // ── Stubs (Tasks 5–8) ──────────────────────────────────────────────────────
-    function buildConnections() {}
-    function triggerPulse(agentId) {}
-    function addTendril(agentId) {}
-    function triggerPromotion(agentId, newStage) {}
-    function refreshDrawer(agentId) {}
-    function onPointerMove() {}
-    function onPointerDown() {}
-    function closeDrawer() {}
+    // ── Connections + Signal Pulses ────────────────────────────────────────────
+    function buildConnections() {
+      connections.forEach(c => {
+        scene.remove(c.line);
+        if (c.activePulse) scene.remove(c.activePulse);
+      });
+      connections.length = 0;
+
+      const pal = PALETTE[config.palette];
+      const ids = Object.keys(nodeMap);
+
+      // Hub-to-node connections (thin)
+      ids.forEach(id => {
+        const nd = nodeMap[id];
+        const pts = buildCurvePoints(new THREE.Vector3(0,0,0), nd.group.position);
+        const geo = new THREE.BufferGeometry().setFromPoints(pts);
+        const line = new THREE.Line(geo, new THREE.LineBasicMaterial({
+          color: new THREE.Color(pal.conn), transparent: true, opacity: 0.15,
+        }));
+        scene.add(line);
+        connections.push({ line, activePulse: null, fromPos: new THREE.Vector3(0,0,0), toId: id, hubLine: true, nextPulse: 0, curvePoints: pts });
+      });
+
+      // Node-to-node connections
+      for (let i = 0; i < ids.length; i++) {
+        for (let j = i + 1; j < ids.length; j++) {
+          const a = nodeMap[ids[i]];
+          const b = nodeMap[ids[j]];
+          const pts = buildCurvePoints(a.group.position, b.group.position);
+          const geo = new THREE.BufferGeometry().setFromPoints(pts);
+          const line = new THREE.Line(geo, new THREE.LineBasicMaterial({
+            color: new THREE.Color(pal.conn), transparent: true, opacity: 0.35,
+          }));
+          scene.add(line);
+          connections.push({ line, activePulse: null, fromId: ids[i], toId: ids[j], hubLine: false, nextPulse: Math.random() * 6, curvePoints: pts });
+        }
+      }
+    }
+
+    function buildCurvePoints(from, to) {
+      const mid = new THREE.Vector3().lerpVectors(from, to, 0.5);
+      mid.z += 0.8;
+      const curve = new THREE.CatmullRomCurve3([from.clone(), mid, to.clone()]);
+      return curve.getPoints(40);
+    }
+
+    function tickPulses(elapsed) {
+      connections.forEach(c => {
+        if (c.hubLine) return;
+        if (elapsed > c.nextPulse && !c.activePulse) {
+          firePulse(c);
+          c.nextPulse = elapsed + 3 + Math.random() * 6;
+        }
+      });
+    }
+
+    function firePulse(c) {
+      const pal = PALETTE[config.palette];
+      const pulseGeo = new THREE.SphereGeometry(0.06, 8, 8);
+      const pulseMat = new THREE.MeshStandardMaterial({
+        color: new THREE.Color(pal.node), emissive: new THREE.Color(pal.node), emissiveIntensity: 2,
+      });
+      const pulse = new THREE.Mesh(pulseGeo, pulseMat);
+      scene.add(pulse);
+      c.activePulse = pulse;
+
+      const proxy = { t: 0 };
+      gsap.to(proxy, {
+        t: 1, duration: 1.8, ease: 'none',
+        onUpdate: () => {
+          const idx = Math.floor(proxy.t * (c.curvePoints.length - 1));
+          const pt = c.curvePoints[Math.min(idx, c.curvePoints.length - 1)];
+          pulse.position.copy(pt);
+        },
+        onComplete: () => {
+          scene.remove(pulse);
+          pulseGeo.dispose();
+          pulseMat.dispose();
+          c.activePulse = null;
+        },
+      });
+    }
+
+    // ── Orbiting Motes + Growth Mechanics ──────────────────────────────────────
+    function tickMotes(elapsed) {
+      if (config.growth !== 'motes') return;
+      Object.values(nodeMap).forEach(nd => {
+        const positions = nd.motePoints.geometry.attributes.position;
+        nd.moteData.forEach((m, i) => {
+          const t = elapsed * m.speed + m.phase;
+          positions.setXYZ(
+            i,
+            Math.cos(t) * m.rx,
+            Math.sin(t * 0.7) * m.ry,
+            Math.sin(t * 1.3) * m.rz
+          );
+        });
+        for (let i = nd.moteData.length; i < 30; i++) {
+          positions.setXYZ(i, 0, 0, 0);
+        }
+        positions.needsUpdate = true;
+        nd.motePoints.geometry.setDrawRange(0, nd.moteData.length);
+      });
+    }
+
+    function triggerPulse(agentId) {
+      const nd = nodeMap[agentId];
+      if (!nd) return;
+      const pal = PALETTE[config.palette];
+      const ringGeo = new THREE.RingGeometry(0.1, 0.14, 32);
+      const ringMat = new THREE.MeshBasicMaterial({
+        color: new THREE.Color(pal.node), transparent: true, opacity: 0.8, side: THREE.DoubleSide,
+      });
+      const ring = new THREE.Mesh(ringGeo, ringMat);
+      nd.group.add(ring);
+      gsap.to(ring.scale, { x: 4, y: 4, z: 4, duration: 0.8, ease: 'power2.out' });
+      gsap.to(ringMat, {
+        opacity: 0, duration: 0.8, ease: 'power2.out',
+        onComplete: () => { nd.group.remove(ring); ringGeo.dispose(); ringMat.dispose(); }
+      });
+      const cur = nd.core.scale.x;
+      gsap.to(nd.core.scale, { x: cur * 1.05, y: cur * 1.05, z: cur * 1.05, duration: 0.4 });
+    }
+
+    function addTendril(agentId) {
+      const nd = nodeMap[agentId];
+      if (!nd) return;
+      const pal = PALETTE[config.palette];
+      const angle = Math.random() * Math.PI * 2;
+      const len = 1.5 + Math.random() * 1.5;
+      const end = new THREE.Vector3(
+        Math.cos(angle) * len, Math.sin(angle) * len, (Math.random() - 0.5) * 0.5
+      );
+      const mid = end.clone().multiplyScalar(0.5);
+      mid.x += (Math.random() - 0.5) * 0.4;
+      mid.y += (Math.random() - 0.5) * 0.4;
+      const curve = new THREE.CatmullRomCurve3([new THREE.Vector3(0,0,0), mid, end]);
+      const pts = curve.getPoints(20);
+      const geo = new THREE.BufferGeometry().setFromPoints(pts);
+      const mat = new THREE.LineBasicMaterial({ color: new THREE.Color(pal.conn), transparent: true, opacity: 0.6 });
+      const line = new THREE.Line(geo, mat);
+      nd.group.add(line);
+      gsap.to(mat, { opacity: 0, duration: 1.5, delay: 2.5, onComplete: () => { nd.group.remove(line); geo.dispose(); mat.dispose(); } });
+    }
+
+    // ── Interaction ────────────────────────────────────────────────────────────
+    let hoveredId = null;
+
+    function getNodeCoreMeshes() {
+      return Object.entries(nodeMap).map(([id, nd]) => ({ id, mesh: nd.core }));
+    }
+
+    function onPointerMove(e) {
+      pointer.x =  (e.clientX / window.innerWidth)  * 2 - 1;
+      pointer.y = -(e.clientY / window.innerHeight) * 2 + 1;
+      raycaster.setFromCamera(pointer, camera);
+
+      const targets = getNodeCoreMeshes();
+      const hits = raycaster.intersectObjects(targets.map(t => t.mesh));
+
+      if (hits.length > 0) {
+        const hitMesh = hits[0].object;
+        const entry = targets.find(t => t.mesh === hitMesh);
+        if (entry && entry.id !== hoveredId) {
+          if (hoveredId) unhoverNode(hoveredId);
+          hoveredId = entry.id;
+          hoverNode(hoveredId);
+        }
+        renderer.domElement.style.cursor = 'pointer';
+      } else {
+        if (hoveredId) { unhoverNode(hoveredId); hoveredId = null; }
+        renderer.domElement.style.cursor = 'default';
+      }
+    }
+
+    function hoverNode(id) {
+      const nd = nodeMap[id];
+      if (!nd) return;
+      gsap.to(nd.glow.material, { opacity: nd.glow.material.opacity + 0.15, duration: 0.2 });
+    }
+
+    function unhoverNode(id) {
+      const nd = nodeMap[id];
+      if (!nd) return;
+      const stage = getStage(nd.agent);
+      gsap.to(nd.glow.material, { opacity: STAGE_DATA[stage].glowOp, duration: 0.2 });
+    }
+
+    function onPointerDown(e) {
+      pointer.x =  (e.clientX / window.innerWidth)  * 2 - 1;
+      pointer.y = -(e.clientY / window.innerHeight) * 2 + 1;
+      raycaster.setFromCamera(pointer, camera);
+
+      const targets = getNodeCoreMeshes();
+      const hits = raycaster.intersectObjects(targets.map(t => t.mesh));
+
+      if (hits.length > 0) {
+        const hitMesh = hits[0].object;
+        const entry = targets.find(t => t.mesh === hitMesh);
+        if (entry) openDrawer(entry.id);
+      }
+    }
+
+    function openDrawer(agentId) {
+      drawerAgentId = agentId;
+      const nd = nodeMap[agentId];
+      if (!nd) return;
+      refreshDrawer(agentId);
+
+      const backdrop = document.getElementById('backdrop');
+      backdrop.style.display = 'block';
+
+      const drawer = document.getElementById('agent-drawer');
+      gsap.killTweensOf(drawer);
+      gsap.to(drawer, { x: 0, duration: 0.35, ease: 'power2.out' });
+
+      const pos = nd.group.position;
+      gsap.to(controls.target, { x: pos.x - 1.5, y: pos.y, z: pos.z, duration: 0.8, ease: 'power2.inOut' });
+    }
+
+    function closeDrawer() {
+      if (!renderer) return;
+      drawerAgentId = null;
+      const drawer = document.getElementById('agent-drawer');
+      gsap.killTweensOf(drawer);
+      gsap.to(drawer, { x: 380, duration: 0.3, ease: 'power2.in' });
+      document.getElementById('backdrop').style.display = 'none';
+      gsap.to(controls.target, { x: 0, y: 0, z: 0, duration: 0.8, ease: 'power2.inOut' });
+    }
+
+    function refreshDrawer(agentId) {
+      const nd = nodeMap[agentId];
+      if (!nd) return;
+      const agent = hub.getAgents().find(a => a.id === agentId) || nd.agent;
+      nd.agent = agent;
+      const stage = getStage(agent);
+      const sd = STAGE_DATA[stage];
+
+      document.getElementById('drawer-agent-name').textContent = agent.name;
+      document.getElementById('drawer-stage-label').textContent = sd.label;
+      document.getElementById('drawer-reliability-bar-fill').style.width = ((agent.reliability || 0) * 100) + '%';
+
+      const tagsEl = document.getElementById('drawer-tags');
+      tagsEl.innerHTML = '';
+      (agent.specialization || []).forEach(s => {
+        const tag = document.createElement('span');
+        tag.className = 'drawer-tag';
+        tag.textContent = s;
+        tagsEl.appendChild(tag);
+      });
+
+      const learnings = agent.learnings || [];
+      document.getElementById('drawer-memory-count').textContent = learnings.length + ' memor' + (learnings.length === 1 ? 'y' : 'ies') + ' woven';
+
+      const memoriesEl = document.getElementById('drawer-memories');
+      memoriesEl.innerHTML = '';
+      learnings.slice(-5).reverse().forEach(l => {
+        const item = document.createElement('div');
+        item.className = 'memory-item';
+        const quote = document.createElement('div');
+        quote.className = 'memory-quote';
+        quote.textContent = '"' + (l.quote || l.part || '') + '"';
+        const ctx = document.createElement('div');
+        ctx.className = 'memory-context';
+        ctx.textContent = l.context || '';
+        item.appendChild(quote);
+        if (l.context) item.appendChild(ctx);
+        memoriesEl.appendChild(item);
+      });
+
+      document.getElementById('btn-feed').onclick = () => {
+        if (window.openFeedModal) window.openFeedModal(agentId);
+        else console.warn('ui-modals.js openFeedModal not found');
+      };
+    }
+
+    // ── Stage Promotion ────────────────────────────────────────────────────────
+    function triggerPromotion(agentId, newStage) {
+      const nd = nodeMap[agentId];
+      if (!nd) return;
+      const sd = STAGE_DATA[newStage];
+
+      applyStageVisuals(nd, newStage);
+      nd.labelDiv.textContent = nd.agent.name + ' · ' + sd.label;
+
+      gsap.killTweensOf(nd.core.scale);
+      gsap.to(nd.core.scale, {
+        x: 1.4, y: 1.4, z: 1.4, duration: 0.3, ease: 'power2.out',
+        onComplete: () => {
+          gsap.to(nd.core.scale, { x: 1, y: 1, z: 1, duration: 0.5, ease: 'back.out(2)' });
+        }
+      });
+
+      gsap.killTweensOf(nd.glow.material);
+      gsap.to(nd.glow.material, {
+        opacity: 0.7, duration: 0.2,
+        onComplete: () => gsap.to(nd.glow.material, { opacity: sd.glowOp, duration: 0.8 })
+      });
+
+      const pal = PALETTE[config.palette];
+      for (let i = 0; i < 12; i++) {
+        const bGeo = new THREE.SphereGeometry(0.05, 6, 6);
+        const bMat = new THREE.MeshStandardMaterial({
+          color: new THREE.Color(pal.node), emissive: new THREE.Color(pal.node),
+          emissiveIntensity: 2, transparent: true, opacity: 1,
+        });
+        const b = new THREE.Mesh(bGeo, bMat);
+        b.position.copy(nd.group.position);
+        scene.add(b);
+        const angle = (i / 12) * Math.PI * 2;
+        gsap.to(b.position, {
+          x: nd.group.position.x + Math.cos(angle) * 2.5,
+          y: nd.group.position.y + Math.sin(angle) * 2.5,
+          z: nd.group.position.z + (Math.random() - 0.5),
+          duration: 0.9, delay: i * 0.04, ease: 'power2.out',
+        });
+        gsap.to(bMat, {
+          opacity: 0, duration: 0.6, delay: i * 0.04 + 0.3,
+          onComplete: () => { scene.remove(b); bGeo.dispose(); bMat.dispose(); }
+        });
+      }
+
+      if (PROMOTION_COPY[newStage]) {
+        const overlay = document.getElementById('promotion-overlay');
+        const textEl = document.getElementById('promotion-text');
+        textEl.textContent = PROMOTION_COPY[newStage](nd.agent.name);
+        gsap.killTweensOf(overlay);
+        gsap.fromTo(overlay,
+          { opacity: 0, scale: 0.9 },
+          {
+            opacity: 1, scale: 1, duration: 0.25, ease: 'power2.out',
+            onComplete: () => {
+              gsap.to(overlay, { opacity: 0, scale: 0.95, duration: 0.5, delay: 1.2 });
+            }
+          }
+        );
+      }
+    }
   </script>
 </body>
 </html>
