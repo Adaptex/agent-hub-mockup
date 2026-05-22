@@ -18,7 +18,7 @@ Port 5500 is intentional — Daily Companion runs on 3000.
 
 ---
 
-## Completed Designs (5 total)
+## Completed Designs (6 total)
 
 | File | Theme | Status |
 |---|---|---|
@@ -27,8 +27,9 @@ Port 5500 is intentional — Daily Companion runs on 3000.
 | `foundry-glass.html` | Industrial glass forge | ✅ Complete |
 | `vivarium.html` | Dark forest terrarium — agents as baby creatures that evolve | ✅ Complete, bugs fixed |
 | `grove.html` | Warm botanical garden — agents as potted plants that bloom | ✅ Complete, bugs fixed |
+| `neural-mesh.html` | Dark synaptic node-graph — agents as living neurons in a mesh | ✅ Complete, Session 6 |
 
-All 5 designs share the same data layer (`state-manager.js`, `agents.json`) and navigation links.
+All 6 designs share the same data layer (`state-manager.js`, `agents.json`) and navigation links.
 
 ---
 
@@ -182,7 +183,7 @@ Cup:     Cupella, Chalicae, Recelva, Apertum
 
 ## Design Nav Links
 
-All 5 designs include a navigation bar linking to all other designs. Nav class names differ by design:
+All 6 designs include a navigation bar linking to all other designs. Nav class names differ by design:
 
 | File | Nav class | Link class |
 |---|---|---|
@@ -191,9 +192,10 @@ All 5 designs include a navigation bar linking to all other designs. Nav class n
 | foundry-glass.html | `.header-nav` | `.header-nav-link` |
 | vivarium.html | `.design-nav` | `.design-nav-link` |
 | grove.html | `.design-nav` | `.design-nav-link` |
+| neural-mesh.html | `.design-nav` | `.design-nav-link` |
 
 All link to: `constellation-forge.html`, `tidal-archive.html`, `foundry-glass.html`,
-`vivarium.html`, `grove.html`
+`vivarium.html`, `grove.html`, `neural-mesh.html`
 
 ---
 
@@ -240,7 +242,6 @@ may be missing fields expected by another. Always use safe fallbacks:
 | Priority | Item |
 |---|---|
 | High | Deep visual redesign pass for Vivarium + Grove (art direction currently in progress) |
-| High | Track B Phase B1 — Build `neural-mesh.html` (design specced, ready to implement) |
 | Medium | Design B2 — second new Track B design (TBD by creative-director) |
 | Low | Phase A4 — Next.js backend skeleton + Supabase schema |
 | Low | Design toggle selector (localStorage-persisted, visible across all pages) |
@@ -294,3 +295,4 @@ build (`three.min.js`) conflicts with OrbitControls ESM addons.
 | Session 3 | Vivarium (creature evolution) built, 6 bugs fixed by code-reviewer |
 | Session 4 | Grove (plant evolution) built, 5 bugs fixed, StateManager instantiation bug found + fixed in both vivarium & grove, hexColor numeric fix, nav links added to all 5 designs, visual verification via Chrome screenshots confirmed both render |
 | Session 5 | Vivarium + Grove visual redesign pass started: stronger palettes, updated stage naming/copy, improved header/drawer styling, cuter Vivarium stage-0/1 traits, richer Grove pot/flower/leaf composition and lighting |
+| Session 6 | Neural Mesh built: 4-step configurator (localStorage), Three.js radial node graph, CSS2DRenderer labels, CatmullRom connections, stochastic signal pulses, orbiting motes/pulse-ring/tendril growth mechanics, raycasting interaction, GSAP drawer, stage promotion animation + DOM overlay. Feel brief locked: "curiosity + calm, like constellation-forge but synaptic". Design Direction Gate added to global CLAUDE.md. |
