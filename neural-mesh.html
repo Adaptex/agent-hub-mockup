@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Neural Mesh</title>
+  <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"}}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@1,700&family=Lora:ital,wght@0,400;0,500;1,400;1,500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      /* Palette — synaptic violet */
+      --bg:           #060612;
+      --surface:      #0e0e1a;
+      --border:       #2a2a4a;
+      --border-faint: #1a1a3a;
+      --node-base:    #7b6fff;
+      --node-mid:     #a78bfa;
+      --node-pale:    #c4b5fd;
+      --node-hot:     #e8e0ff;
+      --text-primary: #e0d4ff;
+      --text-muted:   #7b6b9a;
+      --text-faint:   #4a4a7a;
+
+      /* Spacing */
+      --sp-1: 4px;  --sp-2: 8px;  --sp-3: 12px;
+      --sp-4: 16px; --sp-5: 20px; --sp-6: 24px;
+
+      /* Type scale */
+      --text-xs:  10px;
+      --text-sm:  12px;
+      --text-md:  14px;
+      --text-lg:  16px;
+      --text-xl:  22px;
+      --text-2xl: 28px;
+
+      /* Z-index */
+      --z-canvas:       0;
+      --z-labels:      10;
+      --z-masthead:    20;
+      --z-drawer:      30;
+      --z-config:      40;
+      --z-promotion:   50;
+    }
+
+    html, body {
+      width: 100%; height: 100%; overflow: hidden;
+      background: var(--bg);
+      font-family: 'Lora', serif;
+      color: var(--text-primary);
+    }
+
+    /* ── Canvas ──────────────────────────────────────── */
+    #canvas-container {
+      position: fixed; inset: 0; z-index: var(--z-canvas);
+    }
+    #canvas-container canvas { display: block; }
+    /* CSS2D label layer — injected by Three.js */
+    #canvas-container > div {
+      position: absolute; inset: 0;
+      pointer-events: none;
+      z-index: var(--z-labels);
+    }
+
+    /* ── Masthead ────────────────────────────────────── */
+    #masthead {
+      position: fixed; top: 0; left: 0; right: 0;
+      height: 48px;
+      display: flex; align-items: center;
+      justify-content: space-between;
+      padding: 0 var(--sp-5);
+      background: rgba(6, 6, 18, 0.85);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--border-faint);
+      z-index: var(--z-masthead);
+    }
+    #masthead-left { display: flex; align-items: baseline; gap: var(--sp-3); }
+    #wordmark {
+      font-family: 'Playfair Display', serif;
+      font-style: italic;
+      font-size: var(--text-xl);
+      color: var(--node-pale);
+      letter-spacing: -0.01em;
+    }
+    #lede {
+      font-family: 'Lora', serif;
+      font-style: italic;
+      font-size: var(--text-sm);
+      color: var(--text-faint);
+    }
+    #masthead-right { display: flex; align-items: center; gap: var(--sp-2); }
+
+    /* ── Design nav ──────────────────────────────────── */
+    .design-nav { display: flex; gap: var(--sp-1); }
+    .design-nav-link {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: var(--text-xs);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-faint);
+      text-decoration: none;
+      padding: var(--sp-1) var(--sp-2);
+      border-radius: 4px;
+      border: 1px solid transparent;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .design-nav-link:hover { color: var(--text-muted); border-color: var(--border); }
+    .design-nav-link.active { color: var(--node-base); border-color: rgba(123,111,255,0.35); }
+
+    /* ── Gear button ─────────────────────────────────── */
+    #btn-reconfigure {
+      background: none;
+      border: 1px solid var(--border-faint);
+      border-radius: 4px;
+      color: var(--text-muted);
+      width: 28px; height: 28px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    #btn-reconfigure:hover { color: var(--node-pale); border-color: var(--border); }
+
+    /* ── Agent drawer ────────────────────────────────── */
+    #agent-drawer {
+      position: fixed; top: 0; right: 0; bottom: 0;
+      width: 380px;
+      background: var(--surface);
+      border-left: 1px solid var(--border);
+      z-index: var(--z-drawer);
+      display: flex; flex-direction: column;
+      transform: translateX(380px);
+      overflow-y: auto;
+    }
+    #drawer-header {
+      padding: var(--sp-6) var(--sp-5) var(--sp-4);
+      border-bottom: 1px solid var(--border-faint);
+    }
+    #drawer-agent-name {
+      font-family: 'Playfair Display', serif;
+      font-style: italic;
+      font-size: var(--text-xl);
+      color: var(--node-pale);
+      margin-bottom: var(--sp-1);
+    }
+    #drawer-stage-label {
+      font-family: 'Lora', serif;
+      font-style: italic;
+      font-size: var(--text-sm);
+      color: var(--node-base);
+    }
+    #drawer-body { padding: var(--sp-4) var(--sp-5); flex: 1; display: flex; flex-direction: column; gap: var(--sp-5); }
+    .drawer-section-header {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: var(--text-xs);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--text-faint);
+      margin-bottom: var(--sp-2);
+    }
+    #drawer-reliability-bar-bg {
+      height: 3px;
+      background: var(--border-faint);
+      border-radius: 2px;
+    }
+    #drawer-reliability-bar-fill {
+      height: 3px;
+      background: var(--node-base);
+      border-radius: 2px;
+      transition: width 0.4s;
+    }
+    #drawer-tags { display: flex; flex-wrap: wrap; gap: var(--sp-1); }
+    .drawer-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: var(--text-xs);
+      color: var(--node-mid);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 2px var(--sp-2);
+    }
+    #drawer-memory-count {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: var(--text-xs);
+      color: var(--text-faint);
+      margin-bottom: var(--sp-3);
+    }
+    #drawer-memories { display: flex; flex-direction: column; gap: var(--sp-3); }
+    .memory-item { border-left: 2px solid var(--border); padding-left: var(--sp-3); }
+    .memory-quote {
+      font-style: italic;
+      font-size: var(--text-sm);
+      color: var(--text-primary);
+      line-height: 1.5;
+      margin-bottom: 2px;
+    }
+    .memory-context {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: var(--text-xs);
+      color: var(--text-faint);
+    }
+    #drawer-footer {
+      padding: var(--sp-4) var(--sp-5);
+      border-top: 1px solid var(--border-faint);
+      display: flex; gap: var(--sp-2);
+    }
+    .drawer-btn {
+      flex: 1;
+      padding: var(--sp-2) var(--sp-3);
+      border-radius: 6px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: var(--text-xs);
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+    #btn-feed {
+      background: var(--node-base);
+      color: #fff;
+      border: none;
+    }
+    #btn-feed:hover { background: var(--node-mid); }
+    #btn-reconfig {
+      background: none;
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+    }
+    #btn-reconfig:hover { color: var(--node-pale); border-color: var(--border); }
+
+    /* ── Backdrop ────────────────────────────────────── */
+    #backdrop {
+      position: fixed; inset: 0;
+      z-index: calc(var(--z-drawer) - 1);
+      display: none;
+      cursor: pointer;
+    }
+
+    /* ── Configurator overlay ────────────────────────── */
+    #configurator {
+      position: fixed; inset: 0;
+      background: var(--bg);
+      z-index: var(--z-config);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: var(--sp-6);
+    }
+    #config-step-indicator {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: var(--text-xs);
+      letter-spacing: 2px;
+      color: var(--text-faint);
+      margin-bottom: var(--sp-4);
+      text-transform: uppercase;
+    }
+    #config-question {
+      font-family: 'Playfair Display', serif;
+      font-style: italic;
+      font-size: var(--text-2xl);
+      color: var(--node-pale);
+      text-align: center;
+      margin-bottom: var(--sp-6);
+    }
+    #config-cards {
+      display: flex; gap: var(--sp-4);
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: var(--sp-6);
+    }
+    .config-card {
+      width: 220px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      background: var(--surface);
+    }
+    .config-card:hover { border-color: var(--node-base); }
+    .config-card.selected {
+      border-color: var(--node-base);
+      box-shadow: 0 0 0 2px var(--node-base);
+    }
+    .config-card-preview {
+      height: 130px;
+      display: flex; align-items: center; justify-content: center;
+      background: #080818;
+    }
+    .config-card-body { padding: var(--sp-3); }
+    .config-card-title {
+      font-family: 'Lora', serif;
+      font-size: var(--text-md);
+      color: var(--text-primary);
+      margin-bottom: 4px;
+    }
+    .config-card-desc {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: var(--text-xs);
+      color: var(--text-faint);
+      line-height: 1.5;
+    }
+    #config-nav { display: flex; gap: var(--sp-3); }
+    .config-nav-btn {
+      padding: var(--sp-2) var(--sp-5);
+      border-radius: 6px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: var(--text-xs);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s, opacity 0.15s;
+    }
+    #btn-config-back {
+      background: none;
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+    }
+    #btn-config-back:hover { color: var(--node-pale); }
+    #btn-config-back:disabled { opacity: 0.3; cursor: default; }
+    #btn-config-continue {
+      background: var(--node-base);
+      color: #fff;
+      border: none;
+    }
+    #btn-config-continue:hover { background: var(--node-mid); }
+    #btn-config-continue:disabled { opacity: 0.4; cursor: default; }
+
+    /* ── Promotion overlay ───────────────────────────── */
+    #promotion-overlay {
+      position: fixed; inset: 0;
+      z-index: var(--z-promotion);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      pointer-events: none;
+      opacity: 0;
+    }
+    #promotion-text {
+      font-family: 'Playfair Display', serif;
+      font-style: italic;
+      font-size: 32px;
+      color: var(--node-hot);
+      text-align: center;
+      text-shadow: 0 0 40px var(--node-base);
+    }
+
+    /* ── CSS2D node labels ───────────────────────────── */
+    .node-label {
+      font-family: 'Lora', serif;
+      font-style: italic;
+      font-size: 11px;
+      color: var(--node-pale);
+      background: rgba(6,6,18,0.7);
+      padding: 2px 6px;
+      border-radius: 4px;
+      pointer-events: none;
+      white-space: nowrap;
+      transform: translateY(8px);
+    }
+  </style>
+</head>
+<body>
+
+  <div id="canvas-container"></div>
+
+  <!-- Masthead -->
+  <header id="masthead">
+    <div id="masthead-left">
+      <span id="wordmark">Neural Mesh</span>
+      <span id="lede">a mind taking shape</span>
+    </div>
+    <div id="masthead-right">
+      <nav class="design-nav">
+        <a href="constellation-forge.html" class="design-nav-link">Forge</a>
+        <a href="tidal-archive.html" class="design-nav-link">Archive</a>
+        <a href="foundry-glass.html" class="design-nav-link">Foundry</a>
+        <a href="vivarium.html" class="design-nav-link">Vivarium</a>
+        <a href="grove.html" class="design-nav-link">Grove</a>
+        <a href="neural-mesh.html" class="design-nav-link active">Mesh</a>
+      </nav>
+      <button id="btn-reconfigure" title="Reconfigure mesh">&#9881;</button>
+    </div>
+  </header>
+
+  <!-- Agent drawer -->
+  <aside id="agent-drawer">
+    <div id="drawer-header">
+      <div id="drawer-agent-name"></div>
+      <div id="drawer-stage-label"></div>
+    </div>
+    <div id="drawer-body">
+      <div>
+        <div class="drawer-section-header">faithfulness</div>
+        <div id="drawer-reliability-bar-bg">
+          <div id="drawer-reliability-bar-fill" style="width:0%"></div>
+        </div>
+      </div>
+      <div>
+        <div class="drawer-section-header">drawn to</div>
+        <div id="drawer-tags"></div>
+      </div>
+      <div>
+        <div class="drawer-section-header">memories woven</div>
+        <div id="drawer-memory-count"></div>
+        <div id="drawer-memories"></div>
+      </div>
+    </div>
+    <div id="drawer-footer">
+      <button class="drawer-btn" id="btn-feed">Feed a memory</button>
+      <button class="drawer-btn" id="btn-reconfig">Reconfigure</button>
+    </div>
+  </aside>
+  <div id="backdrop"></div>
+
+  <!-- Promotion overlay -->
+  <div id="promotion-overlay">
+    <div id="promotion-text"></div>
+  </div>
+
+  <!-- Configurator overlay -->
+  <div id="configurator">
+    <div id="config-step-indicator">Step 1 / 4</div>
+    <div id="config-question"></div>
+    <div id="config-cards"></div>
+    <div id="config-nav">
+      <button class="config-nav-btn" id="btn-config-back" disabled>Back</button>
+      <button class="config-nav-btn" id="btn-config-continue" disabled>Continue</button>
+    </div>
+  </div>
+
+  <script src="state-manager.js"></script>
+  <script src="ui-modals.js"></script>
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+
+    // ── PLACEHOLDER: scene code added in later tasks ──
+    console.log('Neural Mesh loading...');
+  </script>
+</body>
+</html>
