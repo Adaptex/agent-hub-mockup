@@ -300,6 +300,35 @@ may be missing fields expected by another. Always use safe fallbacks:
 
 ---
 
+## Bugs Fixed in Neural Mesh (Session 8)
+
+Four rendering defects, all found via a visual audit — the page "worked" (no thrown errors on the
+first-run path) while showing almost nothing of its own concept.
+
+1. **TDZ crash on the returning-visitor path** — the `// Boot` block sat at ~line 740, *above*
+   `const SEED_AGENTS` (~line 900). With a saved config in localStorage it called
+   `initScene() → initState()`, which reads `SEED_AGENTS` before its `const` is initialised →
+   `ReferenceError: Cannot access 'SEED_AGENTS' before initialization`, and no scene at all.
+   First-run masked it: `showConfigurator()` defers `initScene()` until after module evaluation.
+   **Fix**: moved the boot block to the very end of the module.
+2. **Connections invisible** — `layoutNodes()` GSAP-tweens node positions over 0.8s, but
+   `buildConnections()` runs synchronously on the next line and read `group.position` while every
+   node was still at the origin. Every curve was built zero-length and never rebuilt, so the
+   entire mesh collapsed into an invisible speck behind the hub.
+   **Fix**: `refreshConnectionGeometry()` in the RAF loop re-derives geometry from live positions
+   when a node moves (and refreshes `c.curvePoints` so signal pulses follow). Self-quiets once the
+   tween settles.
+3. **Nodes ignored agent colour** — the core used `STAGE_DATA[stage].color`, so every node at the
+   same stage rendered identically violet and the per-agent colour was discarded.
+   **Fix**: `coreColorFor(agent, stage)` — agent hue carries identity, stage reads via brightness.
+4. **Stage labels never updated** — the CSS2D label was written once in `spawnNode()`, so a
+   promoted node kept its original stage text, and the label was swallowed as the core grew.
+   **Fix**: `applyStageVisuals()` now rewrites the label text and re-offsets `labelObj`.
+
+**Lesson**: a GSAP tween is async — never read `.position` on the line after `gsap.to()`.
+
+---
+
 ## Known Remaining Issues
 
 1. **Duplicate creature/plant names** — 4 agents × 4 types × 4 variants = some hash collisions
@@ -373,4 +402,5 @@ build (`three.min.js`) conflicts with OrbitControls ESM addons.
 | Session 4 | Grove (plant evolution) built, 5 bugs fixed, StateManager instantiation bug found + fixed in both vivarium & grove, hexColor numeric fix, nav links added to all 5 designs, visual verification via Chrome screenshots confirmed both render |
 | Session 5 | Vivarium + Grove visual redesign pass started: stronger palettes, updated stage naming/copy, improved header/drawer styling, cuter Vivarium stage-0/1 traits, richer Grove pot/flower/leaf composition and lighting |
 | Session 6 | Neural Mesh built: 4-step configurator (localStorage), Three.js radial node graph, CSS2DRenderer labels, CatmullRom connections, stochastic signal pulses, orbiting motes/pulse-ring/tendril growth mechanics, raycasting interaction, GSAP drawer, stage promotion animation + DOM overlay. Feel brief locked: "curiosity + calm, like constellation-forge but synaptic". Design Direction Gate added to global CLAUDE.md. |
+| Session 8 (2026-07-29) | Visual audit of all 15 designs from screenshots, graded against a production bar. Fixed 4 Neural Mesh rendering defects (TDZ boot crash, collapsed connection geometry, nodes ignoring agent colour, stale stage labels) — see the Neural Mesh bug section. Audit verdict: Constellation Forge is the strongest; Foundry Glass is too dark to read and needs its lighting rebuilt. |
 | Session 7 (2026-07-22) | Review + documentation pass: catalogued the 8 previously undocumented 2D concept archives (all from initial commit), documented Lantern Garden v2 as 7th flagship, documented `drawer-shared.js` / `index.html` hub / expanded StateManager + AgentModals APIs, verified all 9 undocumented pages render error-free, logged seed-agent divergence as a known issue. Fixed the three nav gaps: added Lantern to Neural Mesh's nav, Mesh to Lantern v2's nav, and a Neural Mesh card to the `index.html` hub — all 8 pages now link all 7 flagships in canonical order. |
