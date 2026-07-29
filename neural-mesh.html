@@ -374,6 +374,7 @@
         <a href="constellation-forge.html" class="design-nav-link">Forge</a>
         <a href="tidal-archive.html" class="design-nav-link">Archive</a>
         <a href="foundry-glass.html" class="design-nav-link">Foundry</a>
+        <a href="lantern-garden-v2.html" class="design-nav-link">Lantern</a>
         <a href="vivarium.html" class="design-nav-link">Vivarium</a>
         <a href="grove.html" class="design-nav-link">Grove</a>
         <a href="neural-mesh.html" class="design-nav-link active">Mesh</a>
@@ -735,15 +736,6 @@
     document.getElementById('btn-reconfigure').addEventListener('click', showConfigurator);
     document.getElementById('btn-reconfig').addEventListener('click', showConfigurator);
 
-    // ── Boot ───────────────────────────────────────────────────────────────────
-    config = loadConfig();
-    if (config) {
-      document.getElementById('configurator').style.display = 'none';
-      initScene();
-    } else {
-      showConfigurator();
-    }
-
     function initScene() {
       sceneReady = true;
       const pal = PALETTE[config.palette];
@@ -852,6 +844,7 @@
       requestAnimationFrame(animate);
       const elapsed = clock.getElapsedTime();
       controls.update();
+      refreshConnectionGeometry();
       tickMotes(elapsed);
       tickPulses(elapsed);
       renderer.render(scene, camera);
@@ -866,6 +859,18 @@
       return new THREE.Color(isNaN(n) ? 0x7b6fff : n);
     }
 
+    /* Core colour carries agent identity (hue); stage reads through brightness.
+     * Previously the core used STAGE_DATA[stage].color, so every node at the
+     * same stage rendered identically and the per-agent colour was discarded. */
+    function coreColorFor(agent, stage) {
+      const c = hexColor(agent.color);
+      if (config.stages === 'size') return c;   // size alone carries stage
+      const t = Math.min(stage, 3) / 3;
+      c.lerp(new THREE.Color('#ffffff'), t * 0.5);  // brighten as it matures
+      c.multiplyScalar(0.5 + t * 0.5);              // dim while dormant
+      return c;
+    }
+
     function getStage(agent) {
       const xp = (agent.learnings || []).length * 10;
       if (xp >= 100) return 3;
@@ -877,9 +882,7 @@
     function applyStageVisuals(nodeData, stage) {
       const sd = STAGE_DATA[stage];
       const r = config.stages === 'colour' ? STAGE_DATA[0].r : sd.r;
-      const col = config.stages === 'size'
-        ? new THREE.Color('#4a4a6a')
-        : new THREE.Color(sd.color);
+      const col = coreColorFor(nodeData.agent, stage);
 
       nodeData.core.geometry.dispose();
       nodeData.core.geometry = new THREE.SphereGeometry(r, 20, 20);
@@ -892,6 +895,16 @@
       nodeData.glow.material.opacity = sd.glowOp;
 
       if (nodeData.light) nodeData.light.intensity = sd.lightInt;
+
+      /* The label was only written at spawn, so a promoted node kept showing
+       * its original stage. It also has to be pushed further out as the core
+       * grows, or the larger sphere swallows it. */
+      if (nodeData.labelDiv) {
+        nodeData.labelDiv.textContent = nodeData.agent.name + ' · ' + sd.label;
+      }
+      if (nodeData.labelObj) {
+        nodeData.labelObj.position.set(0, -(r * 1.6 + 0.3), 0);
+      }
     }
 
     // ── Seed agents ────────────────────────────────────────────────────────────
@@ -938,7 +951,7 @@
 
       // Core
       const r = config.stages === 'colour' ? STAGE_DATA[0].r : sd.r;
-      const col = config.stages === 'size' ? new THREE.Color('#4a4a6a') : new THREE.Color(sd.color);
+      const col = coreColorFor(agent, stage);
       const core = new THREE.Mesh(
         new THREE.SphereGeometry(r, 20, 20),
         new THREE.MeshStandardMaterial({ color: col, emissive: col, emissiveIntensity: 0.7 })
@@ -1064,6 +1077,37 @@
       mid.z += 0.8;
       const curve = new THREE.CatmullRomCurve3([from.clone(), mid, to.clone()]);
       return curve.getPoints(40);
+    }
+
+    /* layoutNodes() tweens node positions over 0.8s, but buildConnections()
+     * runs synchronously right after it — so every curve is built while the
+     * nodes are still stacked at the origin, producing zero-length lines that
+     * are never rebuilt. Re-derive the geometry from live positions whenever a
+     * node actually moves. Also keeps c.curvePoints (used to fly the signal
+     * pulses) in sync, and goes quiet once the tween settles. */
+    const HUB_ORIGIN = new THREE.Vector3(0, 0, 0);
+
+    function refreshConnectionGeometry() {
+      let moved = false;
+      Object.values(nodeMap).forEach(nd => {
+        if (!nd._lastPos) {
+          nd._lastPos = nd.group.position.clone();
+          moved = true;
+        } else if (!nd._lastPos.equals(nd.group.position)) {
+          nd._lastPos.copy(nd.group.position);
+          moved = true;
+        }
+      });
+      if (!moved) return;
+
+      connections.forEach(c => {
+        const from = c.hubLine ? HUB_ORIGIN : nodeMap[c.fromId] && nodeMap[c.fromId].group.position;
+        const to = nodeMap[c.toId] && nodeMap[c.toId].group.position;
+        if (!from || !to) return;
+        const pts = buildCurvePoints(from, to);
+        c.curvePoints = pts;
+        c.line.geometry.setFromPoints(pts);
+      });
     }
 
     function tickPulses(elapsed) {
@@ -1357,6 +1401,18 @@
           }
         );
       }
+    }
+
+    // ── Boot ───────────────────────────────────────────────────────────────────
+    // Must run last: initScene() → initState() reads SEED_AGENTS, which is a
+    // `const` declared further up. Booting before that line is evaluated throws
+    // a temporal-dead-zone ReferenceError and the scene never renders.
+    config = loadConfig();
+    if (config) {
+      document.getElementById('configurator').style.display = 'none';
+      initScene();
+    } else {
+      showConfigurator();
     }
   </script>
 </body>

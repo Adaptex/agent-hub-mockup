@@ -15,8 +15,13 @@ Open `/` for the design hub, or jump directly:
 | Constellation Forge | `/constellation-forge.html` |
 | Tidal Archive | `/tidal-archive.html` |
 | Foundry Glass | `/foundry-glass.html` |
+| Lantern Garden | `/lantern-garden-v2.html` |
 | Vivarium | `/vivarium.html` |
 | Grove | `/grove.html` |
+| Neural Mesh | `/neural-mesh.html` |
+
+Earlier 2D concept explorations (static mockups, not wired to the shared data layer) are kept as an
+archive — see the footer links on `/` or the 2D Concept Archive table in `CLAUDE.md`.
 
 ## Local dev
 
