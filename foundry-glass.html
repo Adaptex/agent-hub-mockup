@@ -255,10 +255,63 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type    = THREE.PCFSoftShadowMap;
+/* Physical lights produce a wide dynamic range; without tone mapping the
+ * spot's hotspot clips while everything else stays crushed to black. */
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.15;
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x111010);
 scene.fog = new THREE.Fog(0x111010, 14, 28);
+
+/* The vessels are MeshPhysicalMaterial with transmission up to 0.85 and
+ * roughness down to 0.04 — glass and polished metal get almost all of their
+ * appearance from what they reflect. With no scene.environment there was
+ * nothing to reflect, so they rendered black regardless of light intensity.
+ * Kept dim so the forge stays moody rather than turning into a showroom.
+ *
+ * Built by hand rather than with RoomEnvironment: that ships a neutral studio
+ * whose rectangular area lights reflect as hard white windows — wrong for a
+ * forge, and an obvious stock-asset tell. This is a warm equirect gradient —
+ * cold dark above, ember glow at the bench line — so curved glass catches
+ * moving highlights that belong to the scene. */
+function buildForgeEnvironment() {
+  const c = document.createElement('canvas');
+  c.width = 512; c.height = 256;
+  const g = c.getContext('2d');
+
+  const grad = g.createLinearGradient(0, 0, 0, c.height);
+  grad.addColorStop(0.00, '#080810');   // cold dark ceiling
+  grad.addColorStop(0.42, '#241a16');   // far wall
+  grad.addColorStop(0.60, '#8a4a1e');   // ember horizon
+  grad.addColorStop(0.78, '#ff9640');   // hot glow at bench height
+  grad.addColorStop(1.00, '#2e1810');   // falloff beneath
+  g.fillStyle = grad;
+  g.fillRect(0, 0, c.width, c.height);
+
+  // Soft warm sources — give the glass something to travel across as it turns.
+  const blob = (x, y, r, col) => {
+    const rg = g.createRadialGradient(x, y, 0, x, y, r);
+    rg.addColorStop(0, col);
+    rg.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = rg;
+    g.fillRect(x - r, y - r, r * 2, r * 2);
+  };
+  blob(120, 90, 78, 'rgba(255,206,140,0.80)');
+  blob(360, 124, 96, 'rgba(255,140,60,0.50)');
+
+  const tex = new THREE.CanvasTexture(c);
+  tex.mapping = THREE.EquirectangularReflectionMapping;
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
+const pmrem = new THREE.PMREMGenerator(renderer);
+const envSrc = buildForgeEnvironment();
+scene.environment = pmrem.fromEquirectangular(envSrc).texture;
+scene.environmentIntensity = 0.6;
+envSrc.dispose();
+pmrem.dispose();
 
 const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
 camera.position.set(0, 6, 9);
@@ -276,9 +329,15 @@ controls.addEventListener('start', () => { isDragging = false; });
 controls.addEventListener('change', () => { isDragging = true; });
 
 // ── Lights ─────────────────────────────────────────────────────────────────────
-scene.add(new THREE.AmbientLight(0x1a1410, 0.08));
+/* Intensities below are in physical units. three.js r155+ made punctual lights
+ * physically correct and r165 removed the `useLegacyLights` opt-out, so a
+ * point/spot light's illuminance falls off as intensity / distance². This rig
+ * was authored against the legacy model: the spot below sat at intensity 2.5
+ * ten units above the bench, i.e. 2.5/10² ≈ 0.025 — which is why the scene
+ * rendered black. Candela values now scale with the square of throw distance. */
+scene.add(new THREE.AmbientLight(0x2a2018, 0.55));
 
-const spotLight = new THREE.SpotLight(0xffb347, 2.5, 20, Math.PI / 4, 0.5, 1.5);
+const spotLight = new THREE.SpotLight(0xffb347, 260, 20, Math.PI / 4, 0.5, 1.5);
 spotLight.position.set(0, 10, 0);
 spotLight.castShadow = true;
 spotLight.shadow.mapSize.set(1024, 1024);
@@ -286,7 +345,9 @@ spotLight.shadow.bias = -0.0005;
 scene.add(spotLight);
 scene.add(spotLight.target);
 
-const backfill = new THREE.DirectionalLight(0x4466aa, 0.15);
+// Directional light intensity is lux and has no distance falloff, so this one
+// only needed a modest lift to stay balanced against the rescaled key.
+const backfill = new THREE.DirectionalLight(0x4466aa, 0.9);
 backfill.position.set(-8, 3, -6);
 scene.add(backfill);
 
@@ -350,18 +411,33 @@ function vesselGeo(stage) {
   }
 }
 
+/* Stage progression is carried by transmission + roughness, not opacity.
+ *
+ * three.js renders transmissive materials in a dedicated pass that samples the
+ * opaque framebuffer. Setting `transparent: true` diverts the mesh into the
+ * alpha-blend queue instead, so `transmission` never actually renders — which
+ * is why these read as glossy billiard balls rather than glass. `depthWrite:
+ * false` and DoubleSide compounded it: the vessels are closed solids, so both
+ * only introduced sorting and inner-surface artefacts.
+ *
+ * The narrative still reads the same way — raw opaque matter clarifying into
+ * finished glass — but now through physical properties: transmission climbs
+ * 0 → 0.98 while roughness falls 0.95 → 0.02. metalness goes to 0 at the top
+ * stages because metals do not transmit; the old 0.15 was fighting the effect.
+ * Tint comes from attenuationColor (how coloured glass actually works) since
+ * diffuse `color` is largely suppressed once transmission is high. */
 function vesselMat(stage, color) {
   const st = Math.min(stage, 3);
   const base = {
     color: color,
-    transparent: true,
-    side: THREE.DoubleSide,
-    depthWrite: false,
+    side: THREE.FrontSide,
+    transparent: false,
+    depthWrite: true,
   };
-  if (st === 0) return new THREE.MeshStandardMaterial({ ...base, roughness:0.9, metalness:0, opacity:0.55, color:0xd0ccd8 });
-  if (st === 1) return new THREE.MeshPhysicalMaterial({ ...base, roughness:0.55, metalness:0.05, opacity:0.72 });
-  if (st === 2) return new THREE.MeshPhysicalMaterial({ ...base, roughness:0.22, metalness:0.1, opacity:0.88, transmission:0.35, ior:1.45, flatShading:true });
-  return new THREE.MeshPhysicalMaterial({ ...base, roughness:0.04, metalness:0.15, opacity:1, transmission:0.85, ior:1.52, thickness:0.4, flatShading:false });
+  if (st === 0) return new THREE.MeshStandardMaterial({ ...base, color:0xd0ccd8, roughness:0.95, metalness:0 });
+  if (st === 1) return new THREE.MeshPhysicalMaterial({ ...base, roughness:0.60, metalness:0.05, transmission:0.30, ior:1.40, thickness:0.45, attenuationColor:color, attenuationDistance:4.5 });
+  if (st === 2) return new THREE.MeshPhysicalMaterial({ ...base, roughness:0.25, metalness:0,    transmission:0.65, ior:1.46, thickness:0.35, attenuationColor:color, attenuationDistance:3.2, flatShading:true });
+  return new THREE.MeshPhysicalMaterial({ ...base, roughness:0.02, metalness:0, transmission:0.98, ior:1.52, thickness:0.28, attenuationColor:color, attenuationDistance:2.4, flatShading:false });
 }
 
 // ── Build agent vessel ────────────────────────────────────────────────────────
@@ -470,7 +546,7 @@ canvas.addEventListener('mousemove', (e) => {
     const { three: col } = agentColor(hub.findAgent(id));
     hoverRimLight.color.copy(col);
     hoverRimLight.position.set(obj.group.position.x, 2, obj.group.position.z);
-    hoverRimLight.intensity = 1.2;
+    hoverRimLight.intensity = 34;   // candela — sits ~2 units from the vessel
     canvas.style.cursor = 'pointer';
   } else {
     hoverRimLight.intensity = 0;
@@ -666,7 +742,7 @@ function triggerPour(obj, agent) {
   obj.group.add(tube);
 
   // Flash light
-  const flashLight = new THREE.PointLight(col, 3, 3, 2);
+  const flashLight = new THREE.PointLight(col, 18, 3, 2);
   flashLight.position.set(0, radius, 0);
   obj.group.add(flashLight);
 
@@ -675,7 +751,7 @@ function triggerPour(obj, agent) {
   (function step(now) {
     const t = Math.min((now - t0) / dur, 1);
     tubeMat.uniforms.uReveal.value = t;
-    flashLight.intensity = 3 * (1 - t);
+    flashLight.intensity = 18 * (1 - t);
     if (t < 1) {
       requestAnimationFrame(step);
     } else {

@@ -329,6 +329,66 @@ first-run path) while showing almost nothing of its own concept.
 
 ---
 
+## Bugs Fixed in Foundry Glass (Session 8)
+
+The page rendered as a near-black rectangle. Two independent faults, both rooted in three.js
+version drift — the file loads **r169** but was authored against older API behaviour.
+
+### Lighting rig was written for the legacy lighting model
+
+three.js r155+ made punctual lights physically correct and **r165 removed the `useLegacyLights`
+opt-out**. Intensity is now candela and illuminance falls off as `intensity / distance²`.
+The key light was `SpotLight(…, 2.5, …)` positioned 10 units above the bench →
+`2.5 / 10² ≈ 0.025`. Effectively zero. That alone was the black screen.
+
+| Light | Was | Now | Unit |
+|---|---|---|---|
+| Key spot | 2.5 | 260 | candela (scales with distance²) |
+| Hover rim point | 1.2 | 34 | candela |
+| Forge flash point | 3 | 18 | candela — **also update the fade animation** |
+| Backfill directional | 0.15 | 0.9 | lux — no distance falloff, so only a modest lift |
+
+Also added `ACESFilmicToneMapping` @ 1.15 exposure — physical lights produce a wide dynamic
+range, and with `NoToneMapping` the spot's hotspot clipped while midtones stayed crushed.
+
+### No scene environment — why "Foundry Glass" showed no glass
+
+The vessels are `MeshPhysicalMaterial` with `transmission` and low `roughness`; glass and polished
+metal derive nearly all appearance from reflections. `scene.environment` was never set, so there
+was nothing to reflect and they rendered black **regardless of light intensity**.
+
+Note: `RoomEnvironment` works but is a neutral photo studio whose rectangular area lights reflect
+as hard white windows — wrong for a forge and an obvious stock-asset tell. Replaced with a
+hand-built equirect canvas gradient (cold ceiling → ember horizon → warm floor) via
+`PMREMGenerator.fromEquirectangular`, at `environmentIntensity = 0.6`.
+
+### Transmission was configured but never rendered
+
+`transparent: true` diverts a mesh into the alpha-blend queue, but three.js renders transmissive
+materials in a **separate pass that samples the opaque framebuffer** — so `transmission: 0.85` was
+set and silently ignored, and the vessels read as glossy billiard balls. `depthWrite: false` and
+`DoubleSide` compounded it (the vessels are closed solids), and `metalness: 0.15` fought
+transmission, since metals do not transmit.
+
+Stage progression previously rode on `opacity` (0.55 → 1), which is incompatible with transmission.
+Re-encoded onto physical properties:
+
+| Stage | transmission | roughness | reads as |
+|---|---|---|---|
+| 0 Forming | 0 (opaque) | 0.95 | raw unworked matter |
+| 1 | 0.30 | 0.60 | clouded |
+| 2 Crystal | 0.65 | 0.25 | clarifying, faceted |
+| 3 | 0.98 | 0.02 | finished glass |
+
+Tint comes from `attenuationColor` — diffuse `color` is largely suppressed at high transmission, so
+without it agent identity is lost entirely. `attenuationDistance` needs to be **well above the mesh
+radius** (2.4–4.5 for a ~0.65 sphere); short values look dense and muddy.
+
+**Lessons**: (1) punctual light intensities do not survive a three.js major-version jump — rescale
+by distance²; (2) `transparent: true` silently disables `transmission`.
+
+---
+
 ## Known Remaining Issues
 
 1. **Duplicate creature/plant names** — 4 agents × 4 types × 4 variants = some hash collisions
@@ -402,5 +462,5 @@ build (`three.min.js`) conflicts with OrbitControls ESM addons.
 | Session 4 | Grove (plant evolution) built, 5 bugs fixed, StateManager instantiation bug found + fixed in both vivarium & grove, hexColor numeric fix, nav links added to all 5 designs, visual verification via Chrome screenshots confirmed both render |
 | Session 5 | Vivarium + Grove visual redesign pass started: stronger palettes, updated stage naming/copy, improved header/drawer styling, cuter Vivarium stage-0/1 traits, richer Grove pot/flower/leaf composition and lighting |
 | Session 6 | Neural Mesh built: 4-step configurator (localStorage), Three.js radial node graph, CSS2DRenderer labels, CatmullRom connections, stochastic signal pulses, orbiting motes/pulse-ring/tendril growth mechanics, raycasting interaction, GSAP drawer, stage promotion animation + DOM overlay. Feel brief locked: "curiosity + calm, like constellation-forge but synaptic". Design Direction Gate added to global CLAUDE.md. |
-| Session 8 (2026-07-29) | Visual audit of all 15 designs from screenshots, graded against a production bar. Fixed 4 Neural Mesh rendering defects (TDZ boot crash, collapsed connection geometry, nodes ignoring agent colour, stale stage labels) — see the Neural Mesh bug section. Audit verdict: Constellation Forge is the strongest; Foundry Glass is too dark to read and needs its lighting rebuilt. |
+| Session 8 (2026-07-29) | Visual audit of all 15 designs from screenshots, graded against a production bar. Fixed 4 Neural Mesh rendering defects (TDZ boot crash, collapsed connection geometry, nodes ignoring agent colour, stale stage labels) — see the Neural Mesh bug section. Audit verdict: Constellation Forge is the strongest. Then rebuilt Foundry Glass: rescaled the whole light rig to physical units, added a hand-built forge environment map + ACES tone mapping, and repaired the glass material so `transmission` actually renders — see the Foundry Glass bug section. |
 | Session 7 (2026-07-22) | Review + documentation pass: catalogued the 8 previously undocumented 2D concept archives (all from initial commit), documented Lantern Garden v2 as 7th flagship, documented `drawer-shared.js` / `index.html` hub / expanded StateManager + AgentModals APIs, verified all 9 undocumented pages render error-free, logged seed-agent divergence as a known issue. Fixed the three nav gaps: added Lantern to Neural Mesh's nav, Mesh to Lantern v2's nav, and a Neural Mesh card to the `index.html` hub — all 8 pages now link all 7 flagships in canonical order. |
