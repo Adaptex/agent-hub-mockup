@@ -389,6 +389,35 @@ by distance²; (2) `transparent: true` silently disables `transmission`.
 
 ---
 
+## Constellation Forge — Cleanup Pass (Session 8)
+
+The audit's strongest design, held back by three fixable things. Net −55 lines.
+
+1. **Intro curtain removed.** A click-through splash (gradient text on black) gated the scene —
+   the generic AI default, and a product should not ask permission before showing itself. The
+   3D scene is the hero, so it now renders immediately; the entrance survives as a non-blocking
+   staged rise-in of title → actions → rail, gated on `prefers-reduced-motion`.
+2. **Drawer no longer clips the HUD.** Structural, not cosmetic: `.drawer` is a fixed overlay
+   while `.ui-root` is `inset: 0`, so nothing reflowed and the drawer slid straight over the
+   Ignite button and nav pill. `body.drawer-open` now reserves the drawer width so the HUD
+   reflows. Two follow-ons — actions flush left once they wrap (no right edge to hang from, or
+   each row rags differently), and below 900px the drawer becomes a full-width sheet because
+   there is nowhere to reflow to and a 440px panel left a clipped strip.
+3. **Chips rebuilt as a specimen rail.** Each chip carries its star's colour as a luminous dot,
+   active state tinted in the same hue — the chip↔star tie is the information the rail should
+   carry. Fixes a real bug: the glow was four hardcoded `[data-agent="…"]` rules, so **any
+   user-created agent had no colour identity**. Now driven by a `--agent-color` custom property
+   set from the agent record. Type lifted off an unreadable 8px.
+
+### CSS ordering trap (hit during this pass)
+
+The mobile drawer rule was first placed *above* the base `.drawer` declaration and silently did
+nothing — same specificity, so the later `width: min(440px, 100vw)` won. **Media-query overrides
+must sit after the rule they override.** Caught only by screenshotting; the edit itself looked
+correct. This file's CSS is long and single-block, so co-locate overrides with their base rule.
+
+---
+
 ## Known Remaining Issues
 
 1. **Duplicate creature/plant names** — 4 agents × 4 types × 4 variants = some hash collisions
@@ -462,5 +491,5 @@ build (`three.min.js`) conflicts with OrbitControls ESM addons.
 | Session 4 | Grove (plant evolution) built, 5 bugs fixed, StateManager instantiation bug found + fixed in both vivarium & grove, hexColor numeric fix, nav links added to all 5 designs, visual verification via Chrome screenshots confirmed both render |
 | Session 5 | Vivarium + Grove visual redesign pass started: stronger palettes, updated stage naming/copy, improved header/drawer styling, cuter Vivarium stage-0/1 traits, richer Grove pot/flower/leaf composition and lighting |
 | Session 6 | Neural Mesh built: 4-step configurator (localStorage), Three.js radial node graph, CSS2DRenderer labels, CatmullRom connections, stochastic signal pulses, orbiting motes/pulse-ring/tendril growth mechanics, raycasting interaction, GSAP drawer, stage promotion animation + DOM overlay. Feel brief locked: "curiosity + calm, like constellation-forge but synaptic". Design Direction Gate added to global CLAUDE.md. |
-| Session 8 (2026-07-29) | Visual audit of all 15 designs from screenshots, graded against a production bar. Fixed 4 Neural Mesh rendering defects (TDZ boot crash, collapsed connection geometry, nodes ignoring agent colour, stale stage labels) — see the Neural Mesh bug section. Audit verdict: Constellation Forge is the strongest. Then rebuilt Foundry Glass: rescaled the whole light rig to physical units, added a hand-built forge environment map + ACES tone mapping, and repaired the glass material so `transmission` actually renders — see the Foundry Glass bug section. |
+| Session 8 (2026-07-29) | Visual audit of all 15 designs from screenshots, graded against a production bar. Fixed 4 Neural Mesh rendering defects (TDZ boot crash, collapsed connection geometry, nodes ignoring agent colour, stale stage labels) — see the Neural Mesh bug section. Audit verdict: Constellation Forge is the strongest. Then rebuilt Foundry Glass: rescaled the whole light rig to physical units, added a hand-built forge environment map + ACES tone mapping, and repaired the glass material so `transmission` actually renders — see the Foundry Glass bug section. Finally cleaned up Constellation Forge: removed the intro gate, made the HUD reflow around the drawer, and rebuilt the agent chips as a colour-carrying specimen rail. |
 | Session 7 (2026-07-22) | Review + documentation pass: catalogued the 8 previously undocumented 2D concept archives (all from initial commit), documented Lantern Garden v2 as 7th flagship, documented `drawer-shared.js` / `index.html` hub / expanded StateManager + AgentModals APIs, verified all 9 undocumented pages render error-free, logged seed-agent divergence as a known issue. Fixed the three nav gaps: added Lantern to Neural Mesh's nav, Mesh to Lantern v2's nav, and a Neural Mesh card to the `index.html` hub — all 8 pages now link all 7 flagships in canonical order. |
