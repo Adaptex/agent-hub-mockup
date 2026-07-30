@@ -72,118 +72,22 @@
       background: radial-gradient(ellipse 85% 85% at 50% 45%, transparent 30%, rgba(0, 0, 0, 0.72) 100%);
     }
 
-    /* —— Intro curtain —— */
-    #intro {
-      position: fixed;
-      inset: 0;
-      z-index: 20;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      background: radial-gradient(ellipse 80% 60% at 50% 40%, #0a1020 0%, #020308 70%);
-      transition: opacity 0.9s cubic-bezier(0.22, 1, 0.36, 1), visibility 0.9s;
-      /* Let clicks reach HUD / canvas except on the title card (see .title-stack) */
-      pointer-events: none;
+    /* —— Masthead entrance ——
+     * Replaces the old click-through intro curtain. The scene is the hero, so
+     * it renders immediately; the title stack rises over the live starfield
+     * instead of gating it behind a splash screen. */
+    @keyframes rise-in {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: none; }
     }
-    #intro.hidden {
-      opacity: 0;
-      visibility: hidden;
-      pointer-events: none;
+    .title-block, .masthead-actions, .dock {
+      animation: rise-in 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
     }
-    #intro .orbit-ring {
-      width: min(72vw, 520px);
-      height: min(72vw, 520px);
-      border-radius: 50%;
-      border: 1px solid rgba(255, 200, 120, 0.15);
-      position: absolute;
-      animation: spin 48s linear infinite;
-      pointer-events: none;
-    }
-    #intro .orbit-ring:nth-child(2) {
-      width: min(58vw, 420px);
-      height: min(58vw, 420px);
-      border-color: rgba(120, 200, 255, 0.12);
-      animation-duration: 36s;
-      animation-direction: reverse;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    #intro .title-stack {
-      position: relative;
-      text-align: center;
-      z-index: 2;
-      pointer-events: auto;
-      padding: 24px 28px 32px;
-      border-radius: 20px;
-      border: 1px solid rgba(255, 200, 120, 0.12);
-      background: rgba(4, 8, 16, 0.45);
-      backdrop-filter: blur(12px);
-    }
-    #intro .kicker {
-      font-family: "JetBrains Mono", monospace;
-      font-size: 10px;
-      letter-spacing: 0.42em;
-      text-transform: uppercase;
-      color: rgba(255, 200, 140, 0.55);
-      margin-bottom: 20px;
-    }
-    #intro h1 {
-      font-family: "Syne", sans-serif;
-      font-weight: 800;
-      font-size: clamp(2.4rem, 8vw, 5.2rem);
-      line-height: 0.95;
-      letter-spacing: -0.04em;
-      background: linear-gradient(120deg, #fff 0%, #ffc56d 35%, #7dffb3 70%, #c4a8ff 100%);
-      -webkit-background-clip: text;
-      background-clip: text;
-      color: transparent;
-      filter: drop-shadow(0 0 40px rgba(255, 180, 100, 0.35));
-    }
-    #intro .sub {
-      margin-top: 18px;
-      font-size: clamp(15px, 2.2vw, 19px);
-      color: rgba(200, 210, 230, 0.75);
-      max-width: 420px;
-      line-height: 1.45;
-      font-style: italic;
-    }
-    #intro .enter {
-      margin-top: 36px;
-      font-family: "JetBrains Mono", monospace;
-      font-size: 11px;
-      letter-spacing: 0.28em;
-      text-transform: uppercase;
-      padding: 16px 36px;
-      border-radius: 999px;
-      border: 1px solid rgba(255, 200, 120, 0.45);
-      background: rgba(255, 200, 120, 0.08);
-      color: var(--ember-hot);
-      cursor: pointer;
-      pointer-events: auto;
-      transition: transform 0.25s, box-shadow 0.25s, background 0.25s;
-    }
-    #intro .enter:hover {
-      transform: scale(1.04);
-      background: rgba(255, 200, 120, 0.18);
-      box-shadow: 0 0 60px rgba(255, 180, 80, 0.25);
-    }
-    #intro .skip {
-      margin-top: 16px;
-      font-family: "JetBrains Mono", monospace;
-      font-size: 9px;
-      letter-spacing: 0.22em;
-      text-transform: uppercase;
-      color: var(--text-faint);
-      background: none;
-      border: none;
-      cursor: pointer;
-      pointer-events: auto;
-    }
-    #intro .skip:hover { color: var(--text-soft); }
+    .masthead-actions { animation-delay: 0.12s; }
+    .dock             { animation-delay: 0.24s; }
 
     @media (prefers-reduced-motion: reduce) {
-      #intro .orbit-ring { animation: none; opacity: 0.4; }
+      .title-block, .masthead-actions, .dock { animation: none; }
     }
 
     /* —— HUD —— */
@@ -196,6 +100,24 @@
       flex-direction: column;
       justify-content: space-between;
       padding: clamp(18px, 3.5vw, 44px);
+      transition: padding-right 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    /* The drawer is a fixed overlay, so without this the masthead actions and
+     * the specimen rail stay full-width and slide underneath it — the Ignite
+     * button and nav pill were being clipped. Reserve the drawer's width so the
+     * HUD reflows into what's left. Only above 900px: below that the drawer is
+     * effectively full-screen and there is no room to reflow into. */
+    @media (min-width: 900px) {
+      body.drawer-open .ui-root {
+        padding-right: calc(440px + clamp(18px, 3.5vw, 44px));
+      }
+      /* Once the actions wrap under the title there is no right edge to hang
+       * from, so flush them left — otherwise each row rags differently and the
+       * wrap reads as a bug rather than a deliberate reflow. */
+      body.drawer-open .masthead-actions { align-items: flex-start; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .ui-root { transition: none; }
     }
     /* Every descendant can receive clicks (not only direct children — chips live in footer) */
     .ui-root * {
@@ -325,29 +247,53 @@
       flex-wrap: wrap;
     }
     .legend { display: flex; gap: 8px; flex-wrap: wrap; max-width: 680px; }
+    /* Each chip carries its star's own light via --agent-color, set from the
+     * agent record in JS. This replaces four hardcoded [data-agent="…"] rules
+     * that only matched the seed agents — anything the user created got no
+     * colour identity at all. 8px type was also below a readable floor. */
     .chip {
+      --agent-color: #ffc56d;
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
       font-family: "JetBrains Mono", monospace;
-      font-size: 8px;
-      letter-spacing: 0.18em;
+      font-size: 9.5px;
+      letter-spacing: 0.16em;
       text-transform: uppercase;
-      padding: 8px 14px;
+      padding: 9px 15px 9px 12px;
       border-radius: 999px;
       border: 1px solid var(--glass-edge);
       background: var(--glass);
       color: var(--text-faint);
       cursor: pointer;
       backdrop-filter: blur(10px);
-      transition: border-color 0.2s, color 0.2s, transform 0.15s, box-shadow 0.25s;
+      transition: border-color 0.2s, color 0.2s, transform 0.15s, box-shadow 0.25s, background 0.2s;
+    }
+    /* The dot is the chip's tie to its body in the sky — same hue, same glow. */
+    .chip::before {
+      content: "";
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      flex: none;
+      background: var(--agent-color);
+      box-shadow: 0 0 8px var(--agent-color);
+      opacity: 0.5;
+      transition: opacity 0.25s, box-shadow 0.25s, transform 0.25s;
     }
     .chip:hover { transform: translateY(-2px); color: var(--text-soft); }
+    .chip:hover::before { opacity: 0.85; }
     .chip.on {
-      border-color: rgba(255, 255, 255, 0.28);
       color: var(--text);
+      border-color: color-mix(in srgb, var(--agent-color) 55%, transparent);
+      background: color-mix(in srgb, var(--agent-color) 10%, var(--glass));
+      box-shadow: 0 0 28px color-mix(in srgb, var(--agent-color) 30%, transparent);
     }
-    .chip[data-agent="designer"].on { box-shadow: 0 0 28px rgba(196, 168, 255, 0.35); }
-    .chip[data-agent="creative"].on { box-shadow: 0 0 28px rgba(255, 180, 80, 0.4); }
-    .chip[data-agent="frontend"].on { box-shadow: 0 0 28px rgba(125, 255, 179, 0.3); }
-    .chip[data-agent="qa"].on { box-shadow: 0 0 28px rgba(255, 139, 122, 0.35); }
+    .chip.on::before {
+      opacity: 1;
+      transform: scale(1.2);
+      box-shadow: 0 0 14px var(--agent-color);
+    }
 
     /* Drawer */
     .drawer {
@@ -372,6 +318,14 @@
     .drawer.open {
       transform: translateX(0);
       pointer-events: auto;
+    }
+    /* Below the HUD-reflow breakpoint there is nowhere for the HUD to move, so
+     * a 440px drawer just half-covers it and leaves a clipped strip. Promote it
+     * to a full-width sheet — the usual mobile pattern, and it reads as a
+     * deliberate view change rather than an overlap. Must sit after the .drawer
+     * base rule: same specificity, so source order decides. */
+    @media (max-width: 899px) {
+      .drawer { width: 100vw; }
     }
 
     .drawer-close {
@@ -602,17 +556,6 @@
   <div class="vignette" aria-hidden="true"></div>
   <div id="pulse-flash" aria-hidden="true"></div>
 
-  <div id="intro">
-    <div class="orbit-ring" aria-hidden="true"></div>
-    <div class="orbit-ring" aria-hidden="true"></div>
-    <div class="title-stack">
-      <p class="kicker">Daily Companion · Agent Hub</p>
-      <h1>Constellation<br />Forge</h1>
-      <p class="sub">Your agents as luminous bodies in orbit — forge links between memory, heat, and motion. Step in when you are ready.</p>
-      <button type="button" class="enter" id="intro-enter">Enter the forge</button>
-      <button type="button" class="skip" id="intro-skip">Skip intro</button>
-    </div>
-  </div>
 
   <div class="ui-root">
     <header class="masthead">
@@ -755,16 +698,23 @@
     const drawer = document.getElementById("drawer");
     const drawerBody = document.getElementById("drawer-body");
     const drawerClose = document.getElementById("drawer-close");
-    const intro = document.getElementById("intro");
     const pulseFlash = document.getElementById("pulse-flash");
 
     const agentLive = document.getElementById("agent-live");
+
+    function cssColor(c) {
+      if (typeof c === "number") return "#" + c.toString(16).padStart(6, "0");
+      const s = String(c || "");
+      return s.startsWith("#") ? s : "#" + (s || "ffc56d");
+    }
 
     hub.getAgents().forEach((a) => {
       const b = document.createElement("button");
       b.type = "button";
       b.className = "chip";
       b.dataset.agent = a.id;
+      // state-manager stores colour as an int; the chip needs a CSS string.
+      b.style.setProperty("--agent-color", cssColor(a.color));
       b.textContent = (a.short || a.id || a.name).replace("-", " ");
       b.setAttribute("aria-pressed", "false");
       b.setAttribute("aria-label", `Select agent ${a.name}`);
@@ -836,13 +786,6 @@
       }
     });
 
-    function dismissIntro() {
-      intro.classList.add("hidden");
-      intro.style.pointerEvents = "none";
-    }
-    document.getElementById("intro-enter").addEventListener("click", dismissIntro);
-    document.getElementById("intro-skip").addEventListener("click", dismissIntro);
-    if (prefersReducedMotion) setTimeout(dismissIntro, 400);
 
     /* —— Scene —— */
     const scene = new THREE.Scene();
@@ -1258,6 +1201,7 @@
         );
       }
       drawer.classList.add("open");
+      document.body.classList.add("drawer-open");
       drawer.setAttribute("aria-hidden", "false");
       drawer.setAttribute("aria-label", `${a.name}, ${a.status}, specimen detail`);
       drawerClose.focus();
@@ -1265,6 +1209,7 @@
 
     drawerClose.addEventListener("click", () => {
       drawer.classList.remove("open");
+      document.body.classList.remove("drawer-open");
       drawer.setAttribute("aria-hidden", "true");
       drawer.setAttribute("aria-label", "Agent specimen detail");
       const chip = document.querySelector(`.chip[data-agent="${selectedId}"]`);
