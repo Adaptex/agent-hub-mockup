@@ -10,25 +10,25 @@
 <style>
 /* ── TOKENS ──────────────────────────────────────────────────────────────── */
 :root {
-  --bg: #0f0d0a;
-  --surface: rgba(24,20,16,0.86);
-  --surface-lift: #2a241d;
-  --accent: #f2b544;
+  --bg: #f5f0e8;
+  --surface: #ede8dc;
+  --surface-lift: #e4ddd0;
+  --accent: #5c8a3c;
   --rose: #d45858;
   --sun: #f0b03f;
-  --accent-dim: rgba(242,181,68,0.32);
-  --accent-glow: rgba(242,181,68,0.13);
-  --text: #f3e9d8;
-  --text-dim: rgba(243,233,216,0.72);
-  --text-mute: rgba(243,233,216,0.46);
-  --border: rgba(255,220,150,0.16);
-  --border-mid: rgba(255,220,150,0.34);
+  --accent-dim: rgba(92,138,60,0.22);
+  --accent-glow: rgba(92,138,60,0.08);
+  --text: #2c2423;
+  --text-dim: rgba(44,36,35,0.60);
+  --text-mute: rgba(44,36,35,0.65);
+  --border: rgba(92,138,60,0.12);
+  --border-mid: rgba(92,138,60,0.28);
   /* Channel triplets. Chrome colours are alpha variants of these four hues, so
    * the tonal flip is four edits here rather than ~25 scattered literals.
    * Consumed as rgba(var(--ink-rgb), 0.72) etc. */
-  --ink-rgb:     243,233,216;
-  --surface-rgb: 24,20,16;
-  --edge-rgb:    255,220,150;
+  --ink-rgb:     44,36,35;
+  --surface-rgb: 237,232,220;
+  --edge-rgb:    92,138,60;
   --accent-rgb:  92,138,60;
   --ff-serif: 'Playfair Display', Georgia, serif;
   --ff-body: 'Lora', Georgia, serif;
@@ -170,7 +170,7 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg);
 }
 .bloom-overlay::before {
   content: ''; position: absolute; inset: 0; pointer-events: none;
-  background: radial-gradient(ellipse 50% 40% at 50% 50%, rgba(242,181,68,0.14) 0%, transparent 70%);
+  background: radial-gradient(ellipse 50% 40% at 50% 50%, rgba(var(--accent-rgb), 0.14) 0%, transparent 70%);
 }
 .bloom-overlay__name { font-family: var(--ff-serif); font-weight: 700; font-style: italic; font-size: clamp(46px, 6.5vw, 70px); line-height: 1; letter-spacing: 0.01em; color: var(--text); text-align: center; text-shadow: 0 0 18px rgba(79,127,47,0.16); }
 .bloom-overlay__tag { font-family: var(--ff-body); font-size: 15px; letter-spacing: 0.04em; color: var(--accent); text-align: center; font-style: italic; }
