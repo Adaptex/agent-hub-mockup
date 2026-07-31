@@ -308,7 +308,13 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.setClearColor(0x0f0d0a);
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x0f0d0a);
+scene.background = new THREE.Color(0xf5f0e8);
+/* 187a943 moved the camera lower and further back than the original
+ * overhead framing, so the far edge of the 28x18 table is now in shot.
+ * Against the old near-black background that edge was invisible; on cream
+ * it reads as a hard horizon line. Fog matched to the background dissolves
+ * it while keeping that commit's composition. */
+scene.fog = new THREE.FogExp2(0xf5f0e8, 0.016);
 
 const camera = new THREE.PerspectiveCamera(39, innerWidth / innerHeight, 0.1, 100);
 camera.position.set(0, 6.8, 11.5);
@@ -317,16 +323,17 @@ let camTargetX = 0;
 const groveRenderer = createGroveRenderer(renderer, scene, camera, reducedMotion);
 
 /* ── LIGHTS ─────────────────────────────────────────────────────────────── */
-scene.add(new THREE.HemisphereLight(0x2d241a, 0x0a0806, 0.22));
-const sun = new THREE.DirectionalLight(0xffc978, 1.65);
+scene.add(new THREE.HemisphereLight(0xa8c8e8, 0x4a3828, 0.48));
+const sun = new THREE.DirectionalLight(0xffeec8, 1.10);
 sun.position.set(6, 12, 5);
 sun.castShadow = true;
 sun.shadow.mapSize.set(2048, 2048);
 Object.assign(sun.shadow.camera, { near:0.5, far:50, left:-14, right:14, top:10, bottom:-10 });
 sun.shadow.bias = -0.0005;
 scene.add(sun);
-// Warm fill from the opposite side
-const fill = new THREE.DirectionalLight(0xffb57c, 0.24);
+// Cool sky bounce from the opposite side, standing in for open shade.
+// In daylight the fill is sky, not a second warm lamp.
+const fill = new THREE.DirectionalLight(0xffe0c0, 0.22);
 fill.position.set(-5, 6, -3);
 scene.add(fill);
 
@@ -342,10 +349,10 @@ void main(){
   float g3=n2(vUv*60.0)*0.20;
   float stone=g1+g2+g3;
   float streak=abs(sin(vUv.x*35.0+n2(vUv*9.0)*3.0))*0.12;
-  vec3 dark=vec3(0.086,0.071,0.058);
-  vec3 light=vec3(0.164,0.132,0.104);
+  vec3 dark=vec3(0.380,0.215,0.098);
+  vec3 light=vec3(0.560,0.345,0.175);
   vec3 col=mix(dark,light,stone);
-  col += vec3(0.10,0.07,0.03) * streak;
+  col += vec3(0.16,0.10,0.04) * streak;
   gl_FragColor=vec4(col,1.0);}`;
 const table = new THREE.Mesh(
   new THREE.PlaneGeometry(28, 18),
