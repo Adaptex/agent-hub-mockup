@@ -44,7 +44,7 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg);
   background: rgba(24,20,16,0.82);
   backdrop-filter: blur(18px) saturate(1.2);
   -webkit-backdrop-filter: blur(18px) saturate(1.2);
-  border: 1px solid rgba(255,220,150,0.16);
+  border: 1px solid var(--border);
   border-radius: 18px;
   box-shadow: 0 14px 42px rgba(0,0,0,0.38);
 }
@@ -94,7 +94,7 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg);
 .drawer {
   position: fixed; left: 18px; top: 18px; bottom: 18px; z-index: var(--z-drawer);
   width: min(430px, calc(100vw - 36px)); max-width: 100vw; overflow: hidden;
-  background: var(--surface); border-left: 1px solid rgba(255,220,150,0.16);
+  background: var(--surface); border-left: 1px solid var(--border);
   display: flex; flex-direction: column;
   border: 1px solid rgba(255,220,150,0.22); border-radius: 14px;
   transform: translateX(-112%); will-change: transform;
