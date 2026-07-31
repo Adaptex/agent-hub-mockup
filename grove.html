@@ -13,14 +13,16 @@
   --bg: #f5f0e8;
   --surface: #ede8dc;
   --surface-lift: #e4ddd0;
-  --accent: #5c8a3c;
+  --accent: #456b2b;   /* text-safe green: 5.07:1 on --surface. The documented
+                        #5c8a3c is 3.33:1 and is used at 9-10.5px, which needs 4.5.
+                        --accent-rgb stays lighter for tints and edges (3:1 suffices). */
   --rose: #d45858;
   --sun: #f0b03f;
   --accent-dim: rgba(92,138,60,0.22);
   --accent-glow: rgba(92,138,60,0.08);
   --text: #2c2423;
-  --text-dim: rgba(44,36,35,0.60);
-  --text-mute: rgba(44,36,35,0.65);
+  --text-dim: rgba(44,36,35,0.78);
+  --text-mute: rgba(44,36,35,0.70);
   --border: rgba(92,138,60,0.12);
   --border-mid: rgba(92,138,60,0.28);
   /* Channel triplets. Chrome colours are alpha variants of these four hues, so
@@ -56,7 +58,7 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg);
   box-shadow: 0 14px 42px rgba(0,0,0,0.38);
 }
 .masthead__left { display: flex; flex-direction: column; gap: 1px; }
-.masthead__eyebrow { font-family: var(--ff-mono); font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(var(--accent-rgb), 0.55); }
+.masthead__eyebrow { font-family: var(--ff-mono); font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); }
 .masthead__wordmark { font-family: var(--ff-serif); font-weight: 700; font-style: italic; font-size: 22px; letter-spacing: 0.05em; color: var(--text); line-height: 1; }
 .masthead__right { display: flex; flex-direction: column; align-items: stretch; gap: 8px; }
 .design-nav { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
@@ -65,12 +67,12 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg);
 .design-nav a.active { color: var(--accent); }
 .stat-pill {
   display: inline-flex; align-items: center; gap: 5px; padding: 5px 12px;
-  background: rgba(34,28,22,0.78); border: 1px solid var(--accent-dim); border-radius: 999px;
+  background: rgba(var(--accent-rgb), 0.10); border: 1px solid var(--accent-dim); border-radius: 999px;
   font-family: var(--ff-mono); font-size: 9px; letter-spacing: 0.10em; text-transform: uppercase; color: var(--accent); white-space: nowrap; justify-content: center;
 }
 .stat-pill::before { content: ''; display: block; width: 5px; height: 5px; border-radius: 50%; background: var(--accent); }
 .btn-grove {
-  height: 32px; padding: 0 var(--sp-3); background: rgba(36,30,24,0.40); border: 1px solid rgba(var(--edge-rgb), 0.22);
+  height: 32px; padding: 0 var(--sp-3); background: rgba(var(--accent-rgb), 0.05); border: 1px solid rgba(var(--edge-rgb), 0.22);
   border-radius: 2px; cursor: pointer; font-family: var(--ff-mono); font-size: 10.5px;
   letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-dim);
   transition: border-color 0.18s, color 0.18s, background 0.18s; white-space: nowrap;
@@ -136,7 +138,7 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg);
   width: 26px; height: 26px; cursor: pointer; color: var(--text); font-size: 16px;
   line-height: 26px; text-align: center; transition: background 0.15s;
 }
-.close-drawer:hover { background: rgba(56,42,28,0.82); }
+.close-drawer:hover { background: rgba(var(--accent-rgb), 0.14); }
 .drawer__body {
   flex: 1; overflow-y: auto; overscroll-behavior: contain; padding: 32px var(--sp-6) 16px; min-height: 0;
   scrollbar-width: thin; scrollbar-color: var(--accent-dim) transparent;
