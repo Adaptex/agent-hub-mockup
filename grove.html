@@ -383,7 +383,7 @@ for (let i = 0; i < DM; i++) {
 }
 const dmGeo = new THREE.BufferGeometry();
 dmGeo.setAttribute('position', new THREE.BufferAttribute(dmPos, 3));
-scene.add(new THREE.Points(dmGeo, new THREE.PointsMaterial({ color:0xffdba5, size:0.032, transparent:true, opacity:0.42, depthWrite:false })));
+scene.add(new THREE.Points(dmGeo, new THREE.PointsMaterial({ color:0x8a7a5c, size:0.030, transparent:true, opacity:0.34, depthWrite:false })));
 
 /* ── GLSL LEAF SHADERS ──────────────────────────────────────────────────── */
 const LEAF_VERT = `varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`;
@@ -621,6 +621,9 @@ function buildPlant(agent) {
   }
 
   // Per-plant point light
+  // NOTE: this constructor intensity is inert — animatePlant() overwrites
+  // .intensity every frame (see the stage-0 / working / idle branches below).
+  // Change those, not this, if the per-plant glow needs retuning.
   const ptl = new THREE.PointLight(color, 0.20 + stage * 0.18, 2.5 + stage * 0.4);
   ptl.position.set(0, 0.42 + stemH, 0); g.add(ptl);
   g.userData.pointLight = ptl;
