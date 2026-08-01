@@ -230,7 +230,30 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x020509);
+/* Build the scene backdrop from the same --depth-* tokens that drive
+ * #depth-rail, so the labelled zones and the rendered water can never
+ * drift apart. Previously the scene was a flat hadal black while the rail
+ * claimed four distinct zones — the design labelled a depth gradient it
+ * never actually rendered. Stops match the rail's 0/30/65/100%. */
+function depthBackdrop() {
+  const css = getComputedStyle(document.documentElement);
+  const stops = ['--depth-photic', '--depth-twilight', '--depth-midnight', '--depth-hadal']
+    .map(n => css.getPropertyValue(n).trim());
+  const c = document.createElement('canvas');
+  c.width = 2; c.height = 512;
+  const g = c.getContext('2d');
+  const grad = g.createLinearGradient(0, 0, 0, c.height);
+  grad.addColorStop(0.00, stops[0]);
+  grad.addColorStop(0.30, stops[1]);
+  grad.addColorStop(0.65, stops[2]);
+  grad.addColorStop(1.00, stops[3]);
+  g.fillStyle = grad;
+  g.fillRect(0, 0, c.width, c.height);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+scene.background = depthBackdrop();
 scene.fog = new THREE.FogExp2(0x020509, 0.00055);
 
 const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 2000);
