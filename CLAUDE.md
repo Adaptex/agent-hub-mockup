@@ -23,7 +23,7 @@ Port 5500 is intentional — Daily Companion runs on 3000.
 | File | Theme | Status |
 |---|---|---|
 | `constellation-forge.html` | Dark space — agents as orbiting constellations | ✅ Complete |
-| `tidal-archive.html` | Deep ocean — agents as bioluminescent organisms | ✅ Complete |
+| `tidal-archive.html` | Deep ocean — agents as bioluminescent organisms, depth gradient | ✅ Complete |
 | `foundry-glass.html` | Industrial glass forge | ✅ Complete |
 | `vivarium.html` | Dark forest terrarium — agents as baby creatures that evolve | ✅ Complete, bugs fixed |
 | `grove.html` | Warm botanical garden — agents as potted plants that bloom | ✅ Complete, bugs fixed |
@@ -438,6 +438,26 @@ The mobile drawer rule was first placed *above* the base `.drawer` declaration a
 nothing — same specificity, so the later `width: min(440px, 100vw)` won. **Media-query overrides
 must sit after the rule they override.** Caught only by screenshotting; the edit itself looked
 correct. This file's CSS is long and single-block, so co-locate overrides with their base rule.
+
+---
+
+## Tidal Archive — Depth Model
+
+`--depth-photic` / `-twilight` / `-midnight` / `-hadal` are the **single source of truth** for
+three things at once: `#depth-rail`, the 3D scene backdrop, and the fog. Change the tokens, not the
+scene — they were allowed to drift apart once already, with the rail claiming four labelled zones
+while `scene.background` rendered flat hadal black everywhere.
+
+Two non-obvious constraints:
+
+- **`scene.background` is a texture, so it renders in SCREEN space** and does not move with the
+  camera. Depth response comes from `scene.backgroundIntensity`, lerped in the RAF loop. Without
+  it the sunlit band stays pinned to the top of the viewport even at hadal depth.
+- **The camera's real Y range is +280 → −460**, set by the wheel handler's clamp. Any depth
+  interpolation must use those bounds or the lerp saturates before the camera reaches either end.
+
+The four rail labels **cannot share one colour** — photic is a bright band needing dark ink while
+the deep bands need light. They are set per-band via `.rail-tick:nth-child(n)`.
 
 ---
 
