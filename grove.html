@@ -10,19 +10,28 @@
 <style>
 /* ── TOKENS ──────────────────────────────────────────────────────────────── */
 :root {
-  --bg: #0f0d0a;
-  --surface: rgba(24,20,16,0.86);
-  --surface-lift: #2a241d;
-  --accent: #f2b544;
+  --bg: #f5f0e8;
+  --surface: #ede8dc;
+  --surface-lift: #e4ddd0;
+  --accent: #456b2b;   /* text-safe green: 5.07:1 on --surface. The documented
+                        #5c8a3c is 3.33:1 and is used at 9-10.5px, which needs 4.5.
+                        --accent-rgb stays lighter for tints and edges (3:1 suffices). */
   --rose: #d45858;
   --sun: #f0b03f;
-  --accent-dim: rgba(242,181,68,0.32);
-  --accent-glow: rgba(242,181,68,0.13);
-  --text: #f3e9d8;
-  --text-dim: rgba(243,233,216,0.72);
-  --text-mute: rgba(243,233,216,0.46);
-  --border: rgba(255,220,150,0.16);
-  --border-mid: rgba(255,220,150,0.34);
+  --accent-dim: rgba(92,138,60,0.22);
+  --accent-glow: rgba(92,138,60,0.08);
+  --text: #2c2423;
+  --text-dim: rgba(44,36,35,0.78);
+  --text-mute: rgba(44,36,35,0.70);
+  --border: rgba(92,138,60,0.12);
+  --border-mid: rgba(92,138,60,0.28);
+  /* Channel triplets. Chrome colours are alpha variants of these four hues, so
+   * the tonal flip is four edits here rather than ~25 scattered literals.
+   * Consumed as rgba(var(--ink-rgb), 0.72) etc. */
+  --ink-rgb:     44,36,35;
+  --surface-rgb: 237,232,220;
+  --edge-rgb:    92,138,60;
+  --accent-rgb:  92,138,60;
   --ff-serif: 'Playfair Display', Georgia, serif;
   --ff-body: 'Lora', Georgia, serif;
   --ff-mono: 'JetBrains Mono', 'Courier New', monospace;
@@ -41,29 +50,29 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg);
   position: fixed; right: 14px; top: 14px; z-index: var(--z-masthead);
   width: min(310px, calc(100vw - 28px)); padding: 14px;
   display: flex; flex-direction: column; align-items: stretch; gap: 10px;
-  background: rgba(24,20,16,0.82);
+  background: rgba(var(--surface-rgb), 0.82);
   backdrop-filter: blur(18px) saturate(1.2);
   -webkit-backdrop-filter: blur(18px) saturate(1.2);
-  border: 1px solid rgba(255,220,150,0.16);
+  border: 1px solid var(--border);
   border-radius: 18px;
   box-shadow: 0 14px 42px rgba(0,0,0,0.38);
 }
 .masthead__left { display: flex; flex-direction: column; gap: 1px; }
-.masthead__eyebrow { font-family: var(--ff-mono); font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(92,138,60,0.55); }
+.masthead__eyebrow { font-family: var(--ff-mono); font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); }
 .masthead__wordmark { font-family: var(--ff-serif); font-weight: 700; font-style: italic; font-size: 22px; letter-spacing: 0.05em; color: var(--text); line-height: 1; }
 .masthead__right { display: flex; flex-direction: column; align-items: stretch; gap: 8px; }
 .design-nav { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
-.design-nav a { font-family: var(--ff-mono); font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-dim); text-decoration: none; transition: color 0.18s; text-align: center; padding: 7px 6px; border: 1px solid rgba(255,220,150,0.14); border-radius: 6px; }
+.design-nav a { font-family: var(--ff-mono); font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-dim); text-decoration: none; transition: color 0.18s; text-align: center; padding: 7px 6px; border: 1px solid rgba(var(--edge-rgb), 0.14); border-radius: 6px; }
 .design-nav a:hover { color: var(--text); }
 .design-nav a.active { color: var(--accent); }
 .stat-pill {
   display: inline-flex; align-items: center; gap: 5px; padding: 5px 12px;
-  background: rgba(34,28,22,0.78); border: 1px solid var(--accent-dim); border-radius: 999px;
+  background: rgba(var(--accent-rgb), 0.10); border: 1px solid var(--accent-dim); border-radius: 999px;
   font-family: var(--ff-mono); font-size: 9px; letter-spacing: 0.10em; text-transform: uppercase; color: var(--accent); white-space: nowrap; justify-content: center;
 }
 .stat-pill::before { content: ''; display: block; width: 5px; height: 5px; border-radius: 50%; background: var(--accent); }
 .btn-grove {
-  height: 32px; padding: 0 var(--sp-3); background: rgba(36,30,24,0.40); border: 1px solid rgba(255,220,150,0.22);
+  height: 32px; padding: 0 var(--sp-3); background: rgba(var(--accent-rgb), 0.05); border: 1px solid rgba(var(--edge-rgb), 0.22);
   border-radius: 2px; cursor: pointer; font-family: var(--ff-mono); font-size: 10.5px;
   letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-dim);
   transition: border-color 0.18s, color 0.18s, background 0.18s; white-space: nowrap;
@@ -82,21 +91,21 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg);
 .plant-label {
   position: absolute; top: 0; left: 0; will-change: transform, opacity;
   font-family: var(--ff-body); font-size: 10px; font-style: italic; letter-spacing: 0.05em;
-  color: rgba(243,233,216,0.88); white-space: nowrap;
-  padding: 4px 10px; background: rgba(24,20,16,0.84); border: 1px solid rgba(255,220,150,0.26);
+  color: rgba(var(--ink-rgb), 0.88); white-space: nowrap;
+  padding: 4px 10px; background: rgba(var(--surface-rgb), 0.84); border: 1px solid rgba(var(--edge-rgb), 0.26);
   border-radius: 3px; pointer-events: none;
   box-shadow: 0 10px 24px rgba(0,0,0,0.35);
 }
-.plant-label::after { content: ''; position: absolute; bottom: -5px; left: 50%; transform: translateX(-50%); width: 1px; height: 5px; background: rgba(92,138,60,0.30); }
+.plant-label::after { content: ''; position: absolute; bottom: -5px; left: 50%; transform: translateX(-50%); width: 1px; height: 5px; background: rgba(var(--accent-rgb), 0.30); }
 
 /* ── DRAWER ────────────────────────────────────────────────────────────── */
 .drawer-backdrop { position: fixed; inset: 0; z-index: var(--z-backdrop); background: rgba(0,0,0,0); pointer-events: none; visibility: hidden; }
 .drawer {
   position: fixed; left: 18px; top: 18px; bottom: 18px; z-index: var(--z-drawer);
   width: min(430px, calc(100vw - 36px)); max-width: 100vw; overflow: hidden;
-  background: var(--surface); border-left: 1px solid rgba(255,220,150,0.16);
+  background: var(--surface); border-left: 1px solid var(--border);
   display: flex; flex-direction: column;
-  border: 1px solid rgba(255,220,150,0.22); border-radius: 14px;
+  border: 1px solid rgba(var(--edge-rgb), 0.22); border-radius: 14px;
   transform: translateX(-112%); will-change: transform;
 }
 .drawer__band {
@@ -105,7 +114,7 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg);
 }
 .drawer__band::after {
   content: ''; position: absolute; inset: 0;
-  background: linear-gradient(180deg, rgba(24,20,16,0.22), rgba(24,20,16,0.70)); backdrop-filter: blur(8px) saturate(1.2);
+  background: linear-gradient(180deg, rgba(var(--surface-rgb), 0.22), rgba(var(--surface-rgb), 0.70)); backdrop-filter: blur(8px) saturate(1.2);
   -webkit-backdrop-filter: blur(8px) saturate(1.2);
 }
 .drawer__plant-name {
@@ -125,11 +134,11 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg);
 }
 .close-drawer {
   position: absolute; top: 10px; right: 10px; z-index: 3;
-  background: rgba(24,20,16,0.62); border: 1px solid rgba(255,220,150,0.20); border-radius: 2px;
+  background: rgba(var(--surface-rgb), 0.62); border: 1px solid rgba(var(--edge-rgb), 0.20); border-radius: 2px;
   width: 26px; height: 26px; cursor: pointer; color: var(--text); font-size: 16px;
   line-height: 26px; text-align: center; transition: background 0.15s;
 }
-.close-drawer:hover { background: rgba(56,42,28,0.82); }
+.close-drawer:hover { background: rgba(var(--accent-rgb), 0.14); }
 .drawer__body {
   flex: 1; overflow-y: auto; overscroll-behavior: contain; padding: 32px var(--sp-6) 16px; min-height: 0;
   scrollbar-width: thin; scrollbar-color: var(--accent-dim) transparent;
@@ -140,18 +149,18 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg);
 .drawer__section:first-child { margin-top: 0; }
 .drawer__lede { font-family: var(--ff-body); font-size: 13px; font-style: italic; line-height: 1.58; color: var(--text-dim); margin-bottom: var(--sp-3); }
 .stat-label { display: flex; justify-content: space-between; font-family: var(--ff-mono); font-size: 10px; letter-spacing: 0.10em; text-transform: uppercase; color: var(--text-mute); margin-bottom: 5px; }
-.stat-label span:last-child { color: rgba(243,233,216,0.70); font-weight: 500; }
-.bar-track { height: 3px; background: rgba(243,233,216,0.12); margin-bottom: var(--sp-4); overflow: hidden; }
+.stat-label span:last-child { color: rgba(var(--ink-rgb), 0.70); font-weight: 500; }
+.bar-track { height: 3px; background: rgba(var(--ink-rgb), 0.12); margin-bottom: var(--sp-4); overflow: hidden; }
 .bar-fill { height: 100%; background: var(--accent); transition: width 0.6s cubic-bezier(0.22,1,0.36,1); }
-.bar-fill.xp { box-shadow: 0 0 6px rgba(92,138,60,0.45); }
+.bar-fill.xp { box-shadow: 0 0 6px rgba(var(--accent-rgb), 0.45); }
 .learning-list { list-style: none; display: flex; flex-direction: column; gap: 7px; }
-.learning-item { font-family: var(--ff-body); font-size: 13px; line-height: 1.55; color: rgba(243,233,216,0.78); padding: 7px 10px; background: rgba(243,233,216,0.06); border-left: 2px solid var(--accent-dim); }
+.learning-item { font-family: var(--ff-body); font-size: 13px; line-height: 1.55; color: rgba(var(--ink-rgb), 0.78); padding: 7px 10px; background: rgba(var(--ink-rgb), 0.06); border-left: 2px solid var(--accent-dim); }
 .learning-item .part { font-family: var(--ff-mono); font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); display: block; margin-bottom: 2px; }
 .learning-item .learn-when { display: block; font-family: var(--ff-mono); font-size: 8px; color: var(--text-mute); margin-top: 4px; }
 .learning-item .learn-row-actions { margin-top: 6px; }
-.drawer__footer { flex-shrink: 0; padding: var(--sp-3) var(--sp-6) 20px; border-top: 1px solid var(--border); background: linear-gradient(180deg, rgba(24,20,16,0.72), rgba(24,20,16,0.95)); }
+.drawer__footer { flex-shrink: 0; padding: var(--sp-3) var(--sp-6) 20px; border-top: 1px solid var(--border); background: linear-gradient(180deg, rgba(var(--surface-rgb), 0.72), rgba(var(--surface-rgb), 0.95)); }
 .drawer__feed-btn { width: 100%; height: 40px; background: transparent; border: 1px solid var(--accent-dim); border-radius: 2px; cursor: pointer; font-family: var(--ff-mono); font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); transition: background 0.18s, border-color 0.18s; }
-.drawer__feed-btn:hover { background: var(--accent-glow); border-color: rgba(92,138,60,0.50); }
+.drawer__feed-btn:hover { background: var(--accent-glow); border-color: rgba(var(--accent-rgb), 0.50); }
 .drawer__copy-btn { margin-top: 8px; opacity: 0.9; }
 
 /* ── BLOOM OVERLAY ─────────────────────────────────────────────────────── */
@@ -163,7 +172,7 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg);
 }
 .bloom-overlay::before {
   content: ''; position: absolute; inset: 0; pointer-events: none;
-  background: radial-gradient(ellipse 50% 40% at 50% 50%, rgba(242,181,68,0.14) 0%, transparent 70%);
+  background: radial-gradient(ellipse 50% 40% at 50% 50%, rgba(var(--accent-rgb), 0.14) 0%, transparent 70%);
 }
 .bloom-overlay__name { font-family: var(--ff-serif); font-weight: 700; font-style: italic; font-size: clamp(46px, 6.5vw, 70px); line-height: 1; letter-spacing: 0.01em; color: var(--text); text-align: center; text-shadow: 0 0 18px rgba(79,127,47,0.16); }
 .bloom-overlay__tag { font-family: var(--ff-body); font-size: 15px; letter-spacing: 0.04em; color: var(--accent); text-align: center; font-style: italic; }
@@ -299,7 +308,13 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.setClearColor(0x0f0d0a);
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x0f0d0a);
+scene.background = new THREE.Color(0xf5f0e8);
+/* 187a943 moved the camera lower and further back than the original
+ * overhead framing, so the far edge of the 28x18 table is now in shot.
+ * Against the old near-black background that edge was invisible; on cream
+ * it reads as a hard horizon line. Fog matched to the background dissolves
+ * it while keeping that commit's composition. */
+scene.fog = new THREE.FogExp2(0xf5f0e8, 0.016);
 
 const camera = new THREE.PerspectiveCamera(39, innerWidth / innerHeight, 0.1, 100);
 camera.position.set(0, 6.8, 11.5);
@@ -308,16 +323,17 @@ let camTargetX = 0;
 const groveRenderer = createGroveRenderer(renderer, scene, camera, reducedMotion);
 
 /* ── LIGHTS ─────────────────────────────────────────────────────────────── */
-scene.add(new THREE.HemisphereLight(0x2d241a, 0x0a0806, 0.22));
-const sun = new THREE.DirectionalLight(0xffc978, 1.65);
+scene.add(new THREE.HemisphereLight(0xa8c8e8, 0x4a3828, 0.48));
+const sun = new THREE.DirectionalLight(0xffeec8, 1.10);
 sun.position.set(6, 12, 5);
 sun.castShadow = true;
 sun.shadow.mapSize.set(2048, 2048);
 Object.assign(sun.shadow.camera, { near:0.5, far:50, left:-14, right:14, top:10, bottom:-10 });
 sun.shadow.bias = -0.0005;
 scene.add(sun);
-// Warm fill from the opposite side
-const fill = new THREE.DirectionalLight(0xffb57c, 0.24);
+// Cool sky bounce from the opposite side, standing in for open shade.
+// In daylight the fill is sky, not a second warm lamp.
+const fill = new THREE.DirectionalLight(0xffe0c0, 0.22);
 fill.position.set(-5, 6, -3);
 scene.add(fill);
 
@@ -333,10 +349,10 @@ void main(){
   float g3=n2(vUv*60.0)*0.20;
   float stone=g1+g2+g3;
   float streak=abs(sin(vUv.x*35.0+n2(vUv*9.0)*3.0))*0.12;
-  vec3 dark=vec3(0.086,0.071,0.058);
-  vec3 light=vec3(0.164,0.132,0.104);
+  vec3 dark=vec3(0.380,0.215,0.098);
+  vec3 light=vec3(0.560,0.345,0.175);
   vec3 col=mix(dark,light,stone);
-  col += vec3(0.10,0.07,0.03) * streak;
+  col += vec3(0.16,0.10,0.04) * streak;
   gl_FragColor=vec4(col,1.0);}`;
 const table = new THREE.Mesh(
   new THREE.PlaneGeometry(28, 18),
@@ -367,7 +383,7 @@ for (let i = 0; i < DM; i++) {
 }
 const dmGeo = new THREE.BufferGeometry();
 dmGeo.setAttribute('position', new THREE.BufferAttribute(dmPos, 3));
-scene.add(new THREE.Points(dmGeo, new THREE.PointsMaterial({ color:0xffdba5, size:0.032, transparent:true, opacity:0.42, depthWrite:false })));
+scene.add(new THREE.Points(dmGeo, new THREE.PointsMaterial({ color:0x8a7a5c, size:0.030, transparent:true, opacity:0.34, depthWrite:false })));
 
 /* ── GLSL LEAF SHADERS ──────────────────────────────────────────────────── */
 const LEAF_VERT = `varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`;
@@ -605,6 +621,9 @@ function buildPlant(agent) {
   }
 
   // Per-plant point light
+  // NOTE: this constructor intensity is inert — animatePlant() overwrites
+  // .intensity every frame (see the stage-0 / working / idle branches below).
+  // Change those, not this, if the per-plant glow needs retuning.
   const ptl = new THREE.PointLight(color, 0.20 + stage * 0.18, 2.5 + stage * 0.4);
   ptl.position.set(0, 0.42 + stemH, 0); g.add(ptl);
   g.userData.pointLight = ptl;

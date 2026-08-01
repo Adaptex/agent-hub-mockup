@@ -115,41 +115,62 @@ wc -l < /tmp/grove-colors.txt
 
 Expected: roughly 56 lines. Review the file — each line is a candidate.
 
-- [ ] **Step 2: Replace each hardcoded chrome colour with its token**
+- [ ] **Step 2: Add channel-triplet tokens**
 
-Work through the list. For each CSS declaration that sets a chrome colour, substitute the token that already matches it. Example — the masthead panel currently reads:
+The literals are not duplicates of whole token values — they are **alpha variants of four base hues**. Substituting whole `rgba()` values therefore cannot work; almost nothing matches byte-for-byte. Route the *channels* instead, and let each use site keep its own alpha.
+
+Add to `:root`, alongside the existing tokens:
 
 ```css
-background: rgba(24,20,16,0.86);
+/* Channel triplets. Chrome colours are alpha variants of these four hues, so
+ * the tonal flip is four edits here rather than ~25 scattered literals.
+ * Consumed as rgba(var(--ink-rgb), 0.72) etc. */
+--ink-rgb:     243,233,216;
+--surface-rgb: 24,20,16;
+--edge-rgb:    255,220,150;
+--accent-rgb:  92,138,60;
 ```
 
-Since `--surface` is already `rgba(24,20,16,0.86)`, this becomes:
+These are the current dark-theme values, so adding them changes nothing yet.
+
+- [ ] **Step 3: Route each literal through its triplet**
+
+Rewrite every chrome literal to use its triplet, preserving the alpha exactly:
 
 ```css
-background: var(--surface);
+/* before */  color: rgba(243,233,216,0.72);
+/* after  */  color: rgba(var(--ink-rgb), 0.72);
+
+/* before */  background: rgba(24,20,16,0.82);
+/* after  */  background: rgba(var(--surface-rgb), 0.82);
+
+/* before */  border: 1px solid rgba(255,220,150,0.22);
+/* after  */  border: 1px solid rgba(var(--edge-rgb), 0.22);
 ```
 
 Rules for this pass:
-- Only replace where the literal already equals the token value, or differs only in alpha. Do **not** change any rendered colour in this task.
-- If a literal has no matching token and is used more than once, add a token for it.
-- Leave colours inside GLSL shader strings and `THREE.Color(...)` calls alone — those are scene, handled in Task 3.
-- Leave the four `--accent`/`--rose`/`--sun` semantic hues alone.
+- **Preserve every alpha value exactly.** The alpha is per-use-site and carries real design intent. This task must remain a visual no-op.
+- Colours that are already `var(--token)` stay as they are.
+- `rgba(0,0,0,…)` shadows stay literal — shadows are theme-agnostic and stay black in both themes.
+- Leave colours inside GLSL shader strings and `THREE.Color(...)` calls alone — those are the 3D scene, handled in Task 3.
+- Leave `--rose` and `--sun` alone; they do not change between themes.
+- One-off hues that belong to no triplet (e.g. `rgba(56,42,28,0.82)`) stay literal. Note them in the report — Task 2 will decide whether they need to move.
 
-- [ ] **Step 3: Verify nothing moved**
+- [ ] **Step 4: Verify nothing moved**
 
 Run the Verification Protocol. Screenshot at 1440×900.
 
-Expected: **pixel-identical** to before this task. If anything shifted, a substitution changed a value — find it and revert that one.
+Expected: **pixel-identical** to before this task. If anything shifted, an alpha was altered during rewriting — find it and restore it.
 
-- [ ] **Step 4: Confirm the inventory shrank**
+- [ ] **Step 5: Confirm the literals are routed**
 
 ```bash
-grep -cE "rgba?\([0-9]|#[0-9a-fA-F]{3,6}" grove.html
+sed -n '/:root/,/^}/!p' grove.html | grep -oE "rgba\((243,233,216|24,20,16|255,220,150|92,138,60)" | wc -l
 ```
 
-Expected: substantially lower than the Step 1 count. Remaining hits should be inside `:root`, shader strings, or `THREE.Color` calls.
+Expected: `0` — every instance of the four base hues outside `:root` now goes through a triplet. Remaining literals should only be `rgba(0,0,0,…)` shadows, one-off hues, shader strings, and `THREE.Color` calls.
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
 git checkout -b session-9/grove-daylight
@@ -191,6 +212,17 @@ In `:root`, replace exactly these eleven declarations. Values are taken verbatim
 Leave `--rose: #d45858` and `--sun: #f0b03f` — these did not change between versions.
 
 Note `--accent` moves from amber `#f2b544` back to botanical green `#5c8a3c`. This is intentional: amber on cream fails contrast, and green is the documented accent.
+
+Then flip the four channel triplets added in Task 1. This is where most of the chrome actually turns over:
+
+```css
+--ink-rgb:     44,36,35;      /* was 243,233,216 — ink inverts to dark */
+--surface-rgb: 237,232,220;   /* was 24,20,16    — surfaces invert to light */
+--edge-rgb:    92,138,60;     /* was 255,220,150 — edges become botanical green */
+--accent-rgb:  92,138,60;     /* unchanged */
+```
+
+Alpha values at each use site stay as they are. Some will need adjusting once you see the result — an alpha tuned for light-on-dark is often too faint when inverted to dark-on-light. Step 3 covers that.
 
 - [ ] **Step 2: Run the contrast audit**
 
