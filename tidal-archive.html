@@ -601,6 +601,16 @@ const clock = new THREE.Clock();
 let elapsed = 0;
 const _tv3 = new THREE.Vector3();
 
+/* Fog tracks the camera's depth so descending genuinely darkens instead of
+ * staying one flat blue at every altitude. Bounds match the wheel handler's
+ * clamp above (+280 surface .. -460 hadal); the plan's guessed 160/-120 would
+ * have saturated the lerp well before the camera reached either extreme.
+ * Colours are hoisted — never allocate THREE.Color inside a RAF loop. */
+const DEPTH_TOP = 280, DEPTH_BOTTOM = -460;
+const _cssRoot = getComputedStyle(document.documentElement);
+const _fogShallow = new THREE.Color(_cssRoot.getPropertyValue('--depth-twilight').trim());
+const _fogDeep = new THREE.Color(_cssRoot.getPropertyValue('--depth-hadal').trim());
+
 function tick() {
   requestAnimationFrame(tick);
   const dt = clock.getDelta();
@@ -609,6 +619,15 @@ function tick() {
   // Camera lerp
   camera.position.y += (camTargetY - camera.position.y) * 0.055;
   camera.lookAt(0, camera.position.y - 55, 0);
+
+  const depthT = THREE.MathUtils.clamp(
+    (camera.position.y - DEPTH_BOTTOM) / (DEPTH_TOP - DEPTH_BOTTOM), 0, 1);
+  scene.fog.color.copy(_fogDeep).lerp(_fogShallow, depthT);
+  /* scene.background is a texture, so it renders in SCREEN space and does not
+   * move with the camera — without this the sunlit photic band stayed pinned to
+   * the top of the viewport even at hadal depth. Dimming the whole backdrop by
+   * depth is what makes descending actually go dark. */
+  scene.backgroundIntensity = 0.06 + depthT * 0.94;
 
   // Marine snow
   if (!reduceMotion) {
