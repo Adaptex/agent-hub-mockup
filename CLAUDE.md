@@ -217,7 +217,30 @@ Stump:     Grocket, Brackum, Thornwick, Cragget
 ## Grove — Plant Design
 
 **Stack**: Three.js 0.169.0 (importmap ESM), GSAP 3.12.2 CDN, GLSL leaf + wood-grain shaders
-**Palette**: Background `#f5f0e8` (warm cream), accent `#5c8a3c`, fonts: Playfair Display + Lora + JetBrains Mono
+**Palette**: Background `#f5f0e8` (warm cream), accent `#456b2b`, fonts: Playfair Display + Lora + JetBrains Mono
+
+> **Grove is the suite's high-key design — the only light one.** Commit `187a943` flipped it to
+> near-black `#0f0d0a` with an amber accent and the docs were never updated; restored 2026-07-31.
+> If you are changing this palette you are changing the only light design in the set — see
+> `docs/superpowers/specs/2026-07-31-tonal-range-design.md`.
+>
+> Two things that are **not** free to revert to their pre-`187a943` values:
+> - **Accent is `#456b2b`, not the documented `#5c8a3c`.** The original green is used at 9–10.5px
+>   as *text*, where it scores 3.33:1 and needs 4.5:1. `--accent-rgb` stays the lighter
+>   `92,138,60` for tints and edges, where 3:1 suffices — the two roles genuinely differ.
+> - **`--text-dim` 0.78 and `--text-mute` 0.70**, not the original 0.60/0.36. The original cream
+>   palette was never WCAG AA compliant (3.96 and 2.11 respectively).
+>
+> **Chrome colours run through channel triplets** (`--ink-rgb`, `--surface-rgb`, `--edge-rgb`,
+> `--accent-rgb`) consumed as `rgba(var(--ink-rgb), 0.72)`. Alpha stays at each use site. Change
+> the triplets, not the literals.
+>
+> **The table is a raw `ShaderMaterial`** writing `gl_FragColor` directly — it does not respond to
+> lights at all, so its wood colours are final pixel values. Re-lighting the scene will not change
+> it; edit `TFRAG`.
+>
+> **The per-plant `PointLight` constructor intensity is inert** — `animatePlant()` overwrites
+> `.intensity` every frame in all three branches. Retune those, not the constructor.
 
 **Plant types** (deterministic: same hash as vivarium):
 - 0 = Rosling (spiral petals)
