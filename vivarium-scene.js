@@ -15,11 +15,15 @@ export function createVivariumRenderer(renderer, scene, camera, reducedMotion) {
 
   const composer = new EffectComposer(renderer);
   const renderPass = new RenderPass(scene, camera);
+  /* Threshold must sit ABOVE the background's luminance or the whole frame
+   * blooms. The original 0.15 was tuned for a near-black habitat; against the
+   * mid-key dawn background (luminance ~0.41) every pixel exceeded it and the
+   * scene saturated to pure white. 0.82 lets only the creature glows bloom. */
   const bloomPass = new UnrealBloomPass(
     new THREE.Vector2(window.innerWidth, window.innerHeight),
-    0.55,
-    0.45,
-    0.15
+    0.38,
+    0.40,
+    0.82
   );
   composer.addPass(renderPass);
   composer.addPass(bloomPass);
