@@ -10,17 +10,21 @@
 <style>
 /* ── TOKENS ──────────────────────────────────────────────────────────────── */
 :root {
-  --bg: #03060a;
-  --surface: rgba(8,14,24,0.66);
-  --accent: #79f7d4;
-  --accent-2: #b28cff;
-  --accent-dim: rgba(121,247,212,0.30);
-  --accent-glow: rgba(121,247,212,0.14);
-  --text: #f3f6ff;
-  --text-dim: rgba(243,246,255,0.70);
-  --text-mute: rgba(243,246,255,0.44);
-  --border: rgba(121,247,212,0.20);
-  --border-mid: rgba(121,247,212,0.36);
+  --bg: #a2b0a6;
+  /* Chrome surfaces are alpha variants of one hue. Routing the CHANNELS means
+   * the tonal flip is one edit here, not nine scattered literals. */
+  --surface-rgb: 244,247,243;
+  --accent-on: #f4f7f3;   /* text that sits ON the accent fill — 6.58:1 */
+  --surface: rgba(244,247,243,0.90);
+  --accent: #1a6353;   /* text-safe teal; --accent-rgb keeps the bright mint for glows */
+  --accent-2: #5a4a86;
+  --accent-dim: rgba(26,99,83,0.30);
+  --accent-glow: rgba(26,99,83,0.12);
+  --text: #1e2620;
+  --text-dim: rgba(30,38,32,0.80);
+  --text-mute: rgba(30,38,32,0.82);
+  --border: rgba(26,99,83,0.22);
+  --border-mid: rgba(26,99,83,0.40);
   --ff-serif: 'EB Garamond', Georgia, serif;
   --ff-body: 'Lora', Georgia, serif;
   --ff-mono: 'JetBrains Mono', 'Courier New', monospace;
@@ -38,29 +42,29 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg);
   position: fixed; top: 18px; left: 18px; z-index: var(--z-masthead);
   width: min(350px, calc(100vw - 36px)); padding: 16px 16px 14px;
   display: flex; flex-direction: column; align-items: flex-start; gap: 12px;
-  background: linear-gradient(160deg, rgba(6,12,24,0.84), rgba(10,18,34,0.62));
+  background: linear-gradient(160deg, rgba(var(--surface-rgb), 0.84), rgba(var(--surface-rgb), 0.62));
   backdrop-filter: blur(16px) saturate(1.24);
   -webkit-backdrop-filter: blur(16px) saturate(1.24);
-  border: 1px solid rgba(121,247,212,0.24);
+  border: 1px solid rgba(26,99,83, 0.24);
   border-radius: 20px;
   box-shadow: 0 20px 54px rgba(0,0,0,0.44);
 }
 .masthead__left { display: flex; flex-direction: column; gap: 1px; flex-shrink: 0; }
-.masthead__eyebrow { font-family: var(--ff-mono); font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(126,255,154,0.50); }
-.masthead__wordmark { font-family: var(--ff-serif); font-weight: 700; font-size: 24px; letter-spacing: 0.10em; text-transform: uppercase; color: var(--text); line-height: 1; text-shadow: 0 0 22px rgba(121,247,212,0.20); }
+.masthead__eyebrow { font-family: var(--ff-mono); font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: #113f35; }  /* on page sage, not panel: 5.20:1 */
+.masthead__wordmark { font-family: var(--ff-serif); font-weight: 700; font-size: 24px; letter-spacing: 0.10em; text-transform: uppercase; color: var(--text); line-height: 1; text-shadow: 0 0 22px rgba(26,99,83, 0.20); }
 .masthead__right { display: flex; flex-direction: column; align-items: stretch; gap: 10px; width: 100%; }
 .design-nav { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; width: 100%; }
-.design-nav a { font-family: var(--ff-mono); font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-dim); text-decoration: none; transition: color 0.18s; text-align: center; padding: 7px 6px; border: 1px solid rgba(121,247,212,0.18); border-radius: 6px; background: rgba(10,20,36,0.46); }
+.design-nav a { font-family: var(--ff-mono); font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-dim); text-decoration: none; transition: color 0.18s; text-align: center; padding: 7px 6px; border: 1px solid rgba(26,99,83, 0.18); border-radius: 6px; background: rgba(var(--surface-rgb), 0.46); }
 .design-nav a:hover { color: var(--text); }
 .design-nav a.active { color: var(--accent); }
 .stat-pill {
   display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px;
-  background: rgba(12,20,34,0.58); border: 1px solid var(--accent-dim); border-radius: 999px;
+  background: rgba(var(--surface-rgb), 0.58); border: 1px solid var(--accent-dim); border-radius: 999px;
   font-family: var(--ff-mono); font-size: 9px; letter-spacing: 0.10em; text-transform: uppercase; color: var(--accent); white-space: nowrap; width: 100%; justify-content: center;
 }
 .stat-pill::before { content: ''; display: block; width: 5px; height: 5px; border-radius: 50%; background: var(--accent); }
 .btn-viv {
-  height: 34px; padding: 0 12px; background: rgba(13,24,38,0.58); border: 1px solid rgba(240,235,224,0.14);
+  height: 34px; padding: 0 12px; background: rgba(var(--surface-rgb), 0.58); border: 1px solid rgba(26,99,83,0.22);
   border-radius: 2px; cursor: pointer; font-family: var(--ff-mono); font-size: 10.5px;
   letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-dim);
   transition: border-color 0.18s, color 0.18s; white-space: nowrap;
@@ -78,8 +82,8 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg);
 .focus-chip {
   position: fixed; top: 24px; right: 24px; z-index: var(--z-masthead);
   font-family: var(--ff-mono); font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase;
-  color: var(--accent); border: 1px solid rgba(121,247,212,0.26); border-radius: 999px;
-  background: rgba(9,18,32,0.66); padding: 8px 12px; pointer-events: none;
+  color: var(--accent); border: 1px solid rgba(26,99,83, 0.26); border-radius: 999px;
+  background: rgba(var(--surface-rgb), 0.66); padding: 8px 12px; pointer-events: none;
 }
 
 /* ── CREATURE LABELS ───────────────────────────────────────────────────── */
@@ -87,9 +91,9 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg);
 .creature-label {
   position: absolute; top: 0; left: 0; will-change: transform, opacity;
   font-family: var(--ff-mono); font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase;
-  color: rgba(243,246,255,0.82); white-space: nowrap;
-  padding: 4px 10px; background: rgba(8,14,24,0.84); border: 1px solid rgba(121,247,212,0.28);
-  border-radius: 3px; pointer-events: none; box-shadow: 0 8px 26px rgba(0,0,0,0.34);
+  color: rgba(30,38,32,0.88); white-space: nowrap;
+  padding: 4px 10px; background: rgba(var(--surface-rgb), 0.84); border: 1px solid rgba(26,99,83,0.30);
+  border-radius: 3px; pointer-events: none; box-shadow: 0 6px 18px rgba(0,0,0,0.16);
 }
 
 /* ── DRAWER ────────────────────────────────────────────────────────────── */
@@ -97,22 +101,22 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg);
 .drawer {
   position: fixed; left: 50%; bottom: 26px; z-index: var(--z-drawer);
   width: min(760px, calc(100vw - 34px)); max-height: min(78vh, 760px); overflow: hidden;
-  background: var(--surface); border-left: 1px solid rgba(121,247,212,0.20);
+  background: var(--surface); border-left: 1px solid rgba(26,99,83, 0.20);
   display: flex; flex-direction: column;
-  border: 1px solid rgba(121,247,212,0.26); border-radius: 16px;
+  border: 1px solid rgba(26,99,83, 0.26); border-radius: 16px;
   transform: translate(-50%,120%); will-change: transform;
 }
 .drawer__band { position: relative; height: 132px; flex-shrink: 0; background: var(--agent-color, var(--accent)); }
 .drawer__band::after {
   content: ''; position: absolute; inset: 0;
-  background: linear-gradient(180deg, rgba(8,14,24,0.34), rgba(8,14,24,0.72)); backdrop-filter: blur(8px) saturate(1.2);
+  background: linear-gradient(180deg, rgba(var(--surface-rgb), 0.34), rgba(var(--surface-rgb), 0.72)); backdrop-filter: blur(8px) saturate(1.2);
   -webkit-backdrop-filter: blur(8px) saturate(1.2);
 }
 .drawer__creature-name {
   position: absolute; inset: 0; z-index: 1;
   display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 3px;
   font-family: var(--ff-serif); font-weight: 700; font-size: 30px; line-height: 1;
-  letter-spacing: 0.02em; color: var(--text); text-shadow: 0 1px 8px rgba(0,0,0,0.55);
+  letter-spacing: 0.02em; color: #f4f7f3; text-shadow: 0 1px 8px rgba(0,0,0,0.55);  /* overlays the coloured stage fill, not the light surface */
 }
 .drawer__creature-name small {
   font-family: var(--ff-mono); font-size: 9px; letter-spacing: 0.16em;
@@ -125,7 +129,7 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg);
 }
 .close-drawer {
   position: absolute; top: 10px; right: 10px; z-index: 3;
-  background: rgba(8,15,8,0.55); border: 1px solid var(--border); border-radius: 2px;
+  background: rgba(var(--surface-rgb), 0.55); border: 1px solid var(--border); border-radius: 2px;
   width: 26px; height: 26px; cursor: pointer; color: var(--text-dim); font-size: 16px;
   line-height: 26px; text-align: center; transition: color 0.15s;
 }
@@ -140,20 +144,20 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg);
 .drawer__section:first-child { margin-top: 0; }
 .drawer__lede { font-family: var(--ff-body); font-size: 13px; line-height: 1.55; color: var(--text-dim); font-style: italic; margin-bottom: 12px; }
 .stat-label { display: flex; justify-content: space-between; font-family: var(--ff-mono); font-size: 10px; letter-spacing: 0.10em; text-transform: uppercase; color: var(--text-mute); margin-bottom: 6px; }
-.stat-label span:last-child { color: rgba(240,235,224,0.70); font-weight: 500; }
+.stat-label span:last-child { color: rgba(30,38,32,0.82); font-weight: 500; }
 .bar-track { height: 3px; background: rgba(240,235,224,0.07); margin-bottom: 16px; overflow: hidden; }
 .bar-fill { height: 100%; background: var(--accent); transition: width 0.6s cubic-bezier(0.22,1,0.36,1); }
-.bar-fill.xp { box-shadow: 0 0 7px rgba(126,255,154,0.55); }
+.bar-fill.xp { box-shadow: 0 0 7px rgba(26,99,83, 0.55); }
 .learning-list { list-style: none; display: flex; flex-direction: column; gap: 7px; }
 .learning-item { font-family: var(--ff-body); font-size: 13px; line-height: 1.55; color: rgba(240,235,224,0.70); padding: 7px 10px; background: rgba(240,235,224,0.03); border-left: 2px solid var(--accent-dim); }
 .learning-item .part { font-family: var(--ff-mono); font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); display: block; margin-bottom: 2px; }
 .learning-item .learn-when { display: block; font-family: var(--ff-mono); font-size: 8px; color: var(--text-mute); margin-top: 4px; }
 .learning-item .learn-row-actions { margin-top: 6px; }
-.drawer__footer { flex-shrink: 0; padding: 12px 24px 20px; border-top: 1px solid var(--border); background: linear-gradient(180deg, rgba(8,14,24,0.72), rgba(8,14,24,0.96)); }
+.drawer__footer { flex-shrink: 0; padding: 12px 24px 20px; border-top: 1px solid var(--border); background: linear-gradient(180deg, rgba(var(--surface-rgb), 0.72), rgba(var(--surface-rgb), 0.96)); }
 .drawer__feed-btn { width: 100%; height: 40px; background: transparent; border: 1px solid var(--accent-dim); border-radius: 2px; cursor: pointer; font-family: var(--ff-mono); font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); transition: background 0.18s, border-color 0.18s; }
-.drawer__feed-btn:hover { background: var(--accent-glow); border-color: rgba(126,255,154,0.50); }
+.drawer__feed-btn:hover { background: var(--accent-glow); border-color: var(--accent); }
 .drawer__copy-btn { margin-top: 8px; opacity: 0.85; }
-.drawer__footer .learn-row-btn { border-color: rgba(126,255,154,0.25); color: var(--accent); }
+.drawer__footer .learn-row-btn { border-color: rgba(26,99,83, 0.25); color: var(--accent); }
 
 /* ── EVOLVED OVERLAY ───────────────────────────────────────────────────── */
 .evolved-overlay {
@@ -165,9 +169,9 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg);
   content: ''; position: absolute; inset: 0; pointer-events: none;
   background: radial-gradient(ellipse 55% 45% at 50% 50%, rgba(178,140,255,0.10) 0%, transparent 70%);
 }
-.evolved-overlay__name { font-family: var(--ff-serif); font-weight: 700; font-size: clamp(50px, 7vw, 78px); line-height: 1; letter-spacing: 0.01em; color: var(--text); text-align: center; text-shadow: 0 0 24px rgba(121,247,212,0.26); }
-.evolved-overlay__tag { font-family: var(--ff-body); font-size: 15px; letter-spacing: 0.04em; color: var(--accent); text-align: center; font-style: italic; }
-.evolved-overlay__stage { font-family: var(--ff-mono); font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-mute); margin-top: 4px; text-align: center; max-width: 360px; line-height: 1.6; }
+.evolved-overlay__name { font-family: var(--ff-serif); font-weight: 700; font-size: clamp(50px, 7vw, 78px); line-height: 1; letter-spacing: 0.01em; color: #f4f7f3; text-align: center; text-shadow: 0 0 24px rgba(26,99,83, 0.26); }  /* light: sits on the dark scrim, not the light theme */
+.evolved-overlay__tag { font-family: var(--ff-body); font-size: 15px; letter-spacing: 0.04em; color: rgba(244,247,243,0.92); text-align: center; font-style: italic; }
+.evolved-overlay__stage { font-family: var(--ff-mono); font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(244,247,243,0.88); margin-top: 4px; text-align: center; max-width: 360px; line-height: 1.6; }
 
 /* ── MOBILE ────────────────────────────────────────────────────────────── */
 @media (max-width: 600px) {
@@ -304,10 +308,10 @@ renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-renderer.setClearColor(0x03060a);
+renderer.setClearColor(0xa2b0a6);
 
 const scene = new THREE.Scene();
-scene.fog   = new THREE.FogExp2(0x0b1220, 0.022);
+scene.fog   = new THREE.FogExp2(0xa2b0a6, 0.042);
 
 const camera = new THREE.PerspectiveCamera(42, innerWidth / innerHeight, 0.1, 140);
 camera.position.set(0, 5.6, 12.8);
@@ -316,15 +320,15 @@ let camTargetX = 0;
 const vivariumRenderer = createVivariumRenderer(renderer, scene, camera, reducedMotion);
 
 /* ── LIGHTS ─────────────────────────────────────────────────────────────── */
-scene.add(new THREE.HemisphereLight(0x8fd3ff, 0x0b1320, 0.42));
-const sun = new THREE.DirectionalLight(0x9fe7ff, 0.70);
+scene.add(new THREE.HemisphereLight(0xd6e4dc, 0x7d8a80, 0.85));
+const sun = new THREE.DirectionalLight(0xffe8cc, 1.05);
 sun.position.set(5, 10, 4);
 sun.castShadow = true;
 sun.shadow.mapSize.set(1536, 1536);
 Object.assign(sun.shadow.camera, { near:0.5, far:40, left:-12, right:12, top:8, bottom:-8 });
 sun.shadow.bias = -0.001;
 scene.add(sun);
-const rim = new THREE.DirectionalLight(0xc29bff, 0.38);
+const rim = new THREE.DirectionalLight(0xbcd4e8, 0.40);
 rim.position.set(-7, 5, -6);
 scene.add(rim);
 
@@ -337,9 +341,9 @@ float n2(vec2 p){vec2 i=floor(p);vec2 f=fract(p);f=f*f*(3.0-2.0*f);
 void main(){
   float n=n2(vP.xz*0.9)*0.45+n2(vP.xz*2.8)*0.35+n2(vP.xz*6.4)*0.20;
   float veins=abs(sin(vP.x*0.55)+cos(vP.z*0.52))*0.28;
-  vec3 c0=vec3(0.030,0.052,0.090);
-  vec3 c1=vec3(0.070,0.132,0.190);
-  vec3 c2=vec3(0.160,0.128,0.280);
+  vec3 c0=vec3(0.520,0.560,0.505);
+  vec3 c1=vec3(0.605,0.640,0.575);
+  vec3 c2=vec3(0.545,0.530,0.585);
   vec3 col=mix(c0,c1,n);
   col=mix(col,c2,veins*0.45);
   gl_FragColor=vec4(col,1.0);
@@ -353,10 +357,13 @@ ground.receiveShadow = true;
 scene.add(ground);
 
 /* ── FIREFLIES ──────────────────────────────────────────────────────────── */
+/* Fireflies -> pollen. These were emissive mint/violet/white points that only
+ * read against a black surround; on dawn mist they disappear entirely. Darker,
+ * denser tones read as matter drifting in morning light instead. */
 const SPORE_BANDS = [
-  { count: 180, color: 0x79f7d4, size: 0.028, opacity: 0.42, yMin: 0.4, yMax: 4.8, drift: 0.0017 },
-  { count: 80, color: 0xb28cff, size: 0.058, opacity: 0.34, yMin: 0.6, yMax: 4.2, drift: 0.0022 },
-  { count: 20, color: 0xf3f6ff, size: 0.10, opacity: 0.65, yMin: 1.2, yMax: 5.3, drift: 0.0014 }
+  { count: 180, color: 0x3f6b5c, size: 0.030, opacity: 0.46, yMin: 0.4, yMax: 4.8, drift: 0.0017 },
+  { count: 80, color: 0x5a4a78, size: 0.058, opacity: 0.38, yMin: 0.6, yMax: 4.2, drift: 0.0022 },
+  { count: 20, color: 0x6b7a70, size: 0.10, opacity: 0.55, yMin: 1.2, yMax: 5.3, drift: 0.0014 }
 ];
 const sporeBands = SPORE_BANDS.map((cfg) => {
   const pos = new Float32Array(cfg.count * 3);
@@ -382,7 +389,7 @@ for (let i = 0; i < 9; i += 1) {
   const z = -6.8 - (i % 2) * 0.7;
   const arch = new THREE.Mesh(
     new THREE.CylinderGeometry(0.06, 0.12, h, 7),
-    new THREE.MeshStandardMaterial({ color: 0x0a0f1c, roughness: 0.86, metalness: 0.06 })
+    new THREE.MeshStandardMaterial({ color: 0x8b968c, roughness: 0.94, metalness: 0.0 })
   );
   arch.position.set(x, h / 2, z);
   scene.add(arch);
