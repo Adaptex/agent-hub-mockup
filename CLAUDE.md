@@ -461,6 +461,39 @@ the deep bands need light. They are set per-band via `.rail-tick:nth-child(n)`.
 
 ---
 
+## Tonal Range (as of 2026-08-03)
+
+The suite deliberately spans three value keys. Before this, all seven flagships sat between
+`#020509` and `#111010` and the set read as one mood in seven costumes.
+
+| Design | Key | Background |
+|---|---|---|
+| Grove | high | `#f5f0e8` |
+| Vivarium | mid | `#a2b0a6` |
+| Tidal Archive | spans internally | photic → hadal |
+| Constellation Forge, Lantern Garden, Neural Mesh, Foundry Glass | low | unchanged — concept-locked |
+
+The four low-key designs are concept-locked: deep space, an explicitly *night* garden, a synaptic
+void, and a forge kept dark so glowing metal reads. **Do not "balance" the set by lightening them.**
+
+### Vivarium — what a tonal flip breaks
+
+Background `#a2b0a6`, accent `#1a6353`, fonts EB Garamond + Lora + JetBrains Mono.
+
+- **Bloom must be re-thresholded.** `vivarium-scene.js` runs `UnrealBloomPass`. Its threshold was
+  `0.15` — fine against near-black, but a mid-key background has luminance ~0.41, so *every pixel*
+  exceeded it and the frame saturated to pure white. Now `0.82`. **A bloom threshold must sit above
+  the background's luminance.**
+- **Text on dark fills must stay light.** The EVOLVED overlay keeps a dark scrim on purpose, and
+  the drawer creature-name overlays a coloured stage fill. Both need light text even though the
+  theme is light. A blanket palette flip makes them invisible.
+- **The ground is a `ShaderMaterial`** writing `gl_FragColor` directly — it ignores lights, exactly
+  like Grove's table. Re-lighting will not change it; edit `GFRAG`.
+- **Emissive effects need re-tuning, not re-colouring.** Fireflies became lit pollen; the old
+  additive points only read against black.
+
+---
+
 ## Known Remaining Issues
 
 1. **Duplicate creature/plant names** — 4 agents × 4 types × 4 variants = some hash collisions
