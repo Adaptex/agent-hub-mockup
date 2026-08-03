@@ -12,8 +12,8 @@
   --surface-void:    #020509;
   --surface-deep:    #060d18;
   --surface-mid:     #0b1825;
-  --depth-photic:    #1a2a4a;
-  --depth-twilight:  #0d1a35;
+  --depth-photic:    #4f9ab8;
+  --depth-twilight:  #163a5c;
   --depth-midnight:  #050d1e;
   --depth-hadal:     #020508;
   --ink-primary:     #d8e8f5;
@@ -41,7 +41,14 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--surf
   display: flex; flex-direction: column; padding-top: 56px; overflow: hidden;
 }
 .rail-tick { flex: 1; display: flex; align-items: center; justify-content: center; border-top: 1px solid rgba(255,255,255,0.05); }
-.rail-tick span { writing-mode: vertical-rl; transform: rotate(180deg); font-family: 'JetBrains Mono', monospace; font-size: 8px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-faint); user-select: none; }
+.rail-tick span { writing-mode: vertical-rl; transform: rotate(180deg); font-family: 'JetBrains Mono', monospace; font-size: 8px; letter-spacing: 0.12em; text-transform: uppercase; color: #cfe4f2; user-select: none; }
+/* Each tick sits on its own band of the depth gradient, so one shared colour
+ * cannot pass contrast on all four. Now that photic is a genuinely sunlit
+ * cyan it needs dark ink, while the deep bands still need light. */
+.rail-tick:nth-child(1) span { color: #04141d; }  /* on photic  #4f9ab8 -> 5.92:1 */
+.rail-tick:nth-child(2) span { color: #cfe4f2; }  /* on twilight #163a5c -> 8.94:1 */
+.rail-tick:nth-child(3) span { color: #cfe4f2; }  /* on midnight #050d1e -> 14.81:1 */
+.rail-tick:nth-child(4) span { color: #cfe4f2; }  /* on hadal    #020508 -> 15.60:1 */
 
 /* HUD */
 #hud-top {
@@ -230,7 +237,30 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x020509);
+/* Build the scene backdrop from the same --depth-* tokens that drive
+ * #depth-rail, so the labelled zones and the rendered water can never
+ * drift apart. Previously the scene was a flat hadal black while the rail
+ * claimed four distinct zones — the design labelled a depth gradient it
+ * never actually rendered. Stops match the rail's 0/30/65/100%. */
+function depthBackdrop() {
+  const css = getComputedStyle(document.documentElement);
+  const stops = ['--depth-photic', '--depth-twilight', '--depth-midnight', '--depth-hadal']
+    .map(n => css.getPropertyValue(n).trim());
+  const c = document.createElement('canvas');
+  c.width = 2; c.height = 512;
+  const g = c.getContext('2d');
+  const grad = g.createLinearGradient(0, 0, 0, c.height);
+  grad.addColorStop(0.00, stops[0]);
+  grad.addColorStop(0.30, stops[1]);
+  grad.addColorStop(0.65, stops[2]);
+  grad.addColorStop(1.00, stops[3]);
+  g.fillStyle = grad;
+  g.fillRect(0, 0, c.width, c.height);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+scene.background = depthBackdrop();
 scene.fog = new THREE.FogExp2(0x020509, 0.00055);
 
 const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 2000);
@@ -578,6 +608,16 @@ const clock = new THREE.Clock();
 let elapsed = 0;
 const _tv3 = new THREE.Vector3();
 
+/* Fog tracks the camera's depth so descending genuinely darkens instead of
+ * staying one flat blue at every altitude. Bounds match the wheel handler's
+ * clamp above (+280 surface .. -460 hadal); the plan's guessed 160/-120 would
+ * have saturated the lerp well before the camera reached either extreme.
+ * Colours are hoisted — never allocate THREE.Color inside a RAF loop. */
+const DEPTH_TOP = 280, DEPTH_BOTTOM = -460;
+const _cssRoot = getComputedStyle(document.documentElement);
+const _fogShallow = new THREE.Color(_cssRoot.getPropertyValue('--depth-twilight').trim());
+const _fogDeep = new THREE.Color(_cssRoot.getPropertyValue('--depth-hadal').trim());
+
 function tick() {
   requestAnimationFrame(tick);
   const dt = clock.getDelta();
@@ -586,6 +626,15 @@ function tick() {
   // Camera lerp
   camera.position.y += (camTargetY - camera.position.y) * 0.055;
   camera.lookAt(0, camera.position.y - 55, 0);
+
+  const depthT = THREE.MathUtils.clamp(
+    (camera.position.y - DEPTH_BOTTOM) / (DEPTH_TOP - DEPTH_BOTTOM), 0, 1);
+  scene.fog.color.copy(_fogDeep).lerp(_fogShallow, depthT);
+  /* scene.background is a texture, so it renders in SCREEN space and does not
+   * move with the camera — without this the sunlit photic band stayed pinned to
+   * the top of the viewport even at hadal depth. Dimming the whole backdrop by
+   * depth is what makes descending actually go dark. */
+  scene.backgroundIntensity = 0.06 + depthT * 0.94;
 
   // Marine snow
   if (!reduceMotion) {
